@@ -11,6 +11,7 @@ def getlistname(args):
 
 	listname = args[0]
 	del args[0]
+
 	try:
 		socname, suffix = listname.split("-", 1)
 	except ValueError:
@@ -20,6 +21,10 @@ def getlistname(args):
 		username = pwd.getpwuid(os.getuid()).pw_name
 	except KeyError:
 		raise NonexistantUidError(os.getuid())
+
+	# root controls all
+	if username == "root":
+		return listname
 
 	# personal lists: crsid-foo
 	if socname == username:
