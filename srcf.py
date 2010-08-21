@@ -119,3 +119,12 @@ def get_societies(name=None):
 						joindate=fields[3]
 					)
 
+
+def get_society(name):
+	try:
+		socs = get_societies(name)
+		soc = socs.next()
+		socs.close()
+	except StopIteration:
+		raise KeyError(name)
+
