@@ -125,6 +125,7 @@ def get_society(name):
 		socs = get_societies(name)
 		soc = socs.next()
 		socs.close()
+		return soc
 	except StopIteration:
 		raise KeyError(name)
 
