@@ -85,6 +85,16 @@ def get_members(crsid=None):
 					)
 
 
+def get_member(crsid):
+	try:
+		members = get_members(crsid)
+		member = members.next()
+		members.close()
+		return member
+	except StopIteration:
+		raise KeyError(crsid)
+
+
 def get_users():
 	"""Return a generator representing those SRCF memberlist entries for which
 	   the status is recorded as 'user'.
