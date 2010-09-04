@@ -73,7 +73,7 @@ def get_members(crsid=None):
 	with open(MEMBERLIST, 'r') as f:
 		for line in f:
 			fields = line.strip().split(":")
-			if crsid == None or crsid == fields[0]:
+			if crsid is None or crsid == fields[0]:
 				yield Member(
 						crsid=fields[0],
 						surname=fields[1],
@@ -105,19 +105,21 @@ def get_users():
 			yield member
 
 
-def get_societies(name=None):
+def get_societies(name=None, admin=None):
 	"""Return a generator representing the complete SRCF soclist, or just the
 	   soclist entry for the given society short name."""
 	with open(SOCLIST, 'r') as f:
 		for line in f:
 			fields = line.strip().split(":")
-			if name == None or name == fields[0]:
-				yield Society(
-						name=fields[0],
-						description=fields[1],
-						admins=MemberSet(fields[2].split(",")),
-						joindate=fields[3]
-					)
+			if name is None or name == fields[0]:
+				admins = MemberSet(fields[2].split(","))
+				if admin is None or admin in admins:
+					yield Society(
+							name=fields[0],
+							description=fields[1],
+							admins=admins,
+							joindate=fields[3]
+						)
 
 
 def get_society(name):
