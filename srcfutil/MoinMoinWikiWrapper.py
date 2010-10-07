@@ -176,9 +176,8 @@ def runCGIwiki(moinmoinversion, configdir, loggingconfig="/usr/share/doc/python-
 	#    If you have set up MOINLOGGINGCONF environment variable, you don't need this!
 	#    You also don't need this if you are happy with the builtin defaults.
 	#    See wiki/config/logging/... for some sample config files.
-	if loggingconfig:
-		from MoinMoin import log
-		log.load_config(loggingconfig)
+	from MoinMoin import log
+	log.load_config(loggingconfig)
 
 	# this works around a bug in flup's CGI autodetection (as of flup 1.0.1):
 	os.environ['FCGI_FORCE_CGI'] = 'Y' # 'Y' for (slow) CGI, 'N' for FCGI
