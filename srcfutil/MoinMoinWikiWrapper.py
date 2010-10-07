@@ -157,7 +157,7 @@ class SRCFMoinMoinConfig(multiconfig.DefaultConfig):
 	#chart_options = {'width': 600, 'height': 300}
 
 
-def runCGIwiki(moinmoinversion, configdir, loggingconfig=None):
+def runCGIwiki(moinmoinversion, configdir, loggingconfig="/usr/share/doc/python-moinmoin/examples/config/logging/stderr"):
 
 	# a) Configuration of Python's code search path
 	#    If you already have set up the PYTHONPATH environment variable for the
@@ -184,7 +184,6 @@ def runCGIwiki(moinmoinversion, configdir, loggingconfig=None):
 	os.environ['FCGI_FORCE_CGI'] = 'Y' # 'Y' for (slow) CGI, 'N' for FCGI
 
 	# SRCF hack: avoid "index.cgi" appearing in generated URLs
-	import os
 	os.environ['SCRIPT_NAME'] = os.environ['SCRIPT_NAME'].replace('/index.cgi','',1)
 
 	if moinmoinversion == "1.9.2":
