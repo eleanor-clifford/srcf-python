@@ -14,7 +14,7 @@ from MoinMoin.config import multiconfig, url_prefix_static
 
 class SRCFMoinMoinConfig(multiconfig.DefaultConfig):
 
-	def __init__(self, configdir, title, args):
+	def __init__(self, configdir, title, srcfgroup, args):
 
 		# Critical setup  ---------------------------------------------------
 
@@ -37,7 +37,19 @@ class SRCFMoinMoinConfig(multiconfig.DefaultConfig):
 		self.data_underlay_dir = os.path.join(self.instance_dir, 'underlay', '') # path with trailing /
 
 		# Site name, used by default for wiki name-logo [Unicode]
-		self.sitename = title
+		if self.sitename is None:
+			self.sitename = title
+
+		# This is checked by some rather critical and potentially harmful actions,
+		# like despam or PackageInstaller action:
+		if self.superuser is None:
+			self.superuser = grp.getgrnam(srcfgroup)[3] + [srcfgroup]
+
+		# IMPORTANT: grant yourself admin rights! replace YourName with
+		# your user name. See HelpOnAccessControlLists for more help.
+		# All acl_rights_xxx options must use unicode [Unicode]
+		if self.acl_rights_before is None:
+			acl_rights_before = map(lambda user: u"%s:read,write,delete,revert,admin" % user, self.superuser)
 
 		multiconfig.DefaultConfig.__init__(self, args)
 
@@ -74,6 +86,10 @@ class SRCFMoinMoinConfig(multiconfig.DefaultConfig):
 
 
 	# Security ----------------------------------------------------------
+
+	# Use Raven authentication
+	from MoinMoin.auth import GivenAuth
+	auth = [GivenAuth(autocreate=True)]
 
 	# This is checked by some rather critical and potentially harmful actions,
 	# like despam or PackageInstaller action:
