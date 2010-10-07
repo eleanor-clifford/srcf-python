@@ -8,7 +8,7 @@
 	@license: GNU GPL, see COPYING for details.
 """
 
-import sys, os
+import sys, os, grp
 from MoinMoin.config import multiconfig, url_prefix_static
 
 
@@ -42,13 +42,13 @@ class SRCFMoinMoinConfig(multiconfig.DefaultConfig):
 
 		# This is checked by some rather critical and potentially harmful actions,
 		# like despam or PackageInstaller action:
-		if self.superuser is None:
+		if not self.superuser:
 			self.superuser = grp.getgrnam(srcfgroup)[3] + [srcfgroup]
 
 		# IMPORTANT: grant yourself admin rights! replace YourName with
 		# your user name. See HelpOnAccessControlLists for more help.
 		# All acl_rights_xxx options must use unicode [Unicode]
-		if self.acl_rights_before is None:
+		if not self.acl_rights_before:
 			acl_rights_before = map(lambda user: u"%s:read,write,delete,revert,admin" % user, self.superuser)
 
 		multiconfig.DefaultConfig.__init__(self, args)
