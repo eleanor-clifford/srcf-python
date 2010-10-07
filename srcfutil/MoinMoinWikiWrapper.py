@@ -37,7 +37,7 @@ class SRCFMoinMoinConfig(multiconfig.DefaultConfig):
 		self.data_underlay_dir = os.path.join(self.instance_dir, 'underlay', '') # path with trailing /
 
 		# Site name, used by default for wiki name-logo [Unicode]
-		if self.sitename is None:
+		if not self.sitename or self.sitename == "Untitled Wiki":
 			self.sitename = title
 
 		# This is checked by some rather critical and potentially harmful actions,
@@ -173,7 +173,8 @@ class SRCFMoinMoinConfig(multiconfig.DefaultConfig):
 	#chart_options = {'width': 600, 'height': 300}
 
 
-def runCGIwiki(moinmoinversion, configdir, loggingconfig="/usr/share/doc/python-moinmoin/examples/config/logging/stderr"):
+# TODO: logging config is a placeholder (uses /tmp/moin.log)
+def runCGIwiki(moinmoinversion, configdir, loggingconfig="/usr/share/moin/config/logging/logfile"):
 
 	# a) Configuration of Python's code search path
 	#    If you already have set up the PYTHONPATH environment variable for the
