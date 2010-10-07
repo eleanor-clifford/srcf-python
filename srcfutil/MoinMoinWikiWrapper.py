@@ -42,20 +42,20 @@ class SRCFMoinMoinConfig(multiconfig.DefaultConfig):
 		self.data_underlay_dir = os.path.join(self.instance_dir, 'underlay', '') # path with trailing /
 
 		# Site name, used by default for wiki name-logo [Unicode]
-		if not self.sitename or self.sitename == "Untitled Wiki":
+		if not self.sitename or self.sitename == multiconfig.DefaultConfig.sitename:
 			self.sitename = title
 
 		# This is checked by some rather critical and potentially harmful actions,
 		# like despam or PackageInstaller action:
-		if not self.superuser:
+		if not self.superuser or self.superuser == multiconfig.DefaultConfig.superuser:
 			self.superuser = grp.getgrnam(srcfgroup)[3] + [srcfgroup]
 
 		# IMPORTANT: grant yourself admin rights! replace YourName with
 		# your user name. See HelpOnAccessControlLists for more help.
 		# All acl_rights_xxx options must use unicode [Unicode]
-		if not self.acl_rights_before:
+		if not self.acl_rights_before or self.acl_rights_before == multiconfig.DefaultConfig.acl_rights_before:
 			self.acl_rights_before = " ".join(map(lambda user: u"%s:read,write,delete,revert,admin" % user, self.superuser))
-		if not self.acl_rights_default:
+		if not self.acl_rights_default or self.acl_rights_default == multiconfig.DefaultConfig.acl_rights_default:
 			self.acl_rights_default = u"All:read"
 
 		multiconfig.DefaultConfig.__init__(self, args)
