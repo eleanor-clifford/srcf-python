@@ -55,6 +55,8 @@ class SRCFMoinMoinConfig(multiconfig.DefaultConfig):
 		# All acl_rights_xxx options must use unicode [Unicode]
 		if not self.acl_rights_before:
 			acl_rights_before = map(lambda user: u"%s:read,write,delete,revert,admin" % user, self.superuser)
+		if not self.acl_rights_default:
+			acl_rights_default = u"All:read"
 
 		multiconfig.DefaultConfig.__init__(self, args)
 
