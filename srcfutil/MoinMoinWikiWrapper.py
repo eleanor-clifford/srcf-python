@@ -142,7 +142,7 @@ class SRCFMoinMoinConfig(multiconfig.DefaultConfig):
 	# according to the user selected language. [Unicode]
 	navi_bar = [
 	    # If you want to show your page_front_page here:
-	    #u'%(page_front_page)s',
+	    u'%(page_front_page)s',
 	    u'RecentChanges',
 	    u'FindPage',
 	    u'HelpContents',
