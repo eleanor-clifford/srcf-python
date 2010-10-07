@@ -14,7 +14,7 @@ from MoinMoin.config import multiconfig, url_prefix_static
 
 class SRCFMoinMoinConfig(multiconfig.DefaultConfig):
 
-	def __init__(self, configdir, title):
+	def __init__(self, configdir, title, args):
 
 		# Critical setup  ---------------------------------------------------
 
@@ -39,7 +39,7 @@ class SRCFMoinMoinConfig(multiconfig.DefaultConfig):
 		# Site name, used by default for wiki name-logo [Unicode]
 		self.sitename = title
 
-		multiconfig.DefaultConfig.__init__(self)
+		multiconfig.DefaultConfig.__init__(self, args)
 
 
 	# The URL prefix we use to access the static stuff (img, css, js).
