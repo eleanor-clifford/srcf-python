@@ -73,10 +73,10 @@ class SRCFMoinMoinConfig(multiconfig.DefaultConfig):
 	# name of entry page / front page [Unicode], choose one of those:
 
 	# a) if most wiki content is in a single language
-	page_front_page = u"MyStartingPage"
+	#page_front_page = u"MyStartingPage"
 
 	# b) if wiki content is maintained in many languages
-	#page_front_page = u"FrontPage"
+	page_front_page = u"FrontPage"
 
 	# The interwiki name used in interwiki links
 	#interwikiname = u'UntitledWiki'
