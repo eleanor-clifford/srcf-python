@@ -102,7 +102,7 @@ class SRCFMoinMoinConfig(multiconfig.DefaultConfig):
 	# SMTP server, e.g. "mail.provider.com" (None to disable mail)
 	mail_smarthost = "localhost"
 
-	# The return address, e.g u"Jürgen Wiki <noreply@mywiki.org>" [Unicode]
+	# The return address, e.g u"Ihate Unicode <noreply@mywiki.org>" [Unicode]
 	mail_from = u"Wiki on SRCF <support@srcf.ucam.org>"
 
 	# "user pwd" if you need to use SMTP AUTH
