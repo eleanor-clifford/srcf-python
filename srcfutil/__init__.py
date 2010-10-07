@@ -1,1 +1,1 @@
-__all__ = ["MultipartPostHandler"]
+__all__ = ["MultipartPostHandler", "OldWiki", "MoinMoinWikiWrapper"]
