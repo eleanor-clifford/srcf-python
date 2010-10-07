@@ -12,7 +12,7 @@ import sys, os, grp
 
 from MoinMoin import log
 # This needs to happen before multiconfig is imported :-(
-log.load_config("/usr/share/moin/config/logging/stderr")
+log.load_config("/usr/local/share/srcf/moin-1.9.2/logconfig.stderr")
 
 from MoinMoin.config import multiconfig, url_prefix_static
 
