@@ -9,6 +9,11 @@
 """
 
 import sys, os, grp
+
+from MoinMoin import log
+# This needs to happen before multiconfig is imported :-(
+log.load_config("/usr/share/moin/config/logging/stderr")
+
 from MoinMoin.config import multiconfig, url_prefix_static
 
 
@@ -173,8 +178,7 @@ class SRCFMoinMoinConfig(multiconfig.DefaultConfig):
 	#chart_options = {'width': 600, 'height': 300}
 
 
-# TODO: logging config is a placeholder (uses /tmp/moin.log)
-def runCGIwiki(moinmoinversion, configdir, loggingconfig="/usr/share/moin/config/logging/logfile"):
+def runCGIwiki(moinmoinversion, configdir):
 
 	# a) Configuration of Python's code search path
 	#    If you already have set up the PYTHONPATH environment variable for the
@@ -193,8 +197,7 @@ def runCGIwiki(moinmoinversion, configdir, loggingconfig="/usr/share/moin/config
 	#    If you have set up MOINLOGGINGCONF environment variable, you don't need this!
 	#    You also don't need this if you are happy with the builtin defaults.
 	#    See wiki/config/logging/... for some sample config files.
-	from MoinMoin import log
-	log.load_config(loggingconfig)
+	# This is done on import (ugh) because multiconfig prods the logger on input (ugh ugh!).
 
 	# this works around a bug in flup's CGI autodetection (as of flup 1.0.1):
 	os.environ['FCGI_FORCE_CGI'] = 'Y' # 'Y' for (slow) CGI, 'N' for FCGI
