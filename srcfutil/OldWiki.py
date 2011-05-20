@@ -4,10 +4,10 @@ def oldwiki():
     exists."""
     import sys
     from syslog import syslog
-    from os import env, path
+    from os import environ, path
 
     try:
-        this = env['SCRIPT_FILENAME']
+        this = environ['SCRIPT_FILENAME']
     except KeyError:
         this = 'unknown location :('
 
