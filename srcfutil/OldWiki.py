@@ -4,11 +4,11 @@ def oldwiki():
     exists."""
     import sys
     from syslog import syslog
-    from os import path
+    from os import env, path
 
     try:
-        this = sys.argv[0]
-    except IndexError:
+        this = env['SCRIPT_FILENAME']
+    except KeyError:
         this = 'unknown location :('
 
     syslog('OldWiki handler triggered at ' + this)
