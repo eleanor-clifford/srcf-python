@@ -21,7 +21,18 @@ class _StringyObject(object):
 
 
 class Member(_StringyObject):
-	"A SRCF memberlist entry, containing metadata about a member"
+	"""A SRCF memberlist entry, containing metadata about a member.
+	
+	   Useful fields:
+	       crsid ..... e.g. "spqr2"
+	       surname
+	       firstname
+	       name ...... firstname surname
+	       initials .. "S.P.Q."
+	       email
+	       status .... "member", "user", "honorary"...
+	       joindate .. "1970/01"
+	"""
 
 	def __init__(self, crsid, surname, firstname, initials, email, status, joindate):
 		self.crsid = crsid
@@ -52,7 +63,15 @@ class MemberSet(frozenset):
 
 
 class Society(_StringyObject):
-	"A SRCF soclist entry, containing metadata about a society account"
+	"""A SRCF soclist entry, containing metadata about a society account.
+
+	   Useful fields:
+	       name .......... "foosoc"
+	       description ... "CU Foo Society"
+	       joindate ...... "1970/01"
+	       admin_crsids .. list of strings
+	       admins ........ a MemberSet object
+	"""
 
 	def __init__(self, name, description, admins, joindate):
 		self.name = name
