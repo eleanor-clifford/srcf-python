@@ -86,6 +86,7 @@ def get_members(crsid=None):
 
 
 def get_member(crsid):
+	"Return the Member object for the given crsid."
 	try:
 		members = get_members(crsid)
 		member = members.next()
@@ -96,8 +97,8 @@ def get_member(crsid):
 
 
 def get_users():
-	"""Return a generator representing those SRCF memberlist entries for which
-	   the status is recorded as 'user'.
+	"""Return a generator for Member objects representing those SRCF memberlist
+	   entries for which the status is recorded as 'user'.
 
 	   NB: does not treat honorary members as users.  In practice, they may be."""
 	for member in get_members():
@@ -106,8 +107,9 @@ def get_users():
 
 
 def get_societies(name=None, admin=None):
-	"""Return a generator representing the complete SRCF soclist, or just the
-	   soclist entry for the given society short name."""
+	"""Return a generator for Society objects representing the complete SRCF soclist,
+	   or just the soclist entry for the given society short name, or the soclist
+	   entries for societies with the given administrator."""
 	with open(SOCLIST, 'r') as f:
 		for line in f:
 			fields = line.strip().split(":")
@@ -123,6 +125,7 @@ def get_societies(name=None, admin=None):
 
 
 def get_society(name):
+	"Return the Society object for the given society short name."
 	try:
 		socs = get_societies(name)
 		soc = socs.next()
