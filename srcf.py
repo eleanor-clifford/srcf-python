@@ -69,7 +69,6 @@ class Society(_StringyObject):
 	       name .......... "foosoc"
 	       description ... "CU Foo Society"
 	       joindate ...... "1970/01"
-	       admin_crsids .. list of strings
 	       admins ........ a MemberSet object
 	"""
 
@@ -77,22 +76,20 @@ class Society(_StringyObject):
 		self.name = name
 		self.description = description
 		self.joindate = joindate
-		self.admin_crsids = []
-		for admin in admins:
-			self.admin_crsids += list(get_members(crsid=admin))
-		self.admins = MemberSet(self.admin_crsids)
+		self.admins = MemberSet(get_members(crsids=admins))
 
 	def __str__(self):
 		return self.name
 
 
-def get_members(crsid=None):
+def get_members(crsids=None):
 	"""Return a generator representing the complete SRCF memberlist, or just the
 	   memberlist entry for the given CRSID"""
+	get_all = (crsids is None)
 	with open(MEMBERLIST, 'r') as f:
 		for line in f:
 			fields = line.strip().split(":")
-			if crsid is None or crsid == fields[0]:
+			if get_all or fields[0] in crsids:
 				yield Member(
 						crsid=fields[0],
 						surname=fields[1],
@@ -107,7 +104,7 @@ def get_members(crsid=None):
 def get_member(crsid):
 	"Return the Member object for the given crsid."
 	try:
-		members = get_members(crsid)
+		members = get_members(crsids=[crsid])
 		member = members.next()
 		members.close()
 		return member
