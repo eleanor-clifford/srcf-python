@@ -5,21 +5,6 @@ MEMBERLIST="/societies/sysadmins/admin/memberlist"
 SOCLIST="/societies/sysadmins/admin/soclist"
 
 
-class _StringyObject(object):
-	"""An object which pretends to be a string as far as equality and hashing is
-	   concerned.  Not intended to be used directly.  Subclasses should implement
-	   __str__ (and it should be static for a given object: no mutability please!)."""
-
-	def __eq__(self, other):
-		return str(self) == str(other)
-
-	def __ne__(self, other):
-		return str(self) <> str(other)
-
-	def __hash__(self):
-		return hash(str(self))
-
-
 class Member(str):
 	"""A SRCF memberlist entry, containing metadata about a member.
 	
@@ -65,7 +50,7 @@ class MemberSet(frozenset):
 		return "\n".join(outlines)
 
 
-class Society(_StringyObject):
+class Society(str):
 	"""A SRCF soclist entry, containing metadata about a society account.
 
 	   Useful fields:
@@ -80,6 +65,9 @@ class Society(_StringyObject):
 		self.description = description
 		self.joindate = joindate
 		self.admins = MemberSet(get_members(crsids=admins))
+
+	def __new__(cls, name, description, admins, joindate):
+		str.__new__(cls, name)
 
 	def __str__(self):
 		return self.name
