@@ -20,7 +20,7 @@ class _StringyObject(object):
 		return hash(str(self))
 
 
-class Member(_StringyObject):
+class Member(str):
 	"""A SRCF memberlist entry, containing metadata about a member.
 	
 	   Useful fields:
@@ -43,6 +43,9 @@ class Member(_StringyObject):
 		self.email = email
 		self.status = status
 		self.joindate = joindate
+
+	def __new__(cls, crsid, surname, firstname, initials, email, status, joindate):
+		str.__new__(cls, crsid)
 
 	def __str__(self):
 		return self.crsid
