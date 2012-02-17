@@ -30,7 +30,7 @@ class Member(str):
 		self.joindate = joindate
 
 	def __new__(cls, crsid, surname, firstname, initials, email, status, joindate):
-		str.__new__(cls, crsid)
+		return str.__new__(cls, crsid)
 
 	def __str__(self):
 		return self.crsid
@@ -67,7 +67,7 @@ class Society(str):
 		self.admins = MemberSet(get_members(crsids=admins))
 
 	def __new__(cls, name, description, admins, joindate):
-		str.__new__(cls, name)
+		return str.__new__(cls, name)
 
 	def __str__(self):
 		return self.name
