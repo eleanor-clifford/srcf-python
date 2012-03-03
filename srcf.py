@@ -45,7 +45,7 @@ class MemberSet(frozenset):
 		outlines = []
 		for user in self:
 			maxlen = max(maxlen, len(user.name))
-		for user in self:
+		for user in sorted(self):
 			outlines += ["  %s%s  (%s)" % (user.name, " "*(maxlen-len(user.name)), user.crsid)]
 		return "\n".join(outlines)
 
