@@ -181,7 +181,7 @@ def get_socadmins(admins=None):
 	for member in get_members(crsids=admins):
 		yield member
 	for admin in get_sysadmins(users=admins):
-		yield (admin.member)
+		yield admin
 
 
 def get_societies(name=None, admin=None):
