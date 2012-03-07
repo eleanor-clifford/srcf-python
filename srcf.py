@@ -62,7 +62,7 @@ class Sysadmin(Member):
 		self.name = "%s %s (Sysadmin Account)" % (member.firstname, member.surname)
 		self.user = user
 
-	def __new__(self, user):
+	def __new__(cls, user):
 		return str.__new__(cls,user)
 
 	def __str__(self):
