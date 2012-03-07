@@ -62,6 +62,13 @@ class Sysadmin(Member):
 		self.name = "%s %s (Sysadmin Account)" % (member.firstname, member.surname)
 		self.user = user
 
+	def __new__(self, user):
+		return str.__new__(cls,user)
+
+	def __str__(self):
+		return self.user
+
+
 class MemberSet(frozenset):
 	"A set of SRCF members"
 
