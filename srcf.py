@@ -1,6 +1,7 @@
 from __future__ import with_statement
 
 
+SYSADMINLIST="/societies/sysadmins/admin/sysadminlist"
 MEMBERLIST="/societies/sysadmins/admin/memberlist"
 SOCLIST="/societies/sysadmins/admin/soclist"
 
@@ -36,6 +37,31 @@ class Member(str):
 		return self.crsid
 
 
+class Sysadmin(Member):
+	"""A SRCF sysadminlist entry, containing metadata about a sysadmin.
+
+	Userful additional fields:
+		user
+		"""
+
+	def __init__(self,user):
+		details = user.split("-")
+		if details[1] != 'adm':
+			raise ValueError(user)
+		member = get_member(details[0])
+		Member.__init__(
+			self, 
+			member.crsid, 
+			member.surname, 
+			member.firstname, 
+			member.initals,
+			member.email,
+			member.status
+			member.joindate
+		)
+		self.name = "%s %s (Sysadmin Account)" % (member.firstname, member.surname)
+		self.user = user
+
 class MemberSet(frozenset):
 	"A set of SRCF members"
 
@@ -64,7 +90,7 @@ class Society(str):
 		self.name = name
 		self.description = description
 		self.joindate = joindate
-		self.admins = MemberSet(get_members(crsids=admins))
+		self.admins = MemberSet(get_socadmins(admins=admins))
 
 	def __new__(cls, name, description, admins, joindate):
 		return str.__new__(cls, name)
@@ -91,9 +117,8 @@ def get_members(crsids=None):
 						joindate=fields[6]
 					)
 
-
 def get_member(crsid):
-	"Return the Member object for the given crsid."
+	"""Return the Member object for the given crsid."""
 	try:
 		members = get_members(crsids=[crsid])
 		member = members.next()
@@ -103,14 +128,53 @@ def get_member(crsid):
 		raise KeyError(crsid)
 
 
-def get_users():
+def get_users(crsids=None):
 	"""Return a generator for Member objects representing those SRCF memberlist
 	   entries for which the status is recorded as 'user'.
 
 	   NB: does not treat honorary members as users.  In practice, they may be."""
-	for member in get_members():
+	for member in get_members(crsids):
 		if member.status == "user":
 			yield member
+
+def get_user(crsid):
+	"""Return the Member object for the given user."""
+	try:
+		users = get_users(crsids=[crsid])
+		user = members.next()
+		users.close()
+		return user
+	except StopIteration:
+		raise KeyError(crsid)
+
+def get_sysadmins(users=None):
+	"""Return a generator representing the complete list of SRCF sysadmins, or 
+	   the entry for the given sysadmin"""
+	get_all = (users is None)
+	with open(SYSADMINLIST, 'r') as f:
+		for line in f:
+			fields = line.strip().split(":")
+			if get_all or fields[0] in users:
+				# Return the member entry for the sysadmin
+				yield Sysadmin(fields[0])
+
+def get_sysadmin(user):
+	"""Return the Sysadmin object for the given user."""
+	try:
+		admins = get_sysadmins(users=[user])
+		admin = admins.next()
+		admins.close()
+		return admin
+	except StopIteration:
+		raise KeyError(user)
+
+
+def get_socadmins(admins=None):
+	"""Return the list of society admins"""
+	for member in get_members(crsids=admins):
+		yield member
+	for admin in get_sysadmins(users=admins):
+		yield (admin.member)
 
 
 def get_societies(name=None, admin=None):
