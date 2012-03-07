@@ -56,7 +56,7 @@ class Sysadmin(Member):
 			member.firstname, 
 			member.initals,
 			member.email,
-			member.status
+			member.status,
 			member.joindate
 		)
 		self.name = "%s %s (Sysadmin Account)" % (member.firstname, member.surname)
