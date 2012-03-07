@@ -54,7 +54,7 @@ class Sysadmin(Member):
 			member.crsid, 
 			member.surname, 
 			member.firstname, 
-			member.initals,
+			member.initials,
 			member.email,
 			member.status,
 			member.joindate
