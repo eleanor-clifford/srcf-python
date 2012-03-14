@@ -212,3 +212,12 @@ def get_society(name):
 	except StopIteration:
 		raise KeyError(name)
 
+#TODO(drt24), the constant 8 should not be hardcoded everywhere this function is used
+def pwgen(pwlen):
+    """pwgen creates a neat password for the user"""
+    text = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789'
+    pw = ''
+    for x in range(pwlen):
+        pw = pw + text[random.randint(0,len(text)-1)]
+    return pw
+
