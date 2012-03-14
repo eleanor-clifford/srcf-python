@@ -73,7 +73,7 @@ class MemberSet(frozenset):
 	"A set of SRCF members"
 
 	def __str__(self):
-		"Return pretty formatting of the set of usernames and CRSIDs"
+		"""Return pretty formatting of the set of usernames and CRSIDs"""
 		maxlen = 0
 		outlines = []
 		for user in self:
@@ -203,7 +203,7 @@ def get_societies(name=None, admin=None):
 
 
 def get_society(name):
-	"Return the Society object for the given society short name."
+	"""Return the Society object for the given society short name."""
 	try:
 		socs = get_societies(name)
 		soc = socs.next()
