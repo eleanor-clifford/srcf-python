@@ -1,5 +1,5 @@
 from __future__ import with_statement
-
+import random # for pwgen
 
 SYSADMINLIST="/societies/sysadmins/admin/sysadminlist"
 MEMBERLIST="/societies/sysadmins/admin/memberlist"
