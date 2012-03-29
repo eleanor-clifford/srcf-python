@@ -30,7 +30,7 @@ def mailtosysadmins(subject, body):
     which should both be strings.
 
     From: if bm380-adm does 'sudo srcf-mailtosysadmins subject' then the
-    from will be "Ben Millwood <bm380@srcf.net>" – i.e. take SUDO_USER (or
+    from will be "Ben Millwood <bm380@srcf.net>" - i.e. take SUDO_USER (or
     getuid), strip -adm if present, add @srcf.net, lookup name and apply
     pretty_sysadmin_name.
 
