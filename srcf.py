@@ -96,7 +96,7 @@ class Society(str):
 		self.name = name
 		self.description = description
 		self.joindate = joindate
-		self.admins = MemberSet(get_socadmins(admins=admins))
+		self.admins = MemberSet(resolve_names(admins=admins))
 
 	def __new__(cls, name, description, admins, joindate):
 		return str.__new__(cls, name)
@@ -175,11 +175,12 @@ def get_sysadmin(user):
 		raise KeyError(user)
 
 
-def get_socadmins(admins=None):
-	"""Return the list of society admins"""
-	for member in get_members(crsids=admins):
+def resolve_names(names):
+	"""Return a generator representing Member or Sysadmin objects as
+	appropriate for each name."""
+	for member in get_members(crsids=names):
 		yield member
-	for admin in get_sysadmins(users=admins):
+	for admin in get_sysadmins(users=names):
 		yield admin
 
 
