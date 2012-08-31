@@ -96,7 +96,7 @@ class Society(str):
 		self.name = name
 		self.description = description
 		self.joindate = joindate
-		self.admins = MemberSet(resolve_names(admins=admins))
+		self.admins = admins
 
 	def __new__(cls, name, description, admins, joindate):
 		return str.__new__(cls, name)
@@ -192,7 +192,7 @@ def get_societies(name=None, admin=None):
 		for line in f:
 			fields = line.strip().split(":")
 			if name is None or name == fields[0]:
-				admins = MemberSet(fields[2].split(","))
+				admins = MemberSet(resolve_names(fields[2].split(",")))
 				if admin is None or admin in admins:
 					yield Society(
 							name=fields[0],
