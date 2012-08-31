@@ -4,6 +4,17 @@ SYSADMINLIST="/societies/sysadmins/admin/sysadminlist"
 MEMBERLIST="/societies/sysadmins/admin/memberlist"
 SOCLIST="/societies/sysadmins/admin/soclist"
 
+__all__ = [
+	'Member', 'Sysadmin', 'MemberSet',
+	'Society', 'SocietySet',
+	'get_members', 'get_member',
+	'get_users', 'get_user',
+	'get_sysadmins', 'get_sysadmin',
+	'get_societies', 'get_society',
+	'resolve_names',
+	'pwgen'
+	]
+
 
 class Member(str):
 	"""A SRCF memberlist entry, containing metadata about a member.
@@ -69,17 +80,11 @@ class Sysadmin(Member):
 
 
 class MemberSet(frozenset):
-	"A set of SRCF members"
+	"""A set for Member objects that has a pretty-printing __str__ method."""
 
 	def __str__(self):
-		"""Return pretty formatting of the set of usernames and CRSIDs"""
-		maxlen = 0
-		outlines = []
-		for user in self:
-			maxlen = max(maxlen, len(user.name))
-		for user in sorted(self):
-			outlines += ["  %s%s  (%s)" % (user.name, " "*(maxlen-len(user.name)), user.crsid)]
-		return "\n".join(outlines)
+		return pretty_name_list(
+			(user.name, user.crsid) for user in self)
 
 
 class Society(str):
@@ -103,6 +108,14 @@ class Society(str):
 
 	def __str__(self):
 		return self.name
+
+
+class SocietySet(frozenset):
+	"""A set for Society objects that has a pretty-printing __str__ method."""
+
+	def __str__(self):
+		return pretty_name_list(
+			(soc.description, soc.name) for soc in self)
 
 
 def get_members(crsids=None):
@@ -182,6 +195,23 @@ def resolve_names(names):
 		yield member
 	for admin in get_sysadmins(users=names):
 		yield admin
+
+
+def pretty_name_list(names):
+	"""Given a list of (a,b) pairs, output aligned columns with the
+	items of the second column parenthised.
+	
+	Used for pretty-printing e.g. name (crsid) or socname (socid) lists.
+	"""
+	# might be given an iterator, need a list, might as well sort it
+	nameList = sorted(names)
+	try:
+		maxlen = max(len(col1) for (col1,col2) in nameList)
+	except ValueError: # empty sequence
+		return ''
+	
+	return '\n'.join('  %-*s  (%s)' % (maxlen, col1, col2)
+		for (col1, col2) in nameList)
 
 
 def get_societies(name=None, admin=None):
