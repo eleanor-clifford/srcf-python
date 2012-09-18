@@ -1,17 +1,15 @@
 import random # for pwgen
 
-SYSADMINLIST="/societies/sysadmins/admin/sysadminlist"
 MEMBERLIST="/societies/sysadmins/admin/memberlist"
 SOCLIST="/societies/sysadmins/admin/soclist"
 
 __all__ = [
-	'Member', 'Sysadmin', 'MemberSet',
+	'MEMBERLIST', 'SOCLIST',
+	'Member', 'MemberSet',
 	'Society', 'SocietySet',
 	'get_members', 'get_member',
 	'get_users', 'get_user',
-	'get_sysadmins', 'get_sysadmin',
 	'get_societies', 'get_society',
-	'resolve_names',
 	'pwgen'
 	]
 
@@ -45,38 +43,6 @@ class Member(str):
 
 	def __str__(self):
 		return self.crsid
-
-
-class Sysadmin(Member):
-	"""A SRCF sysadminlist entry, containing metadata about a sysadmin.
-
-	Userful additional fields:
-		user
-		"""
-
-	def __init__(self,user):
-		details = user.split("-")
-		if details[1] != 'adm':
-			raise ValueError(user)
-		member = get_member(details[0])
-		Member.__init__(
-			self, 
-			member.crsid, 
-			member.surname, 
-			member.firstname, 
-			member.initials,
-			member.email,
-			member.status,
-			member.joindate
-		)
-		self.name = "%s %s (Sysadmin Account)" % (member.firstname, member.surname)
-		self.user = user
-
-	def __new__(cls, user):
-		return str.__new__(cls,user)
-
-	def __str__(self):
-		return self.user
 
 
 class MemberSet(frozenset):
@@ -166,36 +132,6 @@ def get_user(crsid):
 	except StopIteration:
 		raise KeyError(crsid)
 
-def get_sysadmins(users=None):
-	"""Return a generator representing the complete list of SRCF sysadmins, or 
-	   the entry for the given sysadmin"""
-	get_all = (users is None)
-	with open(SYSADMINLIST, 'r') as f:
-		for line in f:
-			fields = line.strip().split(":")
-			if get_all or fields[0] in users:
-				# Return the member entry for the sysadmin
-				yield Sysadmin(fields[0])
-
-def get_sysadmin(user):
-	"""Return the Sysadmin object for the given user."""
-	try:
-		admins = get_sysadmins(users=[user])
-		admin = admins.next()
-		admins.close()
-		return admin
-	except StopIteration:
-		raise KeyError(user)
-
-
-def resolve_names(names):
-	"""Return a generator representing Member or Sysadmin objects as
-	appropriate for each name."""
-	for member in get_members(crsids=names):
-		yield member
-	for admin in get_sysadmins(users=names):
-		yield admin
-
 
 def pretty_name_list(names):
 	"""Given a list of (a,b) pairs, output aligned columns with the
@@ -222,7 +158,7 @@ def get_societies(name=None, admin=None):
 		for line in f:
 			fields = line.strip().split(":")
 			if name is None or name == fields[0]:
-				admins = MemberSet(resolve_names(fields[2].split(",")))
+				admins = MemberSet(get_members(fields[2].split(",")))
 				if admin is None or admin in admins:
 					yield Society(
 							name=fields[0],
