@@ -41,6 +41,10 @@ class Member(str):
 	def __new__(cls, crsid, surname, firstname, initials, email, status, joindate):
 		return str.__new__(cls, crsid)
 
+	def __repr__(self):
+		return 'Member' + repr((self.crsid, self.surname, self.firstname,
+			self.initials, self.email, self.status, self.joindate))
+
 	def __str__(self):
 		return self.crsid
 
@@ -71,6 +75,10 @@ class Society(str):
 
 	def __new__(cls, name, description, admins, joindate):
 		return str.__new__(cls, name)
+
+	def __repr__(self):
+		return 'Society' + repr((self.name, self.description, self.admins,
+			self.joindate))
 
 	def __str__(self):
 		return self.name
