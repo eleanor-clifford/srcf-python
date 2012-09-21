@@ -77,6 +77,9 @@ class Society(str):
 	def __new__(cls, name, description, admins, joindate):
 		return str.__new__(cls, name)
 
+	def __contains__(self, other):
+		return other in self.admins
+
 	def __repr__(self):
 		return 'Society' + repr((self.name, self.description, self.admins,
 			self.joindate))
