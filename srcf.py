@@ -10,6 +10,7 @@ __all__ = [
 	'get_members', 'get_member',
 	'get_users', 'get_user',
 	'get_societies', 'get_society',
+	'members', 'members_and_socs', 'societies',
 	'pwgen'
 	]
 
@@ -185,6 +186,42 @@ def get_society(name):
 		return soc
 	except StopIteration:
 		raise KeyError(name)
+
+
+def members():
+	"""Return a dictionary mapping crsids to Member objects."""
+	mems = {}
+	for mem in get_members():
+		mems[mem.crsid] = mem
+	return mems
+
+
+def members_and_socs():
+	"""Return a pair of dictionaries (mems, socs), where mems maps crsids
+	to Member objects, and socs maps society shortnames to Society objects.
+
+	Equivalent to, but more efficient than, (members(), societies())."""
+	mems = members()
+	socs = {}
+	with open(SOCLIST, 'r') as f:
+		for line in f:
+			fields = line.strip().split(':')
+			soc = Society(
+					name=fields[0],
+					description=fields[1],
+					admins=MemberSet(mems[adm]
+						for adm in fields[2].split(',') if adm),
+					joindate=fields[3]
+				)
+			socs[soc.name] = soc
+	return (mems, socs)
+
+
+def societies():
+	"""Return a dictionary mapping society shortnames to Society objects."""
+	(mems, socs) = members_and_socs()
+	return socs
+
 
 #TODO(drt24), the constant 8 should not be hardcoded everywhere this function is used
 def pwgen(pwlen):
