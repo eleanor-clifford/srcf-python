@@ -65,6 +65,7 @@ class Society(str):
 	       name .......... "foosoc"
 	       description ... "CU Foo Society"
 	       joindate ...... "1970/01"
+	       admin_crsids .. a frozenset of strings
 	       admins ........ a MemberSet object
 	"""
 
@@ -73,6 +74,7 @@ class Society(str):
 		self.description = description
 		self.joindate = joindate
 		self.admins = admins
+		self.admin_crsids = frozenset(admin.crsid for admin in admins)
 
 	def __new__(cls, name, description, admins, joindate):
 		return str.__new__(cls, name)
