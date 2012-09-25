@@ -80,7 +80,7 @@ class Society(str):
 		return str.__new__(cls, name)
 
 	def __contains__(self, other):
-		return other in self.admins
+		return other in self.admin_crsids
 
 	def __repr__(self):
 		return 'Society' + repr((self.name, self.description, self.admins,
