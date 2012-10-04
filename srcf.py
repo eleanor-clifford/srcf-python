@@ -30,8 +30,10 @@ class Member(str):
 
 	   Useful methods:
 	       socs():
-		       returns a SocietySet object of societies this member
-		       administrates.
+	          returns a SocietySet object of societies this member
+	          administrates.
+	       summary():
+	          returns a human-readable summary of member details.
 	"""
 
 	def __init__(self, crsid, surname, firstname, initials, email, status, joindate):
@@ -68,6 +70,18 @@ class Member(str):
 				socs = get_societies(admin = self)
 			self.soc_set = SocietySet(soc for soc in socs if self in soc)
 			return self.soc_set
+	
+	def summary(self):
+		"""member.summary(): returns a str that summarises the member
+		details (name, crsid, email, status, join date, societies) in
+		human-readable form."""
+		socs = self.socs()
+		return '%s (%s)\n%s\nStatus: %s\nJoined: %s\nSocieties:\n%s' % (
+				self.name, self.crsid,
+				self.email,
+				self.status,
+				self.joindate,
+				socs if socs else '  No society memberships.')
 
 
 class MemberSet(frozenset):
@@ -89,6 +103,7 @@ class Society(str):
 
 	   Useful methods:
 	       admins(): returns a MemberSet corresponding to admin_crsids
+	       summary(): returns a human-readable summary of society details.
 	"""
 
 	def __init__(self, name, description, admin_crsids, joindate):
@@ -133,6 +148,13 @@ class Society(str):
 				for admin in self.admin_crsids - self.admin_set:
 					raise KeyError(admin)
 			return self.admin_set
+	
+	def summary(self):
+		admins = self.admins()
+		return '%s: %s\nJoined: %s\n%s' % (
+			self.name, self.description,
+			self.joindate,
+			'Admins:\n%s' % admins if admins else 'Orphaned (no admins).')
 
 
 class SocietySet(frozenset):
