@@ -3,6 +3,7 @@
 "Utility functions for SRCF Mailman wrapping utilities."
 
 import grp, pwd, os, sys
+from srcfmail import SYSADMINEMAIL
 
 def getlistname(args):
 
@@ -43,7 +44,7 @@ def getlistname(args):
 
 class Error(Exception):
 	"Base class for exceptions in this module."
-	message = "unknown error!  Please contact sysadmins@srcf.ucam.org."
+	message = "unknown error!  Please contact %s." % SYSADMINEMAIL
 	prefix = "Error: "
 	printusage = 0
 
@@ -74,7 +75,7 @@ class InvalidArgumentValueError(ArgumentError):
 
 class NonexistantUidError(Error):
 	def __init__(self, uid):
-		self.message = "you (uid %d) appear not to exist!\nPlease ask sysadmins@srcf.ucam.org for help finding yourself." % uid
+		self.message = "you (uid %d) appear not to exist!\nPlease ask %s for help finding yourself." % (uid, SYSADMINEMAIL)
 
 class NonexistantSocietyError(Error):
 	def __init__(self, socname):
