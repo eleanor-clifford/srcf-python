@@ -5,12 +5,23 @@ import unittest
 
 class TestAdmins(unittest.TestCase):
     def setUp(self):
-        self.soc = srcf.get_society('executive')
+        self.mems, self.socs = srcf.members_and_socs()
 
-    def test_contains(self):
-        for admin in self.soc.admins():
-            self.assertTrue(admin in self.soc)
-            self.assertTrue(admin.crsid in self.soc)
+    def mem_soc(self, mem, soc):
+        self.assertTrue(mem in soc)
+        self.assertTrue(mem.crsid in soc)
+        self.assertTrue(mem in soc.admins())
+        self.assertTrue(mem.crsid in soc.admins())
+
+    def test_mem_socs(self):
+        for mem in self.mems:
+            for soc in mem.socs():
+                self.mem_soc(mem, soc)
+
+    def test_soc_admins(self):
+        for soc in self.socs:
+            for mem in soc.admins():
+                self.mem_soc(mem, soc)
 
 if __name__ == '__main__':
     unittest.main()
