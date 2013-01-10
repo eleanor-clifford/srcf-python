@@ -14,12 +14,12 @@ class TestAdmins(unittest.TestCase):
         self.assertTrue(mem.crsid in soc.admins())
 
     def test_mem_socs(self):
-        for mem in self.mems:
+        for mem in self.mems.values():
             for soc in mem.socs():
                 self.mem_soc(mem, soc)
 
     def test_soc_admins(self):
-        for soc in self.socs:
+        for soc in self.socs.values():
             for mem in soc.admins():
                 self.mem_soc(mem, soc)
 
