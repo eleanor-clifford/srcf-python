@@ -281,7 +281,7 @@ def members_and_socs():
 
 	# cache the member societies as well
 	soclist = socs.values()
-	for mem in mems:
+	for mem in mems.values():
 		mem.socs(soclist)
 
 	return (mems, socs)
