@@ -52,9 +52,9 @@ def mailtosysadmins(subject, body):
         '-a', 'From: %s' % email.utils.formataddr((myname, fromaddr)),
         FORMATTEDSYSADMINEMAIL],
         stdin = PIPE)
-    mail.stdin.write(body)
-    mail.stdin.close()
-    return mail.wait()
+
+    _, _ = mail.communicate(body)
+    return mail.returncode
 
 def mailtouser(user, subject, body, cc_sysadmins=False):
     """Send a mail to a user's registered email address with the given
@@ -94,9 +94,8 @@ def mailtouser(user, subject, body, cc_sysadmins=False):
     mailargs.append(email.utils.formataddr((user.name, user.email)))
 
     mail = Popen(mailargs, stdin = PIPE)
-    mail.stdin.write(body)
-    mail.stdin.close()
-    return mail.wait()
+    _, _ = mail.communicate(body)
+    return mail.returncode
 
 def mailtosocadmins(society, subject, body, cc_sysadmins=False):
     """Send a mail to a ${SOC}-admins@srcf.net with the given subject
@@ -136,6 +135,5 @@ def mailtosocadmins(society, subject, body, cc_sysadmins=False):
     mailargs.append("%s-admins@srcf.net" % society.name)
     
     mail = Popen(mailargs, stdin = PIPE)
-    mail.stdin.write(body)
-    mail.stdin.close()
-    return mail.wait()
+    _, _ = mail.communicate(body)
+    return mail.returncode
