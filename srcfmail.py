@@ -56,12 +56,15 @@ def mailtosysadmins(subject, body):
     mail.stdin.close()
     return mail.wait()
 
-def mailtouser(user, subject, body):
+def mailtouser(user, subject, body, cc_sysadmins=False):
     """Send a mail to a user's registered email address with the given
     subject and body, which should both be strings.  The user can be a
     Member object or a string, in which case it is interpreted as a
     CRSid.  A KeyError is thrown if the CRSid is not that of a valid
     user.
+
+    If the optional argument cc_sysadmins is set to True (default
+    False), SYSADMINEMAIL is cc'ed in.
 
     From: if bm380-adm does 'sudo srcf-mailtosysadmins subject' then the
     from will be "Ben Millwood <bm380@srcf.net>" - i.e. take SUDO_USER (or
@@ -82,11 +85,15 @@ def mailtouser(user, subject, body):
     fromaddr = sender.pw_name.replace('-adm','') + '@srcf.net'
     myname = pretty_sysadmin_name(sender.pw_gecos)
 
-    mail = Popen(['/usr/bin/env', 'mail', '-s', subject,
+    mailargs = ['/usr/bin/env', 'mail', '-s', subject,
         '-a', 'Content-type: text/plain; format=flowed; charset=UTF-8',
-        '-a', 'From: %s' % email.utils.formataddr((myname, fromaddr)),
-        email.utils.formataddr((user.name, user.email))],
-        stdin = PIPE)
+        '-a', 'From: %s' % email.utils.formataddr((myname, fromaddr))]
+    if (cc_sysadmins):
+        mailargs.append('-c')
+        mailargs.append(FORMATTEDSYSADMINEMAIL)
+    mailargs.append(email.utils.formataddr((user.name, user.email)))
+
+    mail = Popen(mailargs, stdin = PIPE)
     mail.stdin.write(body)
     mail.stdin.close()
     return mail.wait()
