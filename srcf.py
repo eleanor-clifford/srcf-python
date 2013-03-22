@@ -207,7 +207,7 @@ def get_user(crsid):
 	"""Return the Member object for the given user."""
 	try:
 		users = get_users(crsids=[crsid])
-		user = members.next()
+		user = users.next()
 		users.close()
 		return user
 	except StopIteration:
