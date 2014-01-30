@@ -2,6 +2,9 @@
 
 """SRCF python library for common actions in maintenance scripts"""
 
+# Python 2 & 3 compatability
+import six as __six
+
 # Canonical locations of various things
 MEMBERLIST = "/societies/sysadmins/admin/memberlist"
 SOCLIST = "/societies/sysadmins/admin/soclist"
@@ -9,6 +12,17 @@ SOCLIST = "/societies/sysadmins/admin/soclist"
 __all__ = [
     'MEMBERLIST', 'SOCLIST',
     ]
+
+# No argcomplete for py3 yet
+if not __six.PY3:
+    from srcf.argcompletors import complete_member, complete_user
+    from srcf.argcompletors import complete_soc, complete_activesoc
+    from srcf.argcompletors import complete_socadmin
+
+    __all__ += [
+        'complete_member', 'complete_user', 'complete_soc',
+        'complete_activesoc', 'complete_socadmin',
+        ]
 
 # Compatibility magic until all callers are updated
 from srcf.compat import Member, MemberSet
