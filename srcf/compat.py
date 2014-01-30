@@ -3,21 +3,9 @@ import random # for pwgen
 MEMBERLIST="/societies/sysadmins/admin/memberlist"
 SOCLIST="/societies/sysadmins/admin/soclist"
 
-__all__ = [
-	'MEMBERLIST', 'SOCLIST',
-	'Member', 'MemberSet',
-	'Society', 'SocietySet',
-	'get_members', 'get_member',
-	'get_users', 'get_user',
-	'get_societies', 'get_society',
-	'members', 'members_and_socs', 'societies',
-	'pwgen'
-	]
-
-
 class Member(str):
 	"""A SRCF memberlist entry, containing metadata about a member.
-	
+
 	   Useful fields:
 	       crsid ..... e.g. "spqr2"
 	       surname
@@ -70,7 +58,7 @@ class Member(str):
 				socs = get_societies(admin = self)
 			self.soc_set = SocietySet(soc for soc in socs if self in soc)
 			return self.soc_set
-	
+
 	def summary(self):
 		"""member.summary(): returns a str that summarises the member
 		details (name, crsid, email, status, join date, societies) in
@@ -148,7 +136,7 @@ class Society(str):
 				for admin in self.admin_crsids - self.admin_set:
 					raise KeyError(admin)
 			return self.admin_set
-	
+
 	def summary(self):
 		admins = self.admins()
 		return '%s: %s\nJoined: %s\n%s' % (
@@ -217,7 +205,7 @@ def get_user(crsid):
 def pretty_name_list(names):
 	"""Given a list of (a,b) pairs, output aligned columns with the
 	items of the second column parenthised.
-	
+
 	Used for pretty-printing e.g. name (crsid) or socname (socid) lists.
 	"""
 	# might be given an iterator, need a list, might as well sort it
@@ -226,7 +214,7 @@ def pretty_name_list(names):
 		maxlen = max(len(col1) for (col1,col2) in nameList)
 	except ValueError: # empty sequence
 		return ''
-	
+
 	return '\n'.join('  %-*s  (%s)' % (maxlen, col1, col2)
 		for (col1, col2) in nameList)
 
