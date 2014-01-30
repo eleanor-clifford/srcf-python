@@ -23,5 +23,9 @@ class TestAdmins(unittest.TestCase):
             for mem in soc.admins():
                 self.mem_soc(mem, soc)
 
+    def test_memlist_loc(self):
+        self.assertEqual(srcf.MEMBERLIST, "/societies/sysadmins/admin/memberlist")
+        self.assertEqual(srcf.SOCLIST, "/societies/sysadmins/admin/soclist")
+
 if __name__ == '__main__':
     unittest.main()
