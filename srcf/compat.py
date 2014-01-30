@@ -1,7 +1,6 @@
 import random # for pwgen
 
-MEMBERLIST="/societies/sysadmins/admin/memberlist"
-SOCLIST="/societies/sysadmins/admin/soclist"
+from srcf import MEMBERLIST, SOCLIST
 
 class Member(str):
 	"""A SRCF memberlist entry, containing metadata about a member.
