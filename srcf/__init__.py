@@ -9,8 +9,11 @@ import six as __six
 MEMBERLIST = "/societies/sysadmins/admin/memberlist"
 SOCLIST = "/societies/sysadmins/admin/soclist"
 
+from srcf.passwords import pwgen
+
 __all__ = [
     'MEMBERLIST', 'SOCLIST',
+    'pwgen',
     ]
 
 # No argcomplete for py3 yet
@@ -31,7 +34,7 @@ from srcf.compat import get_members, get_member
 from srcf.compat import get_users, get_user
 from srcf.compat import get_societies, get_society
 from srcf.compat import members, members_and_socs
-from srcf.compat import societies, pwgen
+from srcf.compat import societies
 
 __all__ += [
     'Member', 'MemberSet',
@@ -40,7 +43,7 @@ __all__ += [
     'get_users', 'get_user',
     'get_societies', 'get_society',
     'members', 'members_and_socs',
-    'societies', 'pwgen'
+    'societies'
     ]
 
 # Local Variables:
