@@ -5,6 +5,10 @@
 # Python 2 & 3 compatability
 import six as __six
 
+# Users of the SRCF library beware
+import warnings
+warnings.filterwarnings("once", category=DeprecationWarning)
+
 # Canonical locations of various things
 MEMBERLIST = "/societies/sysadmins/admin/memberlist"
 SOCLIST = "/societies/sysadmins/admin/soclist"
@@ -28,27 +32,7 @@ if not __six.PY3:
         ]
 
 # Compatibility magic until all callers are updated
-from srcf.compat import Member, MemberSet
-from srcf.compat import Society, SocietySet
-from srcf.compat import get_members, get_member
-from srcf.compat import get_users, get_user
-from srcf.compat import get_societies, get_society
-from srcf.compat import members, members_and_socs
-from srcf.compat import societies
+from .compat import *
+from . import compat
 
-__all__ += [
-    'Member', 'MemberSet',
-    'Society', 'SocietySet',
-    'get_members', 'get_member',
-    'get_users', 'get_user',
-    'get_societies', 'get_society',
-    'members', 'members_and_socs',
-    'societies'
-    ]
-
-# Local Variables:
-# mode: python
-# coding: utf-8
-# tab-width: 4
-# indent-tabs-mode: nil
-# End:
+__all__ += compat.__all__
