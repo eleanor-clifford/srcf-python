@@ -1,6 +1,8 @@
+from __future__ import unicode_literals
+
 import warnings
 
-__all__ = ["MemberCompat", "SocietyCompat"]
+__all__ = ["MemberCompat", "SocietyCompat", "AdminsSetCompat"]
 
 
 class MemberCompat(object):
@@ -63,14 +65,6 @@ class MemberCompat(object):
         return self.societies
 
 class SocietyCompat(object):
-    # in the old API, admins was a method
-    class _magic_set(set):
-        def __call__(self, memberdict=None):
-            if memberdict is not None:
-                warnings.warn("the memberdict argument is ignored")
-            warnings.warn("admins is now an attribute", DeprecationWarning)
-            return self
-
     @property
     def name(self):
         warnings.warn("name is deprecated (use society)",
@@ -88,11 +82,10 @@ class SocietyCompat(object):
                       DeprecationWarning)
         return self.joined.strftime("%Y/%m")
 
-    # Society mixes this class in, so it's hard to override objects;
-    # especially "admins", which is an attribute.
-    def __getattribute__(self, name):
-        value = object.__getattribute__(self, name)
-        if name == "admins":
-            return self._magic_set(value)
-        else:
-            return value
+# in the old API, admins was a method
+class AdminsSetCompat(set):
+    def __call__(self, memberdict=None):
+        if memberdict is not None:
+            warnings.warn("the memberdict argument is ignored")
+        warnings.warn("admins is now an attribute", DeprecationWarning)
+        return self

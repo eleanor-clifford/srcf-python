@@ -12,7 +12,7 @@ from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.hybrid import hybrid_property
 
-from .compat import MemberCompat, SocietyCompat
+from .compat import MemberCompat, SocietyCompat, AdminsSetCompat
 
 
 __all__ = ["Member", "Society", "RESTRICTED"]
@@ -104,7 +104,7 @@ class Society(Base, SocietyCompat):
         notes = Column(Text, nullable=False, server_default='')
 
     admins = relationship("Member",
-            secondary=society_admins, collection_class=set,
+            secondary=society_admins, collection_class=AdminsSetCompat,
             backref=backref("societies", collection_class=set))
 
     def __str__(self):
