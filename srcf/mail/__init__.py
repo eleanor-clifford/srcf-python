@@ -18,7 +18,7 @@ def formataddr(pair):
     return original_formataddr((name, email))
 
 def send_mail(recipient, subject, body,
-              copy_sysadmins=True, reply_to_support=None, sess=None):
+              copy_sysadmins=True, reply_to_support=False, sess=None):
     """
     Send `body` to `recipient`, which should be a (name, email) tuple.
     Name may be None.
@@ -48,3 +48,7 @@ def send_mail(recipient, subject, body,
     s = smtplib.SMTP('localhost')
     s.sendmail(sender[1], all_emails, message.as_string())
     s.quit()
+
+def mail_sysadmins(subject, body, sess=None):
+    """Mail `body` to the sysadmins"""
+    send_mail(SYSADMINS, subject, body, copy_sysadmins=False)
