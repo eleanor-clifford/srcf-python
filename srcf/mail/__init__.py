@@ -51,4 +51,4 @@ def send_mail(recipient, subject, body,
 
 def mail_sysadmins(subject, body, sess=None):
     """Mail `body` to the sysadmins"""
-    send_mail(SYSADMINS, subject, body, copy_sysadmins=False)
+    send_mail(SYSADMINS, subject, body, copy_sysadmins=False, sess=sess)
