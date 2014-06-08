@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # PYTHON_ARGCOMPLETE_OK
 
+from __future__ import print_function
+
 import argcomplete, argparse
 from srcf import *
 
@@ -18,4 +20,4 @@ parser.add_argument('admin',
                     ).completer = complete_socadmin
 
 argcomplete.autocomplete(parser)
-print parser.parse_args()
+print(parser.parse_args())
