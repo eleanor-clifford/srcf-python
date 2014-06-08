@@ -7,7 +7,7 @@ import six
 
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, Enum
 from sqlalchemy.schema import Table, FetchedValue, CheckConstraint, \
-        ForeignKey, DDL
+        ForeignKey, DDL, PrimaryKeyConstraint
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -15,7 +15,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from .compat import MemberCompat, SocietyCompat, AdminsSetCompat
 
 
-__all__ = ["Member", "Society", "RESTRICTED"]
+__all__ = ["Member", "Society", "PendingAdmin", "RESTRICTED"]
 
 
 if __name__ == "__main__":
@@ -107,6 +107,9 @@ class Society(Base, SocietyCompat):
             secondary=society_admins, collection_class=AdminsSetCompat,
             backref=backref("societies", collection_class=set))
 
+    pending_admins = relationship("PendingAdmin",
+            backref=backref("society"))
+
     def __str__(self):
         return self.society
 
@@ -145,15 +148,21 @@ class Society(Base, SocietyCompat):
 class PendingAdmin(Base):
     __tablename__ = "pending_society_admins"
 
+    # There is no ForeignKey constraint here because this table exists to
+    # reference users that don't exist yet.
     crsid = Column(CRSID_TYPE, CheckConstraint('crsid = lower(crsid)'),
                    primary_key=True)
-    society = Column(SOCIETY_TYPE, ForeignKey('societies.society'))
+    society_society = Column(SOCIETY_TYPE,
+                             ForeignKey('societies.society'),
+                             name="society",
+                             primary_key=True)
 
     def __str__(self):
-        return "{0} {1}".format(self.crsid, self.society)
+        return "{0} {1}".format(self.crsid, self.society.society)
 
     def __repr__(self):
-        return '<PendingAdmin {0} {1}>'.format(self.crsid, self.society)
+        return '<PendingAdmin {0} {1}>'\
+                    .format(self.crsid, self.society.society)
 
 
 LogLevel = Enum('debug', 'info', 'warning', 'error', 'critical',

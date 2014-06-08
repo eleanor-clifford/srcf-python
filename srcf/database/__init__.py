@@ -4,9 +4,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 
-__all__ = ["Member", "Society", "RESTRICTED", "assert_readwrite", "Session"]
+__all__ = ["Member", "Society", "PendingAdmin",
+           "RESTRICTED", "assert_readwrite", "Session"]
 
-from .schema import RESTRICTED, Member, Society
+from .schema import RESTRICTED, Member, Society, PendingAdmin
 
 class RestrictedAccess(RuntimeError):
     def __init__(self):
