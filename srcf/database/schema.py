@@ -107,8 +107,9 @@ class Society(Base, SocietyCompat):
             secondary=society_admins, collection_class=AdminsSetCompat,
             backref=backref("societies", collection_class=set))
 
-    pending_admins = relationship("PendingAdmin",
-            backref=backref("society"))
+    if not RESTRICTED:
+        pending_admins = relationship("PendingAdmin",
+                backref=backref("society"))
 
     def __str__(self):
         return self.society
@@ -145,42 +146,46 @@ class Society(Base, SocietyCompat):
         return self.society + "-admins@srcf.net"
 
 
-class PendingAdmin(Base):
-    __tablename__ = "pending_society_admins"
+if not RESTRICTED:
+    class PendingAdmin(Base):
+        __tablename__ = "pending_society_admins"
 
-    # There is no ForeignKey constraint here because this table exists to
-    # reference users that don't exist yet.
-    crsid = Column(CRSID_TYPE, CheckConstraint('crsid = lower(crsid)'),
-                   primary_key=True)
-    society_society = Column(SOCIETY_TYPE,
-                             ForeignKey('societies.society'),
-                             name="society",
-                             primary_key=True)
+        # There is no ForeignKey constraint here because this table exists to
+        # reference users that don't exist yet.
+        crsid = Column(CRSID_TYPE, CheckConstraint('crsid = lower(crsid)'),
+                       primary_key=True)
+        society_society = Column(SOCIETY_TYPE,
+                                 ForeignKey('societies.society'),
+                                 name="society",
+                                 primary_key=True)
 
-    def __str__(self):
-        return "{0} {1}".format(self.crsid, self.society.society)
+        def __str__(self):
+            return "{0} {1}".format(self.crsid, self.society.society)
 
-    def __repr__(self):
-        return '<PendingAdmin {0} {1}>'\
-                    .format(self.crsid, self.society.society)
+        def __repr__(self):
+            return '<PendingAdmin {0} {1}>'\
+                        .format(self.crsid, self.society.society)
 
 
-LogLevel = Enum('debug', 'info', 'warning', 'error', 'critical',
-                name='log_level')
+    LogLevel = Enum('debug', 'info', 'warning', 'error', 'critical',
+                    name='log_level')
 
-class LogRecord(Base):
-    __tablename__ = "log"
+    class LogRecord(Base):
+        __tablename__ = "log"
 
-    record_id = Column(Integer, primary_key=True)
-    created = Column(DateTime(timezone=True), FetchedValue())
-    level = Column(LogLevel)
-    logger = Column(Text)
-    message = Column(Text)
+        record_id = Column(Integer, primary_key=True)
+        created = Column(DateTime(timezone=True), FetchedValue())
+        level = Column(LogLevel)
+        logger = Column(Text)
+        message = Column(Text)
 
-    # "Tag" rows with the member/society they pertain to, so that relevant
-    # log lines may be quickly retrieved
-    crsid = Column(CRSID_TYPE, ForeignKey('members.crsid'))
-    society = Column(SOCIETY_TYPE, ForeignKey('societies.society'))
+        # "Tag" rows with the member/society they pertain to, so that relevant
+        # log lines may be quickly retrieved
+        crsid = Column(CRSID_TYPE, ForeignKey('members.crsid'))
+        society = Column(SOCIETY_TYPE, ForeignKey('societies.society'))
+
+else:
+    PendingAdmin = LogRecord = None
 
 
 def dump_schema():
