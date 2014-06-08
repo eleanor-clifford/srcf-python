@@ -136,6 +136,25 @@ class Society(Base, SocietyCompat):
         """:attr:`admins`, as a set of strings (crsids)"""
         return frozenset(m.crsid for m in self.admins)
 
+    @hybrid_property
+    def email(self):
+        """society-admins@srcf.net address"""
+        return self.society + "-admins@srcf.net"
+
+
+class PendingAdmin(Base):
+    __tablename__ = "pending_society_admins"
+
+    crsid = Column(CRSID_TYPE, CheckConstraint('crsid = lower(crsid)'),
+                   primary_key=True)
+    society = Column(SOCIETY_TYPE, ForeignKey('societies.society'))
+
+    def __str__(self):
+        return "{0} {1}".format(self.crsid, self.society)
+
+    def __repr__(self):
+        return '<PendingAdmin {0} {1}>'.format(self.crsid, self.society)
+
 
 LogLevel = Enum('debug', 'info', 'warning', 'error', 'critical',
                 name='log_level')

@@ -10,5 +10,6 @@ GRANT USAGE ON SCHEMA PUBLIC TO sysadmins;
 GRANT SELECT ON members TO sysadmins;
 GRANT SELECT ON societies TO sysadmins;
 GRANT SELECT ON society_admins TO sysadmins;
+GRANT SELECT ON pending_society_admins TO sysadmins;
 GRANT SELECT ON log TO sysadmins;
 GRANT SELECT ON log_record_id_seq TO sysadmins;
