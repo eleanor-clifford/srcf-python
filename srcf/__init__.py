@@ -12,6 +12,7 @@ warnings.filterwarnings("once", category=DeprecationWarning)
 # Canonical locations of various things
 MEMBERLIST = "/societies/sysadmins/admin/memberlist"
 SOCLIST = "/societies/sysadmins/admin/soclist"
+SOCQUEUE = "/societies/srcf/admin/socqueue"
 
 from srcf.passwords import pwgen
 
