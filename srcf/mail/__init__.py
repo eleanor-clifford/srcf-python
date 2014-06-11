@@ -2,6 +2,7 @@ import email.mime.text
 import smtplib
 
 from email.header import Header
+from email.utils import formatdate, make_msgid
 from email.utils import formataddr as original_formataddr
 
 from srcf.misc import get_current_user
@@ -32,6 +33,8 @@ def send_mail(recipient, subject, body,
         sender = (u.name, u.email)
 
     message = email.mime.text.MIMEText(body, _charset='utf-8')
+    message["Message-Id"] = make_msgid("srcf-mailto")
+    message["Date"] = formatdate()
     message["From"] = formataddr(sender)
     message["To"] = formataddr(recipient)
     message["Subject"] = subject
