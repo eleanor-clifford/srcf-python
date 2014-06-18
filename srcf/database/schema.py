@@ -105,13 +105,11 @@ class Society(Base, SocietyCompat):
 
     admins = relationship("Member",
             secondary=society_admins, collection_class=AdminsSetCompat,
-            backref=backref("societies", collection_class=set),
-            cascade='all')
+            backref=backref("societies", collection_class=set))
 
     if not RESTRICTED:
         pending_admins = relationship("PendingAdmin",
-                backref=backref("society"),
-                cascade='all')
+                backref=backref("society"))
 
     def __str__(self):
         return self.society
