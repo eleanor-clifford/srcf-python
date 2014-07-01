@@ -48,6 +48,9 @@ def get_society(name, session=None):
     else:
         raise KeyError(name)
 
+def dict_users(session = None):
+    return {m.crsid: m for m in _sess(session).query(Member).filter(Member.user == True)}
+
 def dict_members(session=None):
     return {m.crsid: m for m in _sess(session).query(Member)}
 
