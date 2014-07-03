@@ -1,6 +1,8 @@
 import srcf
 import srcf.mail
 
+SYSADMINEMAIL = 'soc-srcf-admin@lists.cam.ac.uk'
+
 def mailtosysadmins(subject, body):
     """Send a mail to SYSADMINEMAIL with the given subject and body,
     which should both be strings."""
