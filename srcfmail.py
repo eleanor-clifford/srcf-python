@@ -1,5 +1,6 @@
 import srcf
 import srcf.mail
+import srcf.database
 
 SYSADMINEMAIL = srcf.mail.SYSADMINS[1]
 
@@ -22,7 +23,7 @@ def mailtouser(user, subject, body, cc_sysadmins=False):
     """
 
     # Convert the CRSid to a Member object, if necessary
-    if not isinstance(user, srcf.Member):
+    if not isinstance(user, srcf.database.Member):
         user = srcf.get_user(user)
 
     recipient = (user.name, user.email)
@@ -40,7 +41,7 @@ def mailtosocadmins(society, subject, body, cc_sysadmins=False):
     """
 
     # Convert the short name to a Society object, if necessary
-    if not isinstance(society, srcf.Society):
+    if not isinstance(society, srcf.database.Society):
         society = srcf.get_society(society)
 
     recipient = (society.description + " Admins", society.email)
