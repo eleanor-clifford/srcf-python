@@ -65,8 +65,11 @@ class Member(Base, MemberCompat):
         m = ' member' if self.member else ' ex-member'
         u = ' user' if self.user else ''
         flags = m + u
-        return '<Member {0} {1} {2}{3}>'\
+        r = '<Member {0} {1} {2}{3}>'\
             .format(self.crsid, self.name, self.email, flags)
+        if not six.PY3:
+            r = r.encode("utf8")
+        return r
 
     def __eq__(self, other):
         if not isinstance(other, Member):
