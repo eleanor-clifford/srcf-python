@@ -202,7 +202,7 @@ if not RESTRICTED:
     class Job(Base):
         __tablename__ = 'jobs'
         job_id = Column(Integer, primary_key=True)
-        owner_crsid = Column(CRSID_TYPE, ForeignKey("members.crsid"), nullable=False)
+        owner_crsid = Column(CRSID_TYPE, ForeignKey("members.crsid"))
         owner = relationship("Member")
         state = Column(JobState, nullable=False, server_default='queued')
         state_message = Column(Text)
