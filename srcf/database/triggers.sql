@@ -31,3 +31,19 @@ CREATE TRIGGER societies_set_modified_trigger BEFORE INSERT OR UPDATE ON societi
 
 CREATE TRIGGER log_set_created_trigger BEFORE INSERT ON log
     FOR EACH ROW EXECUTE PROCEDURE set_created();
+
+CREATE FUNCTION jobs_trigger()
+    RETURNS TRIGGER AS
+    $$
+        BEGIN
+            IF NEW.state = 'queued' THEN
+                PERFORM pg_notify('jobs_insert', NEW.job_id::text);
+            END IF;
+            RETURN NULL;
+        END
+    $$
+    LANGUAGE plpgsql;
+
+CREATE TRIGGER jobs_trigger
+    AFTER INSERT OR UPDATE ON jobs
+    FOR EACH ROW EXECUTE PROCEDURE jobs_trigger();

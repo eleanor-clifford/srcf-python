@@ -13,3 +13,7 @@ GRANT SELECT ON society_admins TO sysadmins;
 GRANT SELECT ON pending_society_admins TO sysadmins;
 GRANT SELECT ON log TO sysadmins;
 GRANT SELECT ON log_record_id_seq TO sysadmins;
+GRANT SELECT ON jobs TO sysadmins;
+
+-- the control webapp wants to add jobs to "srcf-admin"
+GRANT SELECT, INSERT ON jobs TO "srcf-admin";

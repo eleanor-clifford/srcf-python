@@ -6,6 +6,9 @@ import warnings
 import six
 
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, Enum
+from sqlalchemy import event
+#from sqlalchemy.dialects.postgresql import HSTORE
+from .hstore import HSTORE
 from sqlalchemy.schema import Table, FetchedValue, CheckConstraint, \
         ForeignKey, DDL, PrimaryKeyConstraint
 from sqlalchemy.orm import relationship, backref
@@ -187,12 +190,33 @@ if not RESTRICTED:
         crsid = Column(CRSID_TYPE, ForeignKey('members.crsid'))
         society = Column(SOCIETY_TYPE, ForeignKey('societies.society'))
 
+    JobState = Enum('queued', 'running', 'done', 'failed',
+                    name='job_state')
+
+    event.listen(
+        Base.metadata,
+        "before_create",
+        DDL("CREATE EXTENSION hstore")
+    )
+
+    class Job(Base):
+        __tablename__ = 'jobs'
+        job_id = Column(Integer, primary_key=True)
+        owner_crsid = Column(CRSID_TYPE, ForeignKey("members.crsid"), nullable=False)
+        owner = relationship("Member")
+        state = Column(JobState, nullable=False, server_default='queued')
+        state_message = Column(Text)
+        type = Column(String(100), nullable=False)
+        args = Column(HSTORE, nullable=False)
+
 else:
-    PendingAdmin = LogRecord = None
+    PendingAdmin = None
+    LogLevel = LogRecord = None
+    JobState = Job = None
 
 
 def dump_schema():
-    from sqlalchemy import event, create_engine
+    from sqlalchemy import create_engine
     import os.path
 
     directory = os.path.dirname(__file__)

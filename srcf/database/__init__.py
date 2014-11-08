@@ -8,6 +8,7 @@ __all__ = ["Member", "Society", "PendingAdmin",
            "RESTRICTED", "assert_readwrite", "Session"]
 
 from .schema import RESTRICTED, Member, Society, PendingAdmin
+from .schema import LogLevel, LogRecord, JobState, Job
 
 class RestrictedAccess(RuntimeError):
     def __init__(self):
