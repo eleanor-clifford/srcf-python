@@ -1,4 +1,5 @@
 import os
+import getpass
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -24,9 +25,9 @@ if os.uname()[1] == "pip":
 else:
     _host = "pip.internal"
 
-if not RESTRICTED:
-    _user = "root"
-else:
+# try and use a privileged user if we can, otherwise read only
+_user = getpass.getuser()
+if _user not in ("root", "srcf-admin"):
     _user = "nobody"
 
 engine = create_engine("postgresql://{user}@{host}/sysadmins".format(host=_host, user=_user))
