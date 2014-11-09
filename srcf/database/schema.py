@@ -2,6 +2,7 @@ from __future__ import print_function, unicode_literals
 
 import os
 import warnings
+import getpass
 
 import six
 
@@ -25,7 +26,12 @@ if __name__ == "__main__":
     # we're dumping the schema-we want the whole thing
     RESTRICTED = False
 else:
+    # Should we make the notes & danger flags, and pending-admins
+    # tables available?
     RESTRICTED = os.getuid() != 0
+
+# Should we make the Jobs table available?
+CONTROL_WEBAPP = (getpass.getuser() == "srcf-admin")
 
 
 CRSID_TYPE = String(7)
@@ -190,6 +196,11 @@ if not RESTRICTED:
         crsid = Column(CRSID_TYPE, ForeignKey('members.crsid'))
         society = Column(SOCIETY_TYPE, ForeignKey('societies.society'))
 
+else:
+    PendingAdmin = None
+    LogLevel = LogRecord = None
+
+if not RESTRICTED or CONTROL_WEBAPP:
     JobState = Enum('queued', 'running', 'done', 'failed',
                     name='job_state')
 
@@ -210,8 +221,6 @@ if not RESTRICTED:
         args = Column(HSTORE, nullable=False)
 
 else:
-    PendingAdmin = None
-    LogLevel = LogRecord = None
     JobState = Job = None
 
 
