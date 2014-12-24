@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+import textwrap
+
 from . import Member, Society
 
 def summarise_member(member):
@@ -11,33 +13,43 @@ def summarise_member(member):
     """
 
     if member.societies:
-        socs = "Societies:\n" + \
+        socs = ["Societies:"] + \
                _pretty_name_list((s.description, s.society)
                                  for s in member.societies)
     else:
-        socs = "No society memberships."
+        socs = ["No society memberships."]
 
     joined = member.joined.strftime("%Y/%m")
 
-    return '%s (%s)\n%s\nMember: %s\nUser: %s\nJoined: %s\n%s' % (
-            member.name, member.crsid,
-            member.email,
-            member.member, member.user,
-            joined,
-            socs)
+    lines = \
+        ['%s (%s)' % (member.name, member.crsid),
+         member.email,
+         'Member: %s' % member.member,
+         'User: %s' % member.user,
+         'Joined: %s' % joined] \
+      + socs \
+      + _maybe_sysadmin_info(member)
+
+    return "\n".join(lines)
 
 def summarise_society(society):
     """Returns a str summarising `society`"""
     if society.admins:
-        admins = "Admins:\n" + \
-                 _pretty_name_list((u.name, u.crsid) for u in society.admins)
+        admins = \
+            ["Admins:"] + \
+            _pretty_name_list((u.name, u.crsid) for u in society.admins)
     else:
-        admins = 'Orphaned (no admins).'
+        admins = ['Orphaned (no admins).']
 
     joined = society.joined.strftime("%Y/%m")
 
-    return '%s: %s\nJoined: %s\n%s' % (
-        society.society, society.description, joined, admins)
+    lines = ['%s: %s' % (society.society, society.description),
+             'Joined: %s' % joined] \
+            + admins \
+            + _maybe_sysadmin_info(society)
+
+    return "\n".join(lines)
+
 
 def summarise(thing):
     if isinstance(thing, Society):
@@ -47,7 +59,7 @@ def summarise(thing):
         return summarise_member(thing)
 
     try:
-        return _pretty_thing_list(thing)
+        return "\n".join(_pretty_thing_list(thing))
     except TypeError:
         pass
 
@@ -77,5 +89,18 @@ def _pretty_name_list(names):
 	except ValueError: # empty sequence
 		return ''
 
-	return '\n'.join('  %-*s  (%s)' % (maxlen, col1, col2)
-		for (col1, col2) in nameList)
+	return ['  %-*s  (%s)' % (maxlen, col1, col2)
+		    for (col1, col2) in nameList]
+
+def _maybe_sysadmin_info(thing):
+    def indent(n): return "\n".join("  " + l for l in n.splitlines())
+
+    s = []
+    if hasattr(thing, "danger"):
+        s.append("Danger: %s" % thing.danger)
+    if hasattr(thing, "notes") and thing.notes:
+        tw = textwrap.TextWrapper(width=70, initial_indent='  ', subsequent_indent='  ')
+        s.append("Notes:")
+        for line in thing.notes.splitlines():
+            s += tw.wrap(line)
+    return s
