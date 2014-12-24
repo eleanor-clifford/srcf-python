@@ -201,7 +201,7 @@ else:
     LogLevel = LogRecord = None
 
 if not RESTRICTED or CONTROL_WEBAPP:
-    JobState = Enum('queued', 'running', 'done', 'failed',
+    JobState = Enum('unapproved', 'queued', 'running', 'done', 'failed',
                     name='job_state')
 
     event.listen(
@@ -215,7 +215,7 @@ if not RESTRICTED or CONTROL_WEBAPP:
         job_id = Column(Integer, primary_key=True)
         owner_crsid = Column(CRSID_TYPE, ForeignKey("members.crsid"))
         owner = relationship("Member")
-        state = Column(JobState, nullable=False, server_default='queued')
+        state = Column(JobState, nullable=False, server_default='unapproved')
         state_message = Column(Text)
         type = Column(String(100), nullable=False)
         args = Column(HSTORE, nullable=False)

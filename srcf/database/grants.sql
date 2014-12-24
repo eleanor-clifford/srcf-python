@@ -15,5 +15,12 @@ GRANT SELECT ON log TO sysadmins;
 GRANT SELECT ON log_record_id_seq TO sysadmins;
 GRANT SELECT ON jobs TO sysadmins;
 
--- the control webapp wants to add jobs to "srcf-admin"
+-- the control webapp gets the priveleges of nobody, plus:
+--     the ability to add jobs
+--     the ability to see the danger flag
+GRANT USAGE ON SCHEMA PUBLIC TO "srcf-admin";
+GRANT SELECT (crsid, surname, preferred_name, email, joined, modified, member, "user", danger) ON members TO "srcf-admin";
+GRANT SELECT (society, description, joined, modified, danger) ON societies TO "srcf-admin";
+GRANT SELECT ON society_admins TO "srcf-admin";
 GRANT SELECT, INSERT ON jobs TO "srcf-admin";
+GRANT SELECT, UPDATE ON jobs_job_id_seq TO "srcf-admin";
