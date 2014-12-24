@@ -25,13 +25,25 @@ __all__ = ["Member", "Society", "PendingAdmin", "RESTRICTED"]
 if __name__ == "__main__":
     # we're dumping the schema-we want the whole thing
     RESTRICTED = False
+    R_CAN_SEE = {
+        "notes": True,
+        "danger": True,
+        "pending-admins": True,
+        "jobs": True
+    }
 else:
     # Should we make the notes & danger flags, and pending-admins
     # tables available?
-    RESTRICTED = os.getuid() != 0
+    is_root = (os.getuid() == 0)
+    is_webapp = (getpass.getuser() == "srcf-admin")
 
-# Should we make the Jobs table available?
-CONTROL_WEBAPP = (getpass.getuser() == "srcf-admin")
+    RESTRICTED = not is_root
+    R_CAN_SEE = {
+        "notes": is_root,
+        "danger": is_root or is_webapp,
+        "pending-admins": is_root,
+        "jobs": is_root or is_webapp
+    }
 
 
 CRSID_TYPE = String(7)
@@ -53,8 +65,9 @@ class Member(Base, MemberCompat):
     modified = Column(DateTime(timezone=True), FetchedValue())
     member = Column(Boolean, nullable=False)
     user = Column(Boolean, nullable=False)
-    if not RESTRICTED:
+    if R_CAN_SEE["danger"]:
         danger = Column(Boolean, nullable=False, server_default='f')
+    if R_CAN_SEE["notes"]:
         notes = Column(Text, nullable=False, server_default='')
 
     __table_args__ = (
@@ -111,15 +124,16 @@ class Society(Base, SocietyCompat):
     description = Column(String(100), nullable=False)
     joined = Column(DateTime(timezone=True), FetchedValue())
     modified = Column(DateTime(timezone=True), FetchedValue())
-    if not RESTRICTED:
+    if R_CAN_SEE["danger"]:
         danger = Column(Boolean, nullable=False, server_default='f')
+    if R_CAN_SEE["notes"]:
         notes = Column(Text, nullable=False, server_default='')
 
     admins = relationship("Member",
             secondary=society_admins, collection_class=AdminsSetCompat,
             backref=backref("societies", collection_class=set))
 
-    if not RESTRICTED:
+    if R_CAN_SEE["pending-admins"]:
         pending_admins = relationship("PendingAdmin",
                 backref=backref("society"))
 
@@ -158,7 +172,7 @@ class Society(Base, SocietyCompat):
         return self.society + "-admins@srcf.net"
 
 
-if not RESTRICTED:
+if R_CAN_SEE["pending-admins"]:
     class PendingAdmin(Base):
         __tablename__ = "pending_society_admins"
 
@@ -200,7 +214,7 @@ else:
     PendingAdmin = None
     LogLevel = LogRecord = None
 
-if not RESTRICTED or CONTROL_WEBAPP:
+if R_CAN_SEE["jobs"]:
     JobState = Enum('unapproved', 'queued', 'running', 'done', 'failed',
                     name='job_state')
 
