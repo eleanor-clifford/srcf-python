@@ -27,6 +27,7 @@ if __name__ == "__main__":
     RESTRICTED = False
     R_CAN_SEE = {
         "notes": True,
+        "log": True,
         "danger": True,
         "pending-admins": True,
         "jobs": True
@@ -40,8 +41,9 @@ else:
     RESTRICTED = not is_root
     R_CAN_SEE = {
         "notes": is_root,
+        "log": is_root,
         "danger": is_root or is_webapp,
-        "pending-admins": is_root,
+        "pending-admins": is_root or is_webapp,
         "jobs": is_root or is_webapp
     }
 
@@ -191,8 +193,11 @@ if R_CAN_SEE["pending-admins"]:
         def __repr__(self):
             return '<PendingAdmin {0} {1}>'\
                         .format(self.crsid, self.society.society)
+else:
+    PendingAdmin = None
 
 
+if R_CAN_SEE["log"]:
     LogLevel = Enum('debug', 'info', 'warning', 'error', 'critical',
                     name='log_level')
 
@@ -211,8 +216,8 @@ if R_CAN_SEE["pending-admins"]:
         society = Column(SOCIETY_TYPE, ForeignKey('societies.society'))
 
 else:
-    PendingAdmin = None
     LogLevel = LogRecord = None
+
 
 if R_CAN_SEE["jobs"]:
     JobState = Enum('unapproved', 'queued', 'running', 'done', 'failed',
