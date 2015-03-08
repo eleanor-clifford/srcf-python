@@ -21,8 +21,8 @@ def formataddr(pair):
 def send_mail(recipient, subject, body,
               copy_sysadmins=True, reply_to_support=False, sess=None):
     """
-    Send `body` to `recipient`, which should be a (name, email) tuple.
-    Name may be None.
+    Send `body` to `recipient`, which should be a (name, email) tuple,
+    or a list of multiple tuples. Name may be None.
     """
 
     try:
@@ -32,18 +32,21 @@ def send_mail(recipient, subject, body,
     else:
         sender = (u.name, u.email)
 
+    if isinstance(recipient, tuple):
+    	recipient = [recipient]
+
     message = email.mime.text.MIMEText(body, _charset='utf-8')
     message["Message-Id"] = make_msgid("srcf-mailto")
     message["Date"] = formatdate(localtime=True)
     message["From"] = formataddr(sender)
-    message["To"] = formataddr(recipient)
+    message["To"] = ", ".join([formataddr(x) for x in recipient])
     message["Subject"] = subject
     if reply_to_support:
         message["Reply-To"] = formataddr(SUPPORT)
     else:
         message["Reply-To"] = formataddr(SYSADMINS)
 
-    all_emails = [recipient[1]]
+    all_emails = [x[1] for x in recipient]
     if copy_sysadmins:
         all_emails.append(SYSADMINS[1])
         message["Cc"] = formataddr(SYSADMINS)
