@@ -2,7 +2,7 @@ from __future__ import print_function, unicode_literals
 
 import os
 import warnings
-import getpass
+import pwd
 
 import six
 
@@ -19,11 +19,12 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from .compat import MemberCompat, SocietyCompat, AdminsSetCompat
 
 
-__all__ = ["Member", "Society", "PendingAdmin", "RESTRICTED"]
-
+__all__ = ["Member", "Society", "PendingAdmin",
+           "POSTGRES_USER", "RESTRICTED"]
 
 if __name__ == "__main__":
-    # we're dumping the schema-we want the whole thing
+    # we're dumping the schema---we want the whole thing
+    POSTGRES_USER = "root"
     RESTRICTED = False
     R_CAN_SEE = {
         "notes": True,
@@ -35,8 +36,20 @@ if __name__ == "__main__":
 else:
     # Should we make the notes & danger flags, and pending-admins
     # tables available?
-    is_root = (os.getuid() == 0)
-    is_webapp = (getpass.getuser() == "srcf-admin")
+
+    # These postgres roles have special permissions / are mentioned
+    # in the schema. Everyone else should connect as 'nobody'
+    schema_users = ("root", "srcf-admin")
+
+    # When connecting over a unix socket, postgres uses `getpeereid`
+    # for authentication; this is the number that matters:
+    euid_name = pwd.getpwuid(os.geteuid()).pw_name
+    if euid_name in schema_users:
+        POSTGRES_USER = euid_name
+    else:
+        POSTGRES_USER = "nobody"
+    is_root = POSTGRES_USER == "root"
+    is_webapp = POSTGRES_USER == "srcf-admin"
 
     RESTRICTED = not is_root
     R_CAN_SEE = {

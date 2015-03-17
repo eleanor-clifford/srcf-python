@@ -1,5 +1,4 @@
 import os
-import getpass
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -8,7 +7,8 @@ from sqlalchemy.orm import sessionmaker
 __all__ = ["Member", "Society", "PendingAdmin",
            "RESTRICTED", "assert_readwrite", "Session"]
 
-from .schema import RESTRICTED, Member, Society, PendingAdmin
+from .schema import RESTRICTED, POSTGRES_USER
+from .schema import Member, Society, PendingAdmin
 from .schema import LogLevel, LogRecord, JobState, Job
 
 class RestrictedAccess(RuntimeError):
@@ -26,9 +26,5 @@ else:
     _host = "pip.internal"
 
 # try and use a privileged user if we can, otherwise read only
-_user = getpass.getuser()
-if _user not in ("root", "srcf-admin"):
-    _user = "nobody"
-
-engine = create_engine("postgresql://{user}@{host}/sysadmins".format(host=_host, user=_user))
+engine = create_engine("postgresql://{user}@{host}/sysadmins".format(host=_host, user=POSTGRES_USER))
 Session = sessionmaker(bind=engine)
