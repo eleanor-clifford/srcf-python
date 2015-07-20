@@ -28,9 +28,9 @@ def send_mail(recipient, subject, body,
     try:
         u = get_current_user(sess=sess)
     except EnvironmentError:
-        sender = ('SRCF sysadmins', 'soc-srcf-admin@lists.cam.ac.uk')
+        sender = SYSADMINS
     else:
-        sender = (u.name, u.email)
+        sender = (u.name, u.crsid + '@srcf.net')
 
     if isinstance(recipient, tuple):
     	recipient = [recipient]
