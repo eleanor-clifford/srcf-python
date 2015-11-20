@@ -4,18 +4,31 @@ from . import Member, Society, Session
 
 
 _global_session = None
+_auto_create_global_session = True
 
 # We can't create temporary session objects since this breaks lazy loading.
 # When the session goes out of scope, the Member/Society objects seem to lose
 # it (? weakrefs) so can't lazy load (.admins, .societies)
 def _sess(session=None):
-    global _global_session
+    global _global_session, _auto_create_global_session
     if session:
         return session
-    else:
-        if not _global_session:
-            _global_session = Session()
+    elif _global_session:
         return _global_session
+    elif _auto_create_global_session:
+        _global_session = Session()
+        return _global_session
+    else:
+        raise RuntimeError("Auto global session creation is disabled")
+
+def disable_automatic_session(and_use_this_one_instead=None):
+    global _global_session, _auto_create_global_session
+
+    if _global_session:
+        raise RuntimeError("Too slow(!), the global session already exists")
+
+    _global_session = and_use_this_one_instead
+    _auto_create_global_session = False
 
 
 def list_members(session=None):
