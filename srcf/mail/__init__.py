@@ -19,14 +19,14 @@ def formataddr(pair):
     return original_formataddr((name, email))
 
 def send_mail(recipient, subject, body,
-              copy_sysadmins=True, reply_to_support=False, sess=None):
+              copy_sysadmins=True, reply_to_support=False, session=None):
     """
     Send `body` to `recipient`, which should be a (name, email) tuple,
     or a list of multiple tuples. Name may be None.
     """
 
     try:
-        u = get_current_user(sess=sess)
+        u = get_current_user(session=session)
     except EnvironmentError:
         sender = SYSADMINS
     else:
@@ -55,6 +55,6 @@ def send_mail(recipient, subject, body,
     s.sendmail(sender[1], all_emails, message.as_string())
     s.quit()
 
-def mail_sysadmins(subject, body, sess=None):
+def mail_sysadmins(subject, body, session=None):
     """Mail `body` to the sysadmins"""
-    send_mail(SYSADMINS, subject, body, copy_sysadmins=False, sess=sess)
+    send_mail(SYSADMINS, subject, body, copy_sysadmins=False, session=session)

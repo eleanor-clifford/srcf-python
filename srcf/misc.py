@@ -2,13 +2,13 @@ import sys
 import os
 import pwd
 
-from .database import Member, Session
+from .database import queries
 
-def get_current_user(sess=None):
+def get_current_user(session=None):
     """
     Return a srcf.database.Member for the current user.
 
-    sess may be a srcf.database.Session, if you have one.
+    session may be a srcf.database.Session, if you have one.
     """
 
     try:
@@ -32,7 +32,4 @@ def get_current_user(sess=None):
     if crsid.endswith("-adm"):
         crsid = crsid[:-4]
 
-    if sess is None:
-        sess = Session()
-
-    return sess.query(Member).get(crsid)
+    return queries.get_user(crsid, session=session)

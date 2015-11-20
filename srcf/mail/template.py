@@ -37,7 +37,6 @@ import sys
 import codecs
 
 from ..database.summarise import summarise
-from ..misc import get_current_user
 
 def from_stdin(keys):
     """Get an email template from stdin, and invoke `replace`"""
