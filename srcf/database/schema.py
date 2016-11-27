@@ -235,6 +235,8 @@ else:
 if R_CAN_SEE["jobs"]:
     JobState = Enum('unapproved', 'queued', 'running', 'done', 'failed',
                     name='job_state')
+    LogType = Enum('approved', 'rejected', 'progress', 'done', 'failed',
+                   name='log_type')
 
     event.listen(
         Base.metadata,
@@ -251,6 +253,14 @@ if R_CAN_SEE["jobs"]:
         state_message = Column(Text)
         type = Column(String(100), nullable=False)
         args = Column(HSTORE, nullable=False)
+
+    class JobLog(Base):
+        __tablename__ = 'job_log'
+        log_id = Column(Integer, primary_key=True)
+        job_id = Column(Integer, ForeignKey("jobs.job_id"))
+        time = Column(DateTime)
+        type = Column(LogType)
+        message = Column(Text)
 
 else:
     JobState = Job = None
