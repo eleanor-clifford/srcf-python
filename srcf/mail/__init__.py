@@ -27,7 +27,7 @@ def send_mail(recipient, subject, body,
 
     try:
         u = get_current_user(session=session)
-    except EnvironmentError:
+    except (EnvironmentError, KeyError):
         sender = SYSADMINS
     else:
         sender = (u.name, u.crsid + '@srcf.net')
