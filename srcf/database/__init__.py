@@ -20,11 +20,6 @@ def assert_readwrite():
     if RESTRICTED:
         raise RestrictedAccess
 
-if os.uname()[1] == "pip":
-    _host = ""
-else:
-    _host = "pip.internal"
-
 # try and use a privileged user if we can, otherwise read only
-engine = create_engine("postgresql://{user}@{host}/sysadmins".format(host=_host, user=POSTGRES_USER))
+engine = create_engine("postgresql://{user}@postgres.internal/sysadmins".format(user=POSTGRES_USER))
 Session = sessionmaker(bind=engine)
