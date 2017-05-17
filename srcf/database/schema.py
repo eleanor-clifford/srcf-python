@@ -31,6 +31,7 @@ if __name__ == "__main__":
         "log": True,
         "danger": True,
         "pending-admins": True,
+        "domains": True,
         "jobs": True
     }
 else:
@@ -57,6 +58,7 @@ else:
         "log": is_root,
         "danger": is_root or is_webapp,
         "pending-admins": is_root or is_webapp,
+        "domains": is_root or is_webapp,
         "jobs": is_root or is_webapp
     }
 
@@ -230,6 +232,26 @@ if R_CAN_SEE["log"]:
 
 else:
     LogLevel = LogRecord = None
+
+
+if R_CAN_SEE["domains"]:
+    class Domain(Base):
+        __tablename__ = "domains"
+        id = Column(Integer, primary_key=True)
+        class_ = Column("class", String(7), nullable=False)
+        owner = Column(String(16), nullable=False)
+        domain = Column(String(256), nullable=False)
+        root = Column(String(256))
+        macro = Column(String(64))
+
+    class HTTPSCert(Base):
+        __tablename__ = "https_certs"
+        id = Column(Integer, primary_key=True)
+        domain = Column(String(256), nullable=False)
+        name = Column(String(32))
+
+else:
+    Domain = HTTPSCert = None
 
 
 if R_CAN_SEE["jobs"]:
