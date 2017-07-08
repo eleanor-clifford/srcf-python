@@ -242,7 +242,9 @@ if R_CAN_SEE["domains"]:
         owner = Column(String(16), nullable=False)
         domain = Column(String(256), nullable=False)
         root = Column(String(256))
-        macro = Column(String(64))
+        wild = Column(Boolean, nullable=False, server_default='f')
+        if R_CAN_SEE["danger"]:
+            danger = Column(Boolean, nullable=False, server_default='f')
 
     class HTTPSCert(Base):
         __tablename__ = "https_certs"
