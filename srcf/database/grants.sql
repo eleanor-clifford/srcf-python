@@ -13,6 +13,7 @@ GRANT SELECT ON society_admins TO sysadmins;
 GRANT SELECT ON pending_society_admins TO sysadmins;
 GRANT SELECT ON log TO sysadmins;
 GRANT SELECT ON log_record_id_seq TO sysadmins;
+GRANT SELECT ON domains TO sysadmins;
 GRANT SELECT ON jobs TO sysadmins;
 
 -- the control webapp gets the priveleges of nobody, plus:
@@ -24,5 +25,6 @@ GRANT SELECT (crsid, surname, preferred_name, email, joined, modified, member, "
 GRANT SELECT (society, description, joined, modified, danger) ON societies TO "srcf-admin";
 GRANT SELECT ON society_admins TO "srcf-admin";
 GRANT SELECT ON pending_society_admins TO "srcf-admin";
+GRANT SELECT ON domains TO "srcf-admin";
 GRANT SELECT, INSERT ON jobs TO "srcf-admin";
 GRANT SELECT, UPDATE ON jobs_job_id_seq TO "srcf-admin";
