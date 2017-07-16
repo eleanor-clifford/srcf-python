@@ -19,7 +19,7 @@ GRANT SELECT ON jobs TO sysadmins;
 GRANT SELECT ON job_log TO sysadmins;
 GRANT SELECT ON job_log_log_id_seq TO sysadmins;
 GRANT SELECT ON https_certs TO sysadmins;
-GRANT SELECT ON https_certs_id_seq TO syasdmins;
+GRANT SELECT ON https_certs_id_seq TO sysadmins;
 
 -- the control webapp gets the priveleges of nobody, plus:
 --     the ability to add jobs
