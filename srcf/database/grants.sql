@@ -14,7 +14,12 @@ GRANT SELECT ON pending_society_admins TO sysadmins;
 GRANT SELECT ON log TO sysadmins;
 GRANT SELECT ON log_record_id_seq TO sysadmins;
 GRANT SELECT ON domains TO sysadmins;
+GRANT SELECT ON domains_id_seq TO sysadmins;
 GRANT SELECT ON jobs TO sysadmins;
+GRANT SELECT ON job_log TO sysadmins;
+GRANT SELECT ON job_log_log_id_seq TO sysadmins;
+GRANT SELECT ON https_certs TO sysadmins;
+GRANT SELECT ON https_certs_id_seq TO syasdmins;
 
 -- the control webapp gets the priveleges of nobody, plus:
 --     the ability to add jobs
