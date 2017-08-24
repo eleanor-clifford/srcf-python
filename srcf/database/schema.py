@@ -8,8 +8,8 @@ import six
 
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, Enum
 from sqlalchemy import event
-#from sqlalchemy.dialects.postgresql import HSTORE
-from .hstore import HSTORE
+from sqlalchemy.dialects.postgresql import HSTORE
+#from .hstore import HSTORE
 from sqlalchemy.schema import Table, FetchedValue, CheckConstraint, \
         ForeignKey, DDL, PrimaryKeyConstraint
 from sqlalchemy.orm import relationship, backref
