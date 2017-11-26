@@ -278,7 +278,7 @@ class ResetUserPassword(Job):
         subproc_call(self, "Run descrypt", ["/usr/local/sbin/srcf-descrypt-cron"])
 
         self.log("Send new password")
-        mail_users(self.owner, "SRCF account password reset", "srcf-password", password=password)
+        mail_users(self.owner, "Password reset", "srcf-password", password=password)
 
     def __repr__(self): return "<ResetUserPassword {0.owner_crsid}>".format(self)
     def __str__(self): return "Reset user password: {0.owner.crsid} ({0.owner.name})".format(self)
