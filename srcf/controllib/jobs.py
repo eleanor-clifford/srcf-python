@@ -394,53 +394,53 @@ class CreateSociety(SocietyJob):
 
     def run(self, sess):
         self.log("Create memberdb entry")
-        sess.add(Society(society=self.society,
+        sess.add(Society(society=self.society_society,
                          description=self.description,
                          admins=find_admins(self.admin_crsids, sess)))
 
-        subproc_call(self, "Add group", ["/usr/sbin/addgroup", "--force-badname", self.society])
+        subproc_call(self, "Add group", ["/usr/sbin/addgroup", "--force-badname", self.society_society])
 
         for admin in self.admin_crsids:
-            subproc_call(self, "Add user {0} to group".format(admin), ["/usr/sbin/adduser", admin, self.society])
+            subproc_call(self, "Add user {0} to group".format(admin), ["/usr/sbin/adduser", admin, self.society_society])
 
             self.log("Create society home symlink for {0}".format(admin))
             try:
-                os.symlink("/societies/" + self.society, "/home/" + admin + "/" + self.society)
+                os.symlink("/societies/" + self.society_society, "/home/" + admin + "/" + self.society_society)
             except:
                 pass
 
-        gid = grp.getgrnam(self.society).gr_gid
+        gid = grp.getgrnam(self.society_society).gr_gid
         uid = gid + 50000
 
         subproc_call(self, "Add society user", ["/usr/sbin/adduser", "--force-badname", "--no-create-home",
                                                 "--uid", str(uid), "--gid", str(gid), "--gecos", self.description,
-                                                "--disabled-password", "--system", self.society])
-        subproc_call(self, "Set home directory", ["/usr/sbin/usermod", "-d", "/societies/" + self.society, self.society])
+                                                "--disabled-password", "--system", self.society_society])
+        subproc_call(self, "Set home directory", ["/usr/sbin/usermod", "-d", "/societies/" + self.society_society, self.society_society])
 
         self.log("Create default directories")
-        os.makedirs("/societies/" + self.society + "/public_html", 0o775)
-        os.makedirs("/societies/" + self.society + "/cgi-bin", 0o775)
+        os.makedirs("/societies/" + self.society_society + "/public_html", 0o775)
+        os.makedirs("/societies/" + self.society_society + "/cgi-bin", 0o775)
 
         self.log("Set default directory owners")
-        os.chown("/societies/" + self.society + "/public_html", -1, gid)
-        os.chown("/societies/" + self.society + "/cgi-bin", -1, gid)
+        os.chown("/societies/" + self.society_society + "/public_html", -1, gid)
+        os.chown("/societies/" + self.society_society + "/cgi-bin", -1, gid)
 
-        subproc_call(self, "Update home permissions", ["chmod", "-R", "2775", "/societies/" + self.society])
+        subproc_call(self, "Update home permissions", ["chmod", "-R", "2775", "/societies/" + self.society_society])
 
         self.log("Write subdomain status")
         with open("/societies/srcf-admin/socwebstatus", "a") as myfile:
-            myfile.write(self.society + ":subdomain\n")
+            myfile.write(self.society_society + ":subdomain\n")
 
-        subproc_call(self, "Set quota", ["/usr/local/sbin/set_quota", self.society])
+        subproc_call(self, "Set quota", ["/usr/local/sbin/set_quota", self.society_society])
         subproc_call(self, "Generate sudoers", ["/usr/local/sbin/srcf-generate-society-sudoers"])
         subproc_call(self, "Export memberdb", ["/usr/local/sbin/srcf-memberdb-export"])
 
         self.log("Send welcome email")
-        newsoc = queries.get_society(self.society)
+        newsoc = queries.get_society(self.society_society)
         mail_users(newsoc, "New shared account created", "signup")
 
-    def __repr__(self): return "<CreateSociety {0.society}>".format(self)
-    def __str__(self): return "Create society: {0.society} ({0.description})".format(self)
+    def __repr__(self): return "<CreateSociety {0.society_society}>".format(self)
+    def __str__(self): return "Create society: {0.society_society} ({0.description})".format(self)
 
 @add_job
 class ChangeSocietyAdmin(SocietyJob):
