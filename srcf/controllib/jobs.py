@@ -147,6 +147,9 @@ class Job(object):
         """
         pass
 
+    def visible_to(self, crsid):
+        return self.owner and self.owner == crsid
+
     @classmethod
     def create(cls, owner, args, require_approval):
         return cls(database.Job(
@@ -183,6 +186,18 @@ class Job(object):
 class SocietyJob(Job):
     society_society = property(lambda s: s.row.args["society"])
 
+    def resolve_references(self, sess):
+        super(SocietyJob, self).resolve_references(sess)
+        try:
+            self.society = queries.get_society(self.society_society)
+        except KeyError:
+            # maybe the society doesn't exist yet / any more
+            self.society = None
+
+    def visible_to(self, crsid):
+        return super(SocietyJob, self).visible_to(crsid) or \
+                self.society and crsid in self.society
+
 
 @add_job
 class Signup(Job):
@@ -190,6 +205,9 @@ class Signup(Job):
 
     def __init__(self, row):
         self.row = row
+
+    def visible_to(self, crsid):
+        return self.crsid == crsid
 
     @classmethod
     def new(cls, crsid, preferred_name, surname, email, social):
@@ -373,6 +391,7 @@ class CreateSociety(SocietyJob):
         self.row = row
 
     def resolve_references(self, sess):
+        super(CreateSociety, self).resolve_references(sess)
         self.admins = \
                 sess.query(database.Member) \
                 .filter(database.Member.crsid.in_(self.admin_crsids)) \
@@ -450,7 +469,7 @@ class ChangeSocietyAdmin(SocietyJob):
         self.row = row
 
     def resolve_references(self, sess):
-        self.society = queries.get_society(self.society_society)
+        super(ChangeSocietyAdmin, self).resolve_references(sess)
         self.target_member = queries.get_member(self.target_member_crsid)
 
     @classmethod
@@ -548,10 +567,6 @@ class CreateSocietyMailingList(SocietyJob):
     def __init__(self, row):
         self.row = row
 
-    def resolve_references(self, sess):
-        self.society = \
-            queries.get_society(self.society_society)
-
     @classmethod
     def new(cls, member, society, listname):
         args = {
@@ -586,10 +601,6 @@ class ResetSocietyMailingListPassword(SocietyJob):
 
     def __init__(self, row):
         self.row = row
-
-    def resolve_references(self, sess):
-        self.society = \
-            queries.get_society(self.society_society)
 
     @classmethod
     def new(cls, member, society, listname):
@@ -677,9 +688,6 @@ class CreateMySQLSocietyDatabase(SocietyJob):
     def __init__(self, row):
         self.row = row
 
-    def resolve_references(self, sess):
-        self.society = queries.get_society(self.society_society)
-
     @classmethod
     def new(cls, member, society):
         args = {"society": society.society}
@@ -724,9 +732,6 @@ class ResetMySQLSocietyPassword(SocietyJob):
 
     def __init__(self, row):
         self.row = row
-
-    def resolve_references(self, sess):
-        self.society = queries.get_society(self.society_society)
 
     @classmethod
     def new(cls, member, society):
@@ -841,9 +846,6 @@ class CreatePostgresSocietyDatabase(SocietyJob):
     def __init__(self, row):
         self.row = row
 
-    def resolve_references(self, sess):
-        self.society = queries.get_society(self.society_society)
-
     @classmethod
     def new(cls, member, society):
         args = {"society": society.society}
@@ -912,9 +914,6 @@ class ResetPostgresSocietyPassword(SocietyJob):
 
     def __init__(self, row):
         self.row = row
-
-    def resolve_references(self, sess):
-        self.society = queries.get_society(self.society_society)
 
     @classmethod
     def new(cls, member, society):
