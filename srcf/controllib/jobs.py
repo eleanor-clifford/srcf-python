@@ -349,7 +349,7 @@ class CreateUserMailingList(Job):
         password = make_pwd()
 
         self.log("Sanity check list name")
-        if not re.match("^[A-Za-z0-9\-]+$", self.listname) \
+        if not re.match(r"^[A-Za-z0-9\-]+$", self.listname) \
         or self.listname.split("-")[-1] in ("admin", "bounces", "confirm", "join", "leave",
                                             "owner", "request", "subscribe", "unsubscribe"):
             raise JobFailed("Invalid list name {}".format(full_listname))
@@ -584,7 +584,7 @@ class CreateSocietyMailingList(SocietyJob):
         full_listname = "{}-{}".format(self.society_society, self.listname)
         password = make_pwd()
 
-        if not re.match("^[A-Za-z0-9\-]+$", self.listname) \
+        if not re.match(r"^[A-Za-z0-9\-]+$", self.listname) \
         or self.listname.split("-")[-1] in ("admin", "bounces", "confirm", "join", "leave",
                                             "owner", "request", "subscribe", "unsubscribe"):
             raise JobFailed("Invalid list name {}".format(full_listname))
