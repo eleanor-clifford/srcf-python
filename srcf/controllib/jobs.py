@@ -1,20 +1,19 @@
-from contextlib import contextmanager
 import subprocess
-import sys
 import re
 import logging
+import os
+import pwd
+import grp
+from contextlib import contextmanager
 
-from flask import url_for
+import psycopg2
+import pymysql
 from jinja2 import Environment, FileSystemLoader
 
 from srcf import database, pwgen
 from srcf.database import queries, Job as db_Job
 from srcf.database.schema import Member, Society
 from srcf.mail import send_mail
-import os
-import pwd, grp
-import psycopg2
-import pymysql
 
 from . import utils
 
