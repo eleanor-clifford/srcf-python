@@ -148,7 +148,11 @@ def main():
             run_message = e.message or "Aborted"
             job.log(run_message, "failed", logging.WARNING, e.raw)
 
-            email_error(i, "{0}\n\n{1}".format(run_message, e.raw))
+            raw = e.raw
+            if isinstance(raw, bytes):
+                raw = raw.decode("utf-8")
+
+            email_error(i, "{0}\n\n{1}".format(run_message, raw) if raw else run_message)
 
         except Exception as e:
             job.log("Unhandled exception", "failed", logging.ERROR, traceback.format_exc(), exc_info=1)
