@@ -147,7 +147,7 @@ class Job(object):
         pass
 
     def visible_to(self, crsid):
-        return self.owner and self.owner == crsid
+        return self.owner_crsid and self.owner_crsid == crsid
 
     @classmethod
     def create(cls, owner, args, require_approval):
