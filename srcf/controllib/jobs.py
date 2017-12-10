@@ -275,6 +275,40 @@ class Signup(Job):
     def __str__(self): return "Signup: {0.crsid} ({0.preferred_name} {0.surname}, {0.email})".format(self)
 
 @add_job
+class Reactivate(Job):
+    JOB_TYPE = 'reactivate'
+
+    def __init__(self, row):
+        self.row = row
+
+    @classmethod
+    def new(cls, member, email):
+        args = {"email": email}
+        return cls.create(member, args, True)
+
+    email = property(lambda s: s.row.args["email"])
+
+    def __repr__(self): return "<Reactivate {0.owner_crsid}>".format(self)
+    def __str__(self): return "Reactivate user: {0.owner.crsid} ({0.email})".format(self)
+
+    def run(self, sess):
+        crsid = self.owner.crsid
+        password = make_pwd()
+
+        old_email = self.owner.email
+        self.log("Update email address")
+        self.owner.email = self.email
+        self.log("Update member/user status")
+        self.owner.member = True
+        self.owner.user = True
+
+        subproc_call(self, "Re-enable UNIX user", ["/usr/sbin/usermod", "-s", "/bin/bash", "-e", "", crsid])
+        subproc_call(self, "Change UNIX password for {0}".format(crsid), ["/usr/sbin/chpasswd"], (crsid + ":" + password).encode("utf-8"))
+
+        self.log("Send confirmation")
+        mail_users(self.owner, "Account reactivated", "reactivate", new_email=self.email, password=password)
+
+@add_job
 class ResetUserPassword(Job):
     JOB_TYPE = 'reset_user_password'
 

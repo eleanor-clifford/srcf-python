@@ -1,0 +1,9 @@
+Your account has now been reactivated, and the email address we have on record for you has been changed to {{ new_email }}.
+
+Please note that this does not affect the delivery of emails sent to {{ target.crsid }}@srcf.net -- for this, you will need to create or update the .forward file in your home directory.
+
+The password for your SRCF account has also been reset.
+
+New SRCF password: {{ password }}
+
+{% include "common/password-sharing.txt" %}
