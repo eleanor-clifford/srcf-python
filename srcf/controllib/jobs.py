@@ -12,7 +12,7 @@ from jinja2 import Environment, FileSystemLoader
 
 from srcf import database, pwgen
 from srcf.database import queries, Job as db_Job
-from srcf.database.schema import Member, Society
+from srcf.database.schema import Member, Society, Domain
 from srcf.mail import send_mail
 
 from . import utils
@@ -415,6 +415,69 @@ class ResetUserMailingListPassword(Job):
         subproc_call(self, "Reset list admins", ["/usr/sbin/config_list", "-v", "-i", "/dev/stdin", self.listname],
                      "owner = ['{0}@srcf.net']".format(self.owner))
         subproc_call(self, "Reset list password", ["/usr/lib/mailman/bin/change_pw", "-l", self.listname])
+
+@add_job
+class AddUserVhost(Job):
+    JOB_TYPE = 'add_user_vhost'
+
+    def __init__(self, row):
+        self.row = row
+
+    @classmethod
+    def new(cls, member, domain, root):
+        root = "public_html/{}".format(root) if root else None
+        args = {"domain": domain, "root": root}
+        require_approval = member.danger
+        return cls.create(member, args, require_approval)
+
+    domain = property(lambda s: s.row.args["domain"])
+    root = property(lambda s: s.row.args["root"])
+
+    def __repr__(self): return "<AddUserVhost {0.owner_crsid} {0.domain}>".format(self)
+    def __str__(self): return "Add custom domain: {0.owner.crsid} ({0.domain} -> {0.root})".format(self)
+
+    def run(self, sess):
+        self.log("Add domain entry")
+        sess.add(Domain(owner=self.owner_crsid,
+                        domain=self.domain,
+                        root=self.root,
+                        wild=False))
+
+        self.log("Send confirmation")
+        mail_users(self.owner, "Custom domain added", "add-vhost", domain=self.domain, root=self.root)
+
+@add_job
+class RemoveUserVhost(Job):
+    JOB_TYPE = 'remove_user_vhost'
+
+    def __init__(self, row):
+        self.row = row
+
+    @classmethod
+    def new(cls, member, domain):
+        args = {"domain": domain}
+        require_approval = member.danger
+        return cls.create(member, args, require_approval)
+
+    domain = property(lambda s: s.row.args["domain"])
+
+    def __repr__(self): return "<RemoveUserVhost {0.owner_crsid} {0.domain}>".format(self)
+    def __str__(self): return "Remove custom domain: {0.owner.crsid} ({0.domain})".format(self)
+
+    def run(self, sess):
+        self.log("Lookup domain entry")
+        try:
+            domain = sess.query(Domain).filter(Domain.domain == self.domain)[0]
+        except IndexError:
+            raise JobFailed("{0.domain} does not exist".format(self))
+        if not domain.owner == self.owner_crsid:
+            raise JobFailed("{0.domain} is not owned by {0.owner_crsid}".format(self))
+
+        self.log("Remove domain entry")
+        sess.delete(domain)
+
+        self.log("Send confirmation")
+        mail_users(self.owner, "Custom domain removed", "remove-vhost", domain=self.domain)
 
 @add_job
 class CreateSociety(SocietyJob):
@@ -976,3 +1039,67 @@ class ResetPostgresSocietyPassword(SocietyJob):
 
     def __repr__(self): return "<ResetPostgresSocietyPassword {0.society_society}>".format(self)
     def __str__(self): return "Reset society PostgreSQL password: {0.society.society} ({0.society.description})".format(self)
+
+@add_job
+class AddSocietyVhost(SocietyJob):
+    JOB_TYPE = 'add_society_vhost'
+
+    def __init__(self, row):
+        self.row = row
+
+    @classmethod
+    def new(cls, member, society, domain, root):
+        root = "public_html/{}".format(root) if root else None
+        args = {"society": society.society, "domain": domain, "root": root}
+        require_approval = society.danger or member.danger
+        return cls.create(member, args, require_approval)
+
+    domain = property(lambda s: s.row.args["domain"])
+    root = property(lambda s: s.row.args["root"])
+
+    def __repr__(self): return "<AddSocietyVhost {0.society_society} {0.domain}>".format(self)
+    def __str__(self): return "Add custom society domain: {0.society.society} ({0.domain} -> {0.root})".format(self)
+
+    def run(self, sess):
+        self.log("Add domain entry")
+        sess.add(Domain(class_="soc",
+                        owner=self.society_society,
+                        domain=self.domain,
+                        root=self.root,
+                        wild=False))
+
+        self.log("Send confirmation")
+        mail_users(self.society, "Custom domain added", "add-vhost", domain=self.domain, root=self.root)
+
+@add_job
+class RemoveSocietyVhost(SocietyJob):
+    JOB_TYPE = 'remove_society_vhost'
+
+    def __init__(self, row):
+        self.row = row
+
+    @classmethod
+    def new(cls, member, society, domain):
+        args = {"society": society.society, "domain": domain}
+        require_approval = society.danger or member.danger
+        return cls.create(member, args, require_approval)
+
+    domain = property(lambda s: s.row.args["domain"])
+
+    def __repr__(self): return "<RemoveSocietyVhost {0.society_society} {0.domain}>".format(self)
+    def __str__(self): return "Remove custom society domain: {0.society.society} ({0.domain})".format(self)
+
+    def run(self, sess):
+        self.log("Lookup domain entry")
+        try:
+            domain = sess.query(Domain).filter(Domain.domain == self.domain)[0]
+        except IndexError:
+            raise JobFailed("{0.domain} does not exist".format(self))
+        if not domain.owner == self.society_society:
+            raise JobFailed("{0.domain} is not owned by {0.society_society}".format(self))
+
+        self.log("Remove domain entry")
+        sess.delete(domain)
+
+        self.log("Send confirmation")
+        mail_users(self.society, "Custom domain removed", "remove-vhost", domain=self.domain)

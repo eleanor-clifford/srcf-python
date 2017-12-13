@@ -1,0 +1,3 @@
+Your custom domain {{ domain }} has now been unregistered.
+
+Note that if the domain still resolves to our server, visitors will be greeted with a "non-existent site" page.

@@ -1,0 +1,9 @@
+The custom domain {{ domain }} has now been registered to your account.
+
+Document root: /home/{{ target.crsid }}/public_html{% if root %}/{{ root }}{% endif %}
+
+Any files or content in this directory will be served from your newly configured domain.  You may need to wait up to 20 minutes before you can access the site.
+
+If you haven't done so already, you should configure your domain's DNS records to resolve to our server.  More info can be found here:
+
+    http://wiki.srcf.net/DomainsAndHTTPS
