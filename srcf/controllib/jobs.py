@@ -413,7 +413,7 @@ class ResetUserMailingListPassword(Job):
 
     def run(self, sess):
         subproc_call(self, "Reset list admins", ["/usr/sbin/config_list", "-v", "-i", "/dev/stdin", self.listname],
-                     "owner = ['{0}@srcf.net']".format(self.owner))
+                     "owner = ['{0}@srcf.net']".format(self.owner).encode("utf-8"))
         subproc_call(self, "Reset list password", ["/usr/lib/mailman/bin/change_pw", "-l", self.listname])
 
 @add_job
@@ -687,7 +687,7 @@ class CreateSocietyMailingList(SocietyJob):
             raise JobFailed("Invalid list name {}".format(full_listname))
 
         subproc_call(self, "Create mailing list {0}".format(full_listname),
-                     ["sshpass", "newlist", full_listname, self.owner.crsid + "-admins@srcf.net"], password)
+                     ["sshpass", "newlist", full_listname, self.owner.crsid + "-admins@srcf.net"], password.encode("utf-8"))
         subproc_call(self, "Configure list", ["/usr/sbin/config_list", "-i", "/root/mailman-newlist-defaults", full_listname])
         subproc_call(self, "Generate aliases", ["gen_alias", full_listname])
 
@@ -714,7 +714,7 @@ class ResetSocietyMailingListPassword(SocietyJob):
 
     def run(self, sess):
         subproc_call(self, "Reset list admins", ["/usr/sbin/config_list", "-v", "-i", "/dev/stdin", self.listname],
-                     "owner = ['{0}-admins@srcf.net']".format(self.society_society))
+                     "owner = ['{0}-admins@srcf.net']".format(self.society_society).encode("utf-8"))
         subproc_call(self, "Reset list password", ["/usr/lib/mailman/bin/change_pw", "-l", self.listname])
 
 # Here be dragons: we trust the value of crsid a *lot* (such that it appears unescaped in SQL queries).
