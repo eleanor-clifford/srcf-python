@@ -350,7 +350,7 @@ class UpdateEmailAddress(Job):
     email = property(lambda s: s.row.args["email"])
 
     def __repr__(self): return "<UpdateEmailAddress {0.owner_crsid}>".format(self)
-    def __str__(self): return "Update email address: {0.owner.crsid} ({0.owner.email} to {0.email})".format(self)
+    def __str__(self): return "Update email address: {0.owner.crsid} ({0.email})".format(self)
 
     def run(self, sess):
         old_email = self.owner.email
