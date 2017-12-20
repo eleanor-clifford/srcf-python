@@ -167,6 +167,7 @@ class Job(object):
         raise JobFailed("not implemented")
 
     job_id = property(lambda s: s.row.job_id)
+    created_at = property(lambda s: s.row.created_at)
     owner = property(lambda s: s.row.owner)
     owner_crsid = property(lambda s: s.row.owner_crsid)
     state = property(lambda s: s.row.state)
