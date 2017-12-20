@@ -4,6 +4,7 @@ import logging
 import os
 import pwd
 import grp
+from datetime import datetime
 from contextlib import contextmanager
 
 import psycopg2
@@ -153,6 +154,7 @@ class Job(object):
     def create(cls, owner, args, require_approval):
         return cls(database.Job(
             type=cls.JOB_TYPE,
+            created_at=datetime.now(),
             owner=owner,
             state="unapproved" if require_approval else "queued",
             args=args
