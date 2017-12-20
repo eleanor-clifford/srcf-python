@@ -31,10 +31,14 @@ def is_admin(member):
     return False
 
 
-my_cnf = configparser.ConfigParser()
-my_cnf.read("/societies/srcf-admin/.my.cnf")
-mysql_passwd = my_cnf.get('client', 'password')
+mysql_passwd = None
+
 def mysql_conn():
+    global mysql_passwd
+    if not mysql_passwd:
+        my_cnf = configparser.ConfigParser()
+        my_cnf.read("/societies/srcf-admin/.my.cnf")
+        mysql_passwd = my_cnf.get('client', 'password')
     conn = pymysql.connect(user="srcf_admin", db="srcf_admin", passwd=mysql_passwd)
     conn.autocommit = True
     return conn
