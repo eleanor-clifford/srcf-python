@@ -9,7 +9,7 @@ __all__ = ["Member", "Society", "PendingAdmin",
 
 from .schema import RESTRICTED, POSTGRES_USER
 from .schema import Member, Society, PendingAdmin
-from .schema import LogLevel, LogRecord, Domain, HTTPSCert, JobState, Job
+from .schema import LogLevel, LogRecord, Domain, HTTPSCert, JobState, Job, JobLog
 
 class RestrictedAccess(RuntimeError):
     def __init__(self):
