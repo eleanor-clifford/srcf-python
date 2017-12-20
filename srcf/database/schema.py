@@ -286,9 +286,10 @@ if R_CAN_SEE["jobs"]:
         time = Column(DateTime)
         type = Column(LogType)
         message = Column(Text)
+        raw = Column(Text)
 
 else:
-    JobState = Job = None
+    JobState = Job = JobLog = None
 
 
 def dump_schema():
