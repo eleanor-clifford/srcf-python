@@ -275,6 +275,7 @@ if R_CAN_SEE["jobs"]:
         owner = relationship("Member")
         state = Column(JobState, nullable=False, server_default='unapproved')
         state_message = Column(Text)
+        created_at = Column(DateTime)
         type = Column(String(100), nullable=False)
         args = Column(HSTORE, nullable=False)
 
