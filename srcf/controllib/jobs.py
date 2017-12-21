@@ -810,10 +810,10 @@ class CreateMySQLSocietyDatabase(SocietyJob):
                 usrpassword = make_pwd()
                 sql_exec(self, cursor, "Set owner user password", "SET PASSWORD FOR " + self.owner.crsid + "@%% = %s", usrpassword)
 
-            sql_exec(self, cursor, "Grant privileges (society, base)", "GRANT ALL PRIVILEGES ON `" +  socname + "`.*   TO '" + socname + "'@'%'")
-            sql_exec(self, cursor, "Grant privileges (society, wild)", "GRANT ALL PRIVILEGES ON `" +  socname + "/%`.* TO '" + socname + "'@'%'")
-            sql_exec(self, cursor, "Grant privileges (user, base)",    "GRANT ALL PRIVILEGES ON `" +  socname + "`.*   TO '" + self.owner.crsid + "'@'%'")
-            sql_exec(self, cursor, "Grant privileges (user, wild)",    "GRANT ALL PRIVILEGES ON `" +  socname + "/%`.* TO '" + self.owner.crsid + "'@'%'")
+            sql_exec(self, cursor, "Grant privileges (society, base)", "GRANT ALL PRIVILEGES ON `" +  socname + "`.*   TO '" + socname + "'@'%%'")
+            sql_exec(self, cursor, "Grant privileges (society, wild)", "GRANT ALL PRIVILEGES ON `" +  socname + "/%%`.* TO '" + socname + "'@'%%'")
+            sql_exec(self, cursor, "Grant privileges (user, base)",    "GRANT ALL PRIVILEGES ON `" +  socname + "`.*   TO '" + self.owner.crsid + "'@'%%'")
+            sql_exec(self, cursor, "Grant privileges (user, wild)",    "GRANT ALL PRIVILEGES ON `" +  socname + "/%%`.* TO '" + self.owner.crsid + "'@'%%'")
             sql_exec(self, cursor, "Set society user password",        "SET PASSWORD FOR '" + socname + "'@'%%' = %s", password)
 
         self.log("Send society password")
