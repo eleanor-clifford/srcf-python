@@ -978,7 +978,7 @@ class CreatePostgresSocietyDatabase(SocietyJob):
 
             if len(results) == 0:
                 sql_exec(self, cursor, "Create society user", "CREATE USER " + socname + " ENCRYPTED PASSWORD %s NOCREATEDB NOCREATEUSER", socpassword)
-                usercreated = True
+                socusercreated = True
             else:
                 sql_exec(self, cursor, "(Re-)enable society user logins", "ALTER ROLE " + socname + " LOGIN")
 
