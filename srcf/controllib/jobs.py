@@ -441,7 +441,8 @@ class AddUserVhost(Job):
 
     def run(self, sess):
         self.log("Add domain entry")
-        sess.add(Domain(owner=self.owner_crsid,
+        sess.add(Domain(class_="user",
+                        owner=self.owner_crsid,
                         domain=self.domain,
                         root=self.root,
                         wild=False))
