@@ -261,6 +261,8 @@ if R_CAN_SEE["jobs"]:
                     name='job_state')
     LogType = Enum('approved', 'rejected', 'progress', 'done', 'failed',
                    name='log_type')
+    LogLevel = Enum('debug', 'info', 'warning', 'error', 'critical',
+                    name='log_level')
 
     event.listen(
         Base.metadata,
@@ -285,6 +287,7 @@ if R_CAN_SEE["jobs"]:
         job_id = Column(Integer, ForeignKey("jobs.job_id"))
         time = Column(DateTime)
         type = Column(LogType)
+        level = Column(LogLevel)
         message = Column(Text)
         raw = Column(Text)
 
