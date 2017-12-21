@@ -11,6 +11,6 @@ To access the database via a web interface (phpPgAdmin):
 
 To access the database from the shell, use the following command:
 
-    psql {{ target.society }}
+    psql -h postgres {{ target.society }}
 
 Authentication is handled by the current shell user, so no password is required.
