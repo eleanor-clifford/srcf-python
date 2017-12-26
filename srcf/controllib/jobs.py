@@ -273,6 +273,7 @@ class Signup(Job):
                                                         "soc-srcf-maintenance:" + ml_entry,
                                                         ("soc-srcf-social:" + ml_entry) if self.social else ""])
         subproc_call(self, "Export memberdb", ["/usr/local/sbin/srcf-memberdb-export"])
+        subproc_call(self, "Rebuild /var/yp", ["make", "-C", "/var/yp"])
 
     def __repr__(self): return "<Signup {0.crsid}>".format(self)
     def __str__(self): return "Signup: {0.crsid} ({0.preferred_name} {0.surname}, {0.email})".format(self)
@@ -307,6 +308,7 @@ class Reactivate(Job):
 
         subproc_call(self, "Re-enable UNIX user", ["/usr/sbin/usermod", "-s", "/bin/bash", "-e", "", crsid])
         subproc_call(self, "Change UNIX password for {0}".format(crsid), ["/usr/sbin/chpasswd"], (crsid + ":" + password).encode("utf-8"))
+        subproc_call(self, "Rebuild /var/yp", ["make", "-C", "/var/yp"])
 
         self.log("Send confirmation")
         mail_users(self.owner, "Account reactivated", "reactivate", new_email=self.email, password=password)
@@ -329,7 +331,6 @@ class ResetUserPassword(Job):
 
         subproc_call(self, "Change UNIX password for {0}".format(crsid), ["/usr/sbin/chpasswd"], (crsid + ":" + password).encode("utf-8"))
         subproc_call(self, "Rebuild /var/yp", ["make", "-C", "/var/yp"])
-        subproc_call(self, "Run descrypt", ["/usr/local/sbin/srcf-descrypt-cron"])
 
         self.log("Send new password")
         mail_users(self.owner, "Password reset", "srcf-password", password=password)
@@ -553,6 +554,7 @@ class CreateSociety(SocietyJob):
         subproc_call(self, "Set quota", ["/usr/local/sbin/set_quota", self.society_society])
         subproc_call(self, "Generate sudoers", ["/usr/local/sbin/srcf-generate-society-sudoers"])
         subproc_call(self, "Export memberdb", ["/usr/local/sbin/srcf-memberdb-export"])
+        subproc_call(self, "Rebuild /var/yp", ["make", "-C", "/var/yp"])
 
         self.log("Send welcome email")
         newsoc = queries.get_society(self.society_society)
@@ -619,6 +621,8 @@ class ChangeSocietyAdmin(SocietyJob):
             self.log("Create society home symlink")
             os.symlink(source_ln, target_ln)
 
+        subproc_call(self, "Rebuild /var/yp", ["make", "-C", "/var/yp"])
+
         self.log("Send confirmation to new member")
         mail_users(self.target_member, "Access granted to " + self.society_society, "add-admin", society=self.society)
         self.log("Send confirmation to the rest")
@@ -645,6 +649,8 @@ class ChangeSocietyAdmin(SocietyJob):
         if os.path.islink(target_ln) and os.path.samefile(target_ln, source_ln):
             self.log("Remove society home symlink")
             os.remove(target_ln)
+
+        subproc_call(self, "Rebuild /var/yp", ["make", "-C", "/var/yp"])
 
         self.log("Send confirmation to remaining admins")
         adminNames = sorted("{0.name} ({0.crsid})".format(m) for m in self.society.admins)
