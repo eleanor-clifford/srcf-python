@@ -21,5 +21,5 @@ def assert_readwrite():
         raise RestrictedAccess
 
 # try and use a privileged user if we can, otherwise read only
-engine = create_engine("postgresql://{user}@postgres.internal/sysadmins".format(user=POSTGRES_USER))
+engine = create_engine("postgresql://{user}@postgres/sysadmins".format(user=POSTGRES_USER))
 Session = sessionmaker(bind=engine)
