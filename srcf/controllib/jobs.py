@@ -815,7 +815,7 @@ class CreateMySQLSocietyDatabase(SocietyJob):
             sql_exec(self, cursor, "Check for existing owner user", "SELECT EXISTS (SELECT DISTINCT User FROM mysql.user WHERE User = %s) AS e", self.owner.crsid)
             if cursor.fetchone()[0] == 0:
                 usrpassword = make_pwd()
-                sql_exec(self, cursor, "Set owner user password", "SET PASSWORD FOR " + self.owner.crsid + "@%% = %s", usrpassword)
+                sql_exec(self, cursor, "Set owner user password", "SET PASSWORD FOR " + self.owner.crsid + "@'%%' = %s", usrpassword)
 
             sql_exec(self, cursor, "Grant privileges (society, base)", "GRANT ALL PRIVILEGES ON `" +  socname + "`.*   TO '" + socname + "'@'%%'")
             sql_exec(self, cursor, "Grant privileges (society, wild)", "GRANT ALL PRIVILEGES ON `" +  socname + "/%%`.* TO '" + socname + "'@'%%'")
