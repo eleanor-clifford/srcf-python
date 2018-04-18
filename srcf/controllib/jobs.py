@@ -812,16 +812,16 @@ class CreateMySQLSocietyDatabase(SocietyJob):
         with mysql_context(self) as (db, cursor):
             sql_exec(self, cursor, "Create society database", "CREATE DATABASE " + socname)
 
-            sql_exec(self, cursor, "Check for existing owner user", "SELECT EXISTS (SELECT DISTINCT User FROM mysql.user WHERE User = %s) AS e", self.owner.crsid)
-            if cursor.fetchone()[0] == 0:
-                usrpassword = make_pwd()
-                sql_exec(self, cursor, "Set owner user password", "SET PASSWORD FOR " + self.owner.crsid + "@'%%' = %s", usrpassword)
-
             sql_exec(self, cursor, "Grant privileges (society, base)", "GRANT ALL PRIVILEGES ON `" +  socname + "`.*   TO '" + socname + "'@'%%'")
             sql_exec(self, cursor, "Grant privileges (society, wild)", "GRANT ALL PRIVILEGES ON `" +  socname + "/%%`.* TO '" + socname + "'@'%%'")
             sql_exec(self, cursor, "Grant privileges (user, base)",    "GRANT ALL PRIVILEGES ON `" +  socname + "`.*   TO '" + self.owner.crsid + "'@'%%'")
             sql_exec(self, cursor, "Grant privileges (user, wild)",    "GRANT ALL PRIVILEGES ON `" +  socname + "/%%`.* TO '" + self.owner.crsid + "'@'%%'")
             sql_exec(self, cursor, "Set society user password",        "SET PASSWORD FOR '" + socname + "'@'%%' = %s", password)
+
+            sql_exec(self, cursor, "Check for existing owner user", "SELECT EXISTS (SELECT DISTINCT User FROM mysql.user WHERE User = %s) AS e", self.owner.crsid)
+            if cursor.fetchone()[0] == 0:
+                usrpassword = make_pwd()
+                sql_exec(self, cursor, "Set owner user password", "SET PASSWORD FOR " + self.owner.crsid + "@'%%' = %s", usrpassword)
 
         self.log("Send society password")
         mail_users(self.society, "MySQL database created", "mysql-create", password=password, requester=self.owner)
