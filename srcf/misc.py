@@ -45,5 +45,5 @@ def get_current_user(session=None):
 
     session may be a srcf.database.Session, if you have one.
     """
-    user, _ = get_current_user_op(session)
+    user, _ = get_current_context(session)
     return user
