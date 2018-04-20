@@ -5,7 +5,7 @@ from email.header import Header
 from email.utils import formatdate, make_msgid
 from email.utils import formataddr as original_formataddr
 
-from srcf.misc import get_current_user
+from srcf.misc import get_current_context
 
 
 SYSADMINS = ('SRCF Sysadmins', 'soc-srcf-admin@lists.cam.ac.uk')
@@ -26,11 +26,11 @@ def send_mail(recipient, subject, body,
     """
 
     try:
-        u = get_current_user(session=session)
+        user, admin = get_current_context(session=session)
     except (EnvironmentError, KeyError):
         sender = SYSADMINS
     else:
-        sender = (u.name, u.crsid + '@srcf.net')
+        sender = (user.name, '{}{}@srcf.net'.format(user.crsid, '-admin' if admin else ''))
 
     if isinstance(recipient, tuple):
     	recipient = [recipient]
