@@ -431,7 +431,9 @@ class AddUserVhost(Job):
     def new(cls, member, domain, root):
         root = "public_html/{}".format(root) if root else None
         args = {"domain": domain, "root": root}
-        require_approval = member.danger
+        # TODO: We don't validate whether a user is allowed a given vhost, which extends to
+        # subdomains of other users' domains / wildcard, other srcf.net domains etc.
+        require_approval = True  # member.danger
         return cls.create(member, args, require_approval)
 
     domain = property(lambda s: s.row.args["domain"])
@@ -1063,7 +1065,9 @@ class AddSocietyVhost(SocietyJob):
     def new(cls, member, society, domain, root):
         root = "public_html/{}".format(root) if root else None
         args = {"society": society.society, "domain": domain, "root": root}
-        require_approval = society.danger or member.danger
+        # TODO: We don't validate whether a user is allowed a given vhost, which extends to
+        # subdomains of other users' domains / wildcard, other srcf.net domains etc.
+        require_approval = True  # society.danger or member.danger
         return cls.create(member, args, require_approval)
 
     domain = property(lambda s: s.row.args["domain"])
