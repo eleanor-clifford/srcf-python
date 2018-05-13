@@ -45,11 +45,11 @@ else:
     # When connecting over a unix socket, postgres uses `getpeereid`
     # for authentication; this is the number that matters:
     euid_name = pwd.getpwuid(os.geteuid()).pw_name
-    if euid_name in schema_users:
+    if euid_name in schema_users or euid_name.endswith("-adm"):
         POSTGRES_USER = euid_name
     else:
         POSTGRES_USER = "nobody"
-    is_root = POSTGRES_USER == "root"
+    is_root = POSTGRES_USER == "root" or POSTGRES_USER.endswith("-adm")
     is_webapp = POSTGRES_USER == "srcf-admin"
 
     RESTRICTED = not is_root
