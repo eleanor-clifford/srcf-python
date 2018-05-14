@@ -22,45 +22,25 @@ from .compat import MemberCompat, SocietyCompat, AdminsSetCompat
 __all__ = ["Member", "Society", "PendingAdmin",
            "POSTGRES_USER", "RESTRICTED"]
 
-if __name__ == "__main__":
-    # we're dumping the schema---we want the whole thing
-    POSTGRES_USER = "root"
-    RESTRICTED = False
-    R_CAN_SEE = {
-        "notes": True,
-        "log": True,
-        "danger": True,
-        "pending-admins": True,
-        "domains": True,
-        "jobs": True
-    }
+
+# Should we make the notes & danger flags, and pending-admins
+# tables available?
+
+# These postgres roles have special permissions / are mentioned
+# in the schema. Everyone else should connect as 'nobody'
+schema_users = ("root", "srcf-admin")
+
+# When connecting over a unix socket, postgres uses `getpeereid`
+# for authentication; this is the number that matters:
+euid_name = pwd.getpwuid(os.geteuid()).pw_name
+if euid_name in schema_users or euid_name.endswith("-adm"):
+    POSTGRES_USER = euid_name
 else:
-    # Should we make the notes & danger flags, and pending-admins
-    # tables available?
+    POSTGRES_USER = "nobody"
+is_root = POSTGRES_USER == "root" or POSTGRES_USER.endswith("-adm")
+is_webapp = POSTGRES_USER == "srcf-admin"
 
-    # These postgres roles have special permissions / are mentioned
-    # in the schema. Everyone else should connect as 'nobody'
-    schema_users = ("root", "srcf-admin")
-
-    # When connecting over a unix socket, postgres uses `getpeereid`
-    # for authentication; this is the number that matters:
-    euid_name = pwd.getpwuid(os.geteuid()).pw_name
-    if euid_name in schema_users or euid_name.endswith("-adm"):
-        POSTGRES_USER = euid_name
-    else:
-        POSTGRES_USER = "nobody"
-    is_root = POSTGRES_USER == "root" or POSTGRES_USER.endswith("-adm")
-    is_webapp = POSTGRES_USER == "srcf-admin"
-
-    RESTRICTED = not is_root
-    R_CAN_SEE = {
-        "notes": is_root,
-        "log": is_root,
-        "danger": is_root or is_webapp,
-        "pending-admins": is_root or is_webapp,
-        "domains": is_root or is_webapp,
-        "jobs": is_root or is_webapp
-    }
+RESTRICTED = not is_root
 
 
 CRSID_TYPE = String(7)
@@ -76,15 +56,14 @@ class Member(Base, MemberCompat):
                    primary_key=True)
     surname = Column(String(100))
     preferred_name = Column(String(100))
-    email = Column(String(100), CheckConstraint("email ~ E'@'"), unique=True)
-    # FetchedValue: these columns are set by triggers (see below)
-    joined = Column(DateTime(timezone=True), FetchedValue())
-    modified = Column(DateTime(timezone=True), FetchedValue())
-    member = Column(Boolean, nullable=False)
-    user = Column(Boolean, nullable=False)
-    if R_CAN_SEE["danger"]:
+    if is_root or is_webapp:
+        email = Column(String(100), CheckConstraint("email ~ E'@'"), unique=True)
+        # FetchedValue: these columns are set by triggers (see below)
+        joined = Column(DateTime(timezone=True), FetchedValue())
+        modified = Column(DateTime(timezone=True), FetchedValue())
+        member = Column(Boolean, nullable=False)
+        user = Column(Boolean, nullable=False)
         danger = Column(Boolean, nullable=False, server_default='f')
-    if R_CAN_SEE["notes"]:
         notes = Column(Text, nullable=False, server_default='')
 
     __table_args__ = (
@@ -101,11 +80,14 @@ class Member(Base, MemberCompat):
         return self.crsid
 
     def __repr__(self):
-        m = ' member' if self.member else ' ex-member'
-        u = ' user' if self.user else ''
-        flags = m + u
-        r = '<Member {0} {1} {2}{3}>'\
-            .format(self.crsid, self.name, self.email, flags)
+        if is_root or is_webapp:
+            m = ' member' if self.member else ' ex-member'
+            u = ' user' if self.user else ''
+            flags = m + u
+            r = '<Member {0} {1} {2}{3}>'\
+                .format(self.crsid, self.name, self.email, flags)
+        else:
+            r = '<Member {0} {1}>'.format(self.crsid, self.name)
         if not six.PY3:
             r = r.encode("utf8")
         return r
@@ -139,18 +121,17 @@ class Society(Base, SocietyCompat):
     society = Column(SOCIETY_TYPE, CheckConstraint('society = lower(society)'),
                      primary_key=True)
     description = Column(String(100), nullable=False)
-    joined = Column(DateTime(timezone=True), FetchedValue())
-    modified = Column(DateTime(timezone=True), FetchedValue())
-    if R_CAN_SEE["danger"]:
+    if is_root or is_webapp:
+        joined = Column(DateTime(timezone=True), FetchedValue())
+        modified = Column(DateTime(timezone=True), FetchedValue())
         danger = Column(Boolean, nullable=False, server_default='f')
-    if R_CAN_SEE["notes"]:
         notes = Column(Text, nullable=False, server_default='')
 
     admins = relationship("Member",
             secondary=society_admins, collection_class=AdminsSetCompat,
             backref=backref("societies", collection_class=set))
 
-    if R_CAN_SEE["pending-admins"]:
+    if is_root or is_webapp:
         pending_admins = relationship("PendingAdmin",
                 backref=backref("society"))
 
@@ -189,7 +170,8 @@ class Society(Base, SocietyCompat):
         return self.society + "-admins@srcf.net"
 
 
-if R_CAN_SEE["pending-admins"]:
+if is_root or is_webapp:
+
     class PendingAdmin(Base):
         __tablename__ = "pending_society_admins"
 
@@ -208,11 +190,7 @@ if R_CAN_SEE["pending-admins"]:
         def __repr__(self):
             return '<PendingAdmin {0} {1}>'\
                         .format(self.crsid, self.society.society)
-else:
-    PendingAdmin = None
 
-
-if R_CAN_SEE["log"]:
     LogLevel = Enum('debug', 'info', 'warning', 'error', 'critical',
                     name='log_level')
 
@@ -230,11 +208,6 @@ if R_CAN_SEE["log"]:
         crsid = Column(CRSID_TYPE, ForeignKey('members.crsid'))
         society = Column(SOCIETY_TYPE, ForeignKey('societies.society'))
 
-else:
-    LogLevel = LogRecord = None
-
-
-if R_CAN_SEE["domains"]:
     class Domain(Base):
         __tablename__ = "domains"
         id = Column(Integer, primary_key=True)
@@ -243,8 +216,7 @@ if R_CAN_SEE["domains"]:
         domain = Column(String(256), nullable=False)
         root = Column(String(256))
         wild = Column(Boolean, nullable=False, server_default='f')
-        if R_CAN_SEE["danger"]:
-            danger = Column(Boolean, nullable=False, server_default='f')
+        danger = Column(Boolean, nullable=False, server_default='f')
 
     class HTTPSCert(Base):
         __tablename__ = "https_certs"
@@ -252,11 +224,6 @@ if R_CAN_SEE["domains"]:
         domain = Column(String(256), nullable=False)
         name = Column(String(32))
 
-else:
-    Domain = HTTPSCert = None
-
-
-if R_CAN_SEE["jobs"]:
     JobState = Enum('unapproved', 'queued', 'running', 'done', 'failed',
                     name='job_state')
     LogType = Enum('approved', 'rejected', 'progress', 'done', 'failed',
@@ -292,7 +259,18 @@ if R_CAN_SEE["jobs"]:
         raw = Column(Text)
 
 else:
-    JobState = Job = JobLog = None
+
+    PendingAdmin = None
+
+    LogLevel = None
+    LogRecord = None
+
+    Domain = None
+    HTTPSCert = None
+
+    JobState = None
+    Job = None
+    JobLog = None
 
 
 def dump_schema():
