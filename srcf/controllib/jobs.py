@@ -253,6 +253,7 @@ class Signup(Job):
 
         sess.commit()
 
+        # Most SRCF-specific tasks are handled by /usr/local/sbin/adduser.local
         subproc_call(self, "Add UNIX user", ["adduser", "--disabled-password", "--gecos", name, crsid])
         subproc_call(self, "Set quota", ["set_quota", crsid])
 
@@ -522,12 +523,15 @@ class CreateSociety(SocietyJob):
 
         subproc_call(self, "Add group", ["/usr/sbin/addgroup", "--force-badname", self.society_society])
 
+        home_path = os.path.join("/societies", self.society_society)
+        public_path = os.path.join("/public", "societies", self.society_society)
+
         for admin in self.admin_crsids:
             subproc_call(self, "Add user {0} to group".format(admin), ["/usr/sbin/adduser", admin, self.society_society])
 
             self.log("Create society home symlink for {0}".format(admin))
             try:
-                os.symlink("/societies/" + self.society_society, "/home/" + admin + "/" + self.society_society)
+                os.symlink(home_path, os.path.join("/home", admin, self.society_society))
             except:
                 pass
 
@@ -537,17 +541,23 @@ class CreateSociety(SocietyJob):
         subproc_call(self, "Add society user", ["/usr/sbin/adduser", "--force-badname", "--no-create-home",
                                                 "--uid", str(uid), "--gid", str(gid), "--gecos", self.description,
                                                 "--disabled-password", "--system", self.society_society])
-        subproc_call(self, "Set home directory", ["/usr/sbin/usermod", "-d", "/societies/" + self.society_society, self.society_society])
+        subproc_call(self, "Set home directory", ["/usr/sbin/usermod", "-d", home_path, self.society_society])
 
-        self.log("Create default directories")
-        os.makedirs("/societies/" + self.society_society + "/public_html", 0o775)
-        os.makedirs("/societies/" + self.society_society + "/cgi-bin", 0o775)
+        self.log("Create home and public directories")
+        for path, perm in ((home_path, 0o2770), (public_path, 0o2775)):
+            os.mkdir(path)
+            os.chmod(path, perm)
+            os.chown(path, uid, gid)
 
-        self.log("Set default directory owners")
-        os.chown("/societies/" + self.society_society + "/public_html", -1, gid)
-        os.chown("/societies/" + self.society_society + "/cgi-bin", -1, gid)
-
-        subproc_call(self, "Update home permissions", ["chmod", "-R", "2775", "/societies/" + self.society_society])
+        for name in ("public_html", "cgi-bin"):
+            dir_path = os.path.join("/public", "societies", self.society_society, name)
+            link_path = os.path.join("/societies", self.society_society, name)
+            self.log("Create " + name + " directories")
+            os.mkdir(path, 0o775)
+            os.symlink(path, link_path)
+            self.log("Update " + name + " ownership")
+            os.chown(path, uid, gid)
+            os.lchown(link_path, uid, gid)
 
         self.log("Write subdomain status")
         with open("/societies/srcf-admin/socwebstatus", "a") as myfile:
