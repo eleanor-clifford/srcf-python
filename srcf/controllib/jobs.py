@@ -274,7 +274,6 @@ class Signup(Job):
                                                         "soc-srcf-maintenance:" + ml_entry,
                                                         ("soc-srcf-social:" + ml_entry) if self.social else ""])
         subproc_call(self, "Export memberdb", ["/usr/local/sbin/srcf-memberdb-export"])
-        subproc_call(self, "Rebuild /var/yp", ["make", "-C", "/var/yp"])
 
     def __repr__(self): return "<Signup {0.crsid}>".format(self)
     def __str__(self): return "Signup: {0.crsid} ({0.preferred_name} {0.surname}, {0.email})".format(self)
