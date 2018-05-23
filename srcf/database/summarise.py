@@ -99,11 +99,10 @@ def _pretty_name_list(names):
 		    for (col1, col2) in nameList]
 
 def _format_notes(notes):
-    def indent(n): return "\n".join("  " + l for l in n.splitlines())
     s = []
     if notes:
         tw = textwrap.TextWrapper(width=70, initial_indent='  ', subsequent_indent='  ')
         s.append("Notes:")
-        for line in thing.notes.splitlines():
+        for line in notes.splitlines():
             s += tw.wrap(line)
     return s
