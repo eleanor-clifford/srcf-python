@@ -552,10 +552,10 @@ class CreateSociety(SocietyJob):
             dir_path = os.path.join("/public", "societies", self.society_society, name)
             link_path = os.path.join("/societies", self.society_society, name)
             self.log("Create " + name + " directories")
-            os.mkdir(path, 0o775)
-            os.symlink(path, link_path)
+            os.mkdir(dir_path, 0o775)
+            os.symlink(dir_path, link_path)
             self.log("Update " + name + " ownership")
-            os.chown(path, uid, gid)
+            os.chown(dir_path, uid, gid)
             os.lchown(link_path, uid, gid)
 
         self.log("Write subdomain status")
