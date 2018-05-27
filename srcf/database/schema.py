@@ -56,13 +56,13 @@ class Member(Base, MemberCompat):
                    primary_key=True)
     surname = Column(String(100))
     preferred_name = Column(String(100))
+    member = Column(Boolean, nullable=False)
+    user = Column(Boolean, nullable=False)
     if is_root or is_webapp:
         email = Column(String(100), CheckConstraint("email ~ E'@'"), unique=True)
         # FetchedValue: these columns are set by triggers (see below)
         joined = Column(DateTime(timezone=True), FetchedValue())
         modified = Column(DateTime(timezone=True), FetchedValue())
-        member = Column(Boolean, nullable=False)
-        user = Column(Boolean, nullable=False)
         danger = Column(Boolean, nullable=False, server_default='f')
         notes = Column(Text, nullable=False, server_default='')
 
