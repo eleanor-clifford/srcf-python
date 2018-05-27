@@ -1,3 +1,5 @@
+-- TODO: this is not up-to-date since the GDPR changes!
+
 -- root will be the owner of the database, so can read & write to everything
 -- allow read only access to nobody (for srcf-who and the likes)
 GRANT USAGE ON SCHEMA PUBLIC TO nobody;
