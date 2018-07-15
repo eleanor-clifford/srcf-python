@@ -1,6 +1,6 @@
 The custom domain {{ domain }} has now been registered to the {{ target.society }} account.
 
-Document root: /societies/{{ target.society }}/public_html{% if root %}/{{ root }}{% endif %}
+Document root: /public/societies/{{ target.society }}/{% if root %}{{ root }}{% else %}public_html{% endif %}
 
 Any files or content in this directory will be served from your newly configured domain.  You may need to wait up to 20 minutes before you can access the site.
 
