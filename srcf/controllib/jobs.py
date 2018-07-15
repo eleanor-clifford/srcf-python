@@ -440,7 +440,13 @@ class AddUserVhost(Job):
     root = property(lambda s: s.row.args["root"])
 
     def __repr__(self): return "<AddUserVhost {0.owner_crsid} {0.domain}>".format(self)
-    def __str__(self): return "Add custom domain: {0.owner.crsid} ({0.domain} -> {0.root})".format(self)
+    def __str__(self):
+        if any([x[:4] == "xn--" for x in self.domain.split(".")]):
+            # punycode
+            self.domain_text = "%s (%s)" % (self.domain, self.domain.encode("ascii").decode("idna"))
+        else:
+            self.domain_text = self.domain
+        return "Add custom domain: {0.owner.crsid} ({0.domain_text} -> {0.root})".format(self)
 
     def run(self, sess):
         self.log("Add domain entry")
