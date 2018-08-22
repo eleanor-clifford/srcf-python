@@ -316,6 +316,19 @@ class Reactivate(Job):
         subproc_call(self, "Change UNIX password for {0}".format(crsid), ["/usr/sbin/chpasswd"], (crsid + ":" + password).encode("utf-8"))
         subproc_call(self, "Rebuild /var/yp", ["make", "-C", "/var/yp"])
 
+        self.log("Check existing .forward file")
+        path = "/home/" + crsid + "/.forward"
+        try:
+            with open(path, "r") as f:
+                forward_email = f.read().rstrip()
+        except OSError:
+            pass
+        else:
+            if forward_email == old_email:
+                self.log("Update .forward file")
+                with open(path, "w") as f:
+                    f.write(self.email + "\n")
+
         self.log("Send confirmation")
         mail_users(self.owner, "Account reactivated", "reactivate", new_email=self.email, password=password)
 
@@ -366,6 +379,19 @@ class UpdateEmailAddress(Job):
         old_email = self.owner.email
         self.log("Update email address")
         self.owner.email = self.email
+
+        self.log("Check existing .forward file")
+        path = "/home/" + self.owner.crsid + "/.forward"
+        try:
+            with open(path, "r") as f:
+                forward_email = f.read().rstrip()
+        except OSError:
+            pass
+        else:
+            if forward_email == old_email:
+                self.log("Update .forward file")
+                with open(path, "w") as f:
+                    f.write(self.email + "\n")
 
         self.log("Send confirmation")
         mail_users(self.owner, "Email address updated", "email", old_email=old_email, new_email=self.email)
