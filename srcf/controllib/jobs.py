@@ -617,13 +617,13 @@ class UpdateSocietyRoleEmail(SocietyJob):
         self.row = row
 
     @classmethod
-    def new(cls, member, society, email):
+    def new(cls, requesting_member, society, email):
         args = {
             "society": society.society,
             "email": email
         }
-        require_approval = member.danger or society.danger
-        return cls.create(member, args, require_approval)
+        require_approval = requesting_member.danger or society.danger
+        return cls.create(requesting_member, args, require_approval)
 
     email = property(lambda s: s.row.args["email"])
 
