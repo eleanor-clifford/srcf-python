@@ -124,6 +124,7 @@ class Society(Base, SocietyCompat):
     if is_root or is_webapp:
         joined = Column(DateTime(timezone=True), FetchedValue())
         modified = Column(DateTime(timezone=True), FetchedValue())
+        role_email = Column(String(100), CheckConstraint("email ~ E'@'"))
         danger = Column(Boolean, nullable=False, server_default='f')
         notes = Column(Text, nullable=False, server_default='')
 
