@@ -1,0 +1,3 @@
+The role email address we have on record for {{ target.society }} has now been changed from {{ old_email }} to {{ new_email }}.
+
+This acts as an additional point of contact if we're unable to get a response from the named account admins, or if the society account becomes orphaned.  However, this is not a replacement for timely handovers of the society -- please continue to ensure that the list of admins remains up-to-date, in order to avoid interruption of service.

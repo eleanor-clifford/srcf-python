@@ -610,6 +610,35 @@ class CreateSociety(SocietyJob):
     def __str__(self): return "Create society: {0.society_society} ({0.description})".format(self)
 
 @add_job
+class UpdateSocietyRoleEmail(SocietyJob):
+    JOB_TYPE = 'update_society_role_email'
+
+    def __init__(self, row):
+        self.row = row
+
+    @classmethod
+    def new(cls, member, society, email):
+        args = {
+            "society": society.society,
+            "email": email
+        }
+        require_approval = member.danger or society.danger
+        return cls.create(member, args, require_approval)
+
+    email = property(lambda s: s.row.args["email"])
+
+    def __repr__(self): return "<UpdateSocietyRoleEmail {0.society_society} {0.email}>".format(self)
+    def __str__(self): return "Update society role email: {0.society_society} ({0.email})".format(self)
+
+    def run(self, sess):
+        old_email = self.society.role_email
+        self.log("Update email address")
+        self.society.role_email = self.email
+
+        self.log("Send confirmation")
+        mail_users(self.society, "Role email updated", "role-email", old_email=old_email, new_email=self.email)
+
+@add_job
 class ChangeSocietyAdmin(SocietyJob):
     JOB_TYPE = 'change_society_admin'
 
