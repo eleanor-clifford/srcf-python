@@ -622,7 +622,8 @@ class UpdateSocietyRoleEmail(SocietyJob):
             "society": society.society,
             "email": email
         }
-        require_approval = requesting_member.danger or society.danger
+        require_approval = (requesting_member.danger or society.danger or
+                            email.endswith(("@cam.ac.uk", "@hermes.cam.ac.uk")))
         return cls.create(requesting_member, args, require_approval)
 
     email = property(lambda s: s.row.args["email"])
