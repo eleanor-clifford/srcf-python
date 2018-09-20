@@ -218,6 +218,7 @@ if is_root or is_webapp:
         root = Column(String(256))
         wild = Column(Boolean, nullable=False, server_default='f')
         danger = Column(Boolean, nullable=False, server_default='f')
+        ttl = Column(Integer, nullable=False, server_default='0')
 
     class HTTPSCert(Base):
         __tablename__ = "https_certs"
