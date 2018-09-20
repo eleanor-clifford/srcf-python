@@ -46,8 +46,12 @@ def summarise_society(society):
 
     private = []
     if not RESTRICTED:
-        private = ['Joined: %s' % society.joined.strftime("%Y/%m"),
-                   'Danger: %s' % society.danger] \
+        if society.role_email:
+            private.append('Role email: %s' % society.role_email)
+        else:
+            private.append('No role email.')
+        private += ['Joined: %s' % society.joined.strftime("%Y/%m"),
+                    'Danger: %s' % society.danger] \
                 + _format_notes(society.notes)
 
     lines = ['%s: %s' % (society.society, society.description)] \
