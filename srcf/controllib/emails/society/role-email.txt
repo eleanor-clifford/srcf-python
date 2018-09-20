@@ -1,3 +1,10 @@
-The role email address we have on record for {{ target.society }} has now been changed from {{ old_email }} to {{ new_email }}.
+{% if not old_email -%}
+A new role email address, {{ new_email }}, has been added to {{ target.society }}.
+{%- elif not new_email -%}
+The role email address we had on record for {{ target.society }}, {{ old_email }}, has now been removed.
+{%- else -%}
+The role email address we have on record for {{ target.society }} has been changed from {{ old_email }} to {{ new_email }}.
+{%- endif %}{% if new_email %}
 
 This acts as an additional point of contact if we're unable to get a response from the named account admins, or if the society account becomes orphaned.  However, this is not a replacement for timely handovers of the society -- please continue to ensure that the list of admins remains up-to-date, in order to avoid interruption of service.
+{%- endif %}
