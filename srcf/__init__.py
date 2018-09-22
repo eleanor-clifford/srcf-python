@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 
 """SRCF python library for common actions in maintenance scripts"""
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 # PYTHON_ARGCOMPLETE_OK
 
 from __future__ import print_function
