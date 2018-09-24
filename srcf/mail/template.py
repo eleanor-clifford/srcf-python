@@ -60,9 +60,16 @@ def substitutions(obj):
     """
 
     if hasattr(obj, "crsid"):   # if it looks like a duck...
-        keys = ["crsid", "preferred_name", "surname", "email"]
-        keys += ["firstname", "initials", "status", "joindate"]
-        keys = {k: getattr(obj, k) for k in keys}
+        keys = {
+            "crsid": obj.crsid,
+            "email": obj.email,
+            "preferred_name": obj.preferred_name,
+            "firstname": obj.preferred_name,
+            "surname": obj.surname,
+            "initials": obj.preferred_name[0].upper() + ".",
+            "status": ("user" if obj.user else ("member" if obj.member else "terminated")),
+            "joindate": obj.joined.strftime("%Y/%m")
+        }
     else:
         keys = {
             "society": obj.society,
@@ -74,7 +81,7 @@ def substitutions(obj):
             "soclongname": obj.description,
             "socadminlist": ','.join(sorted(obj.admin_crsids)),
             "socprettyadminlist": summarise(obj.admins),
-            "joindate": obj.joindate
+            "joindate": obj.joined.strftime("%Y/%m")
         }
 
     return keys
