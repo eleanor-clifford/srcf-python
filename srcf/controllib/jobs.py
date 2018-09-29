@@ -589,9 +589,9 @@ class CreateSociety(SocietyJob):
             os.mkdir(dir_path)
             os.symlink(dir_path, link_path)
             self.log("Update " + name + " ownership")
-            os.chmod(dir_path, 0o775)
             os.chown(dir_path, uid, gid)
             os.lchown(link_path, uid, gid)
+            os.chmod(dir_path, 0o2775)
 
         self.log("Write subdomain status")
         with open("/societies/srcf-admin/socwebstatus", "a") as myfile:
