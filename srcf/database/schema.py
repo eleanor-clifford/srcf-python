@@ -28,7 +28,7 @@ __all__ = ["Member", "Society", "PendingAdmin",
 
 # These postgres roles have special permissions / are mentioned
 # in the schema. Everyone else should connect as 'nobody'
-schema_users = ("root", "srcf-admin")
+schema_users = ("root", "srcf-admin", "hades")
 
 # When connecting over a unix socket, postgres uses `getpeereid`
 # for authentication; this is the number that matters:
@@ -39,6 +39,7 @@ else:
     POSTGRES_USER = "nobody"
 is_root = POSTGRES_USER == "root" or POSTGRES_USER.endswith("-adm")
 is_webapp = POSTGRES_USER == "srcf-admin"
+is_hades = POSTGRES_USER == "hades"
 
 RESTRICTED = not is_root
 
@@ -68,6 +69,7 @@ class Member(Base, MemberCompat):
         modified = Column(DateTime(timezone=True), FetchedValue())
         danger = Column(Boolean, nullable=False, server_default='f')
         notes = Column(Text, nullable=False, server_default='')
+    if is_root or is_webapp or is_hades:
         # Beware: Enum doesn't validate until sqlalchemy 1.1
         mail_handler = Column(Enum(VALID_MAIL_HANDLERS), nullable=False, server_default='pip')
 
