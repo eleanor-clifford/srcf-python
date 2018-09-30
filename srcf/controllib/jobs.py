@@ -397,6 +397,28 @@ class UpdateEmailAddress(Job):
         mail_users(self.owner, "Email address updated", "email", old_email=old_email, new_email=self.email)
 
 @add_job
+class UpdateMailHandler(Job):
+    JOB_TYPE = 'update_mail_handler'
+
+    def __init__(self, row):
+        self.row = row
+
+    @classmethod
+    def new(cls, member, mail_handler):
+        args = {"mail_handler": mail_handler}
+        require_approval = member.danger
+        return cls.create(member, args, require_approval)
+
+    mail_handler = property(lambda s: s.row.args["mail_handler"])
+
+    def __repr__(self): return "<UpdateMailHandler {0.owner_crsid}>".format(self)
+    def __str__(self): return "Update email handler: {0.owner.crsid} ({0.mail_handler})".format(self)
+
+    def run(self, sess):
+        self.log("Update email handler")
+        self.owner.mail_handler = self.mail_handler
+
+@add_job
 class CreateUserMailingList(Job):
     JOB_TYPE = 'create_user_mailing_list'
 
