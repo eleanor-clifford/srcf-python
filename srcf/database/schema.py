@@ -65,6 +65,7 @@ class Member(Base, MemberCompat):
         modified = Column(DateTime(timezone=True), FetchedValue())
         danger = Column(Boolean, nullable=False, server_default='f')
         notes = Column(Text, nullable=False, server_default='')
+        mail_handler = Column(Enum('forward', 'pip', 'hades'), nullable=False, server_default='pip')
 
     __table_args__ = (
         CheckConstraint("""
