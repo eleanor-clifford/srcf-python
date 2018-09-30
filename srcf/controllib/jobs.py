@@ -12,7 +12,7 @@ import pymysql
 from jinja2 import Environment, FileSystemLoader
 
 from srcf import database, pwgen
-from srcf.database import queries, Job as db_Job
+from srcf.database import schema, queries, Job as db_Job
 from srcf.database.schema import Member, Society, Domain
 from srcf.mail import send_mail
 
@@ -405,6 +405,8 @@ class UpdateMailHandler(Job):
 
     @classmethod
     def new(cls, member, mail_handler):
+        if mail_handler not in schema.VALID_MAIL_HANDLERS:
+            raise LookupError(mail_handler)
         args = {"mail_handler": mail_handler}
         require_approval = member.danger
         return cls.create(member, args, require_approval)

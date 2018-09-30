@@ -43,6 +43,9 @@ is_webapp = POSTGRES_USER == "srcf-admin"
 RESTRICTED = not is_root
 
 
+VALID_MAIL_HANDLERS = ('forward', 'pip', 'hades')
+
+
 CRSID_TYPE = String(7)
 SOCIETY_TYPE = String(16)
 
@@ -65,7 +68,8 @@ class Member(Base, MemberCompat):
         modified = Column(DateTime(timezone=True), FetchedValue())
         danger = Column(Boolean, nullable=False, server_default='f')
         notes = Column(Text, nullable=False, server_default='')
-        mail_handler = Column(Enum('forward', 'pip', 'hades'), nullable=False, server_default='pip')
+        # Beware: Enum doesn't validate until sqlalchemy 1.1
+        mail_handler = Column(Enum(VALID_MAIL_HANDLERS), nullable=False, server_default='pip')
 
     __table_args__ = (
         CheckConstraint("""
