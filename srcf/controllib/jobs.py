@@ -19,6 +19,9 @@ from srcf.mail import send_mail
 from . import utils
 
 
+DEFAULT_MAIL_HANDLER = "pip"
+
+
 emails = Environment(loader=FileSystemLoader(os.path.join(os.path.dirname(__file__), "emails")))
 email_headers = {k: emails.get_template("common/header-{0}.txt".format(k)) for k in ("member", "society")}
 email_footer = emails.get_template("common/footer.txt").render()
@@ -218,12 +221,13 @@ class Signup(Job):
         return self.crsid == crsid
 
     @classmethod
-    def new(cls, crsid, preferred_name, surname, email, social):
+    def new(cls, crsid, preferred_name, surname, email, social, mail_handler=DEFAULT_MAIL_HANDLER):
         args = {
             "crsid": crsid,
             "preferred_name": preferred_name,
             "surname": surname,
             "email": email,
+            "mail_handler": mail_handler,
             "social": "y" if social else "n"
         }
         try:
@@ -238,6 +242,7 @@ class Signup(Job):
     preferred_name = property(lambda s: s.row.args["preferred_name"])
     surname        = property(lambda s: s.row.args["surname"])
     email          = property(lambda s: s.row.args["email"])
+    mail_handler   = property(lambda s: s.row.args["mail_handler"] if "mail_handler" in s.row else DEFAULT_MAIL_HANDLER)
     social         = property(lambda s: s.row.args["social"] == "y")
 
     def run(self, sess):
@@ -254,6 +259,7 @@ class Signup(Job):
                         preferred_name=self.preferred_name,
                         surname=self.surname,
                         email=self.email,
+                        mail_handler=self.mail_handler,
                         member=True,
                         user=True))
 
@@ -263,16 +269,17 @@ class Signup(Job):
         subproc_call(self, "Add UNIX user", ["adduser", "--disabled-password", "--gecos", name, crsid])
         subproc_call(self, "Set quota", ["set_quota", crsid])
 
-        self.log("Create default .forward file")
-        path = "/home/" + crsid + "/.forward"
-        f = open(path, "w")
-        f.write(self.email + "\n")
-        f.close()
+        if self.mail_handler == "pip":
+            self.log("Create default .forward file")
+            path = "/home/" + crsid + "/.forward"
+            f = open(path, "w")
+            f.write(self.email + "\n")
+            f.close()
 
-        self.log("Set correct permissions on .forward file")
-        uid = pwd.getpwnam(crsid).pw_uid
-        gid = grp.getgrnam(crsid).gr_gid
-        os.chown(path, uid, gid)
+            self.log("Set correct permissions on .forward file")
+            uid = pwd.getpwnam(crsid).pw_uid
+            gid = grp.getgrnam(crsid).gr_gid
+            os.chown(path, uid, gid)
 
         subproc_call(self, "Update Apache groups", ["/usr/local/sbin/srcf-updateapachegroups"])
         ml_entry = '"{name}" <{email}>'.format(name=name, email=self.email)
@@ -282,7 +289,7 @@ class Signup(Job):
         subproc_call(self, "Export memberdb", ["/usr/local/sbin/srcf-memberdb-export"])
 
     def __repr__(self): return "<Signup {0.crsid}>".format(self)
-    def __str__(self): return "Signup: {0.crsid} ({0.preferred_name} {0.surname}, {0.email})".format(self)
+    def __str__(self): return "Signup: {0.crsid} ({0.preferred_name} {0.surname}, {0.email}, mail_handler={0.mail_handler})".format(self)
 
 @add_job
 class Reactivate(Job):
