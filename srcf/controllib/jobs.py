@@ -242,7 +242,7 @@ class Signup(Job):
     preferred_name = property(lambda s: s.row.args["preferred_name"])
     surname        = property(lambda s: s.row.args["surname"])
     email          = property(lambda s: s.row.args["email"])
-    mail_handler   = property(lambda s: s.row.args["mail_handler"] if "mail_handler" in s.row else DEFAULT_MAIL_HANDLER)
+    mail_handler   = property(lambda s: s.row.args["mail_handler"] if "mail_handler" in s.row.args else DEFAULT_MAIL_HANDLER)
     social         = property(lambda s: s.row.args["social"] == "y")
 
     def run(self, sess):
