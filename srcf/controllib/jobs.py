@@ -289,7 +289,7 @@ class Signup(Job):
         subproc_call(self, "Export memberdb", ["/usr/local/sbin/srcf-memberdb-export"])
 
     def __repr__(self): return "<Signup {0.crsid}>".format(self)
-    def __str__(self): return "Signup: {0.crsid} ({0.preferred_name} {0.surname}, {0.email}, mail_handler={0.mail_handler})".format(self)
+    def __str__(self): return "Signup: {0.crsid} ({0.preferred_name} {0.surname}, {0.email}, {0.mail_handler} mail)".format(self)
 
 @add_job
 class Reactivate(Job):
