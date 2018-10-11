@@ -804,7 +804,7 @@ class CreateSocietyMailingList(SocietyJob):
             raise JobFailed("Invalid list name {}".format(full_listname))
 
         subproc_call(self, "Create mailing list {0}".format(full_listname),
-                     ["sshpass", "newlist", full_listname, self.owner.crsid + "-admins@srcf.net"], password.encode("utf-8"))
+                     ["sshpass", "newlist", full_listname, self.society.society + "-admins@srcf.net"], password.encode("utf-8"))
         subproc_call(self, "Configure list", ["/usr/sbin/config_list", "-i", "/root/mailman-newlist-defaults", full_listname])
         subproc_call(self, "Generate aliases", ["gen_alias", full_listname])
 
