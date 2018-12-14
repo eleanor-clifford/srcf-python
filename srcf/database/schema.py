@@ -69,6 +69,7 @@ class Member(Base, MemberCompat):
         modified = Column(DateTime(timezone=True), FetchedValue())
         danger = Column(Boolean, nullable=False, server_default='f')
         notes = Column(Text, nullable=False, server_default='')
+        domains = relationship("Domain", primaryjoin="foreign(Domain.owner) == Member.crsid")
     if is_root or is_webapp or is_hades:
         # Beware: Enum doesn't validate until sqlalchemy 1.1
         mail_handler = Column(Enum(VALID_MAIL_HANDLERS), nullable=False, server_default='pip')
@@ -140,8 +141,8 @@ class Society(Base, SocietyCompat):
             backref=backref("societies", collection_class=set))
 
     if is_root or is_webapp:
-        pending_admins = relationship("PendingAdmin",
-                backref=backref("society"))
+        pending_admins = relationship("PendingAdmin", backref=backref("society"))
+        domains = relationship("Domain", primaryjoin="foreign(Domain.owner) == Society.society")
 
     def __str__(self):
         return self.society
