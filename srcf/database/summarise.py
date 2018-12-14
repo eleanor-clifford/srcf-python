@@ -21,12 +21,13 @@ def summarise_member(member):
 
     private = []
     if not RESTRICTED:
-        private = [member.email,
-                   'Member: %s' % member.member,
-                   'User: %s' % member.user,
-                   'Joined: %s' % member.joined.strftime("%Y/%m"),
-                   'Danger: %s' % member.danger] \
-                + _format_notes(member.notes)
+        private = ([member.email,
+                    'Member: %s' % member.member,
+                    'User: %s' % member.user,
+                    'Joined: %s' % member.joined.strftime("%Y/%m"),
+                    'Danger: %s' % member.danger] +
+                   _format_notes(member.notes) +
+                   _format_domains(member.domains))
 
     lines = \
         ['%s (%s)' % (member.name, member.crsid)] \
@@ -50,9 +51,10 @@ def summarise_society(society):
             private.append('Role email: %s' % society.role_email)
         else:
             private.append('No role email.')
-        private += ['Joined: %s' % society.joined.strftime("%Y/%m"),
-                    'Danger: %s' % society.danger] \
-                + _format_notes(society.notes)
+        private += (['Joined: %s' % society.joined.strftime("%Y/%m"),
+                     'Danger: %s' % society.danger] +
+                    _format_notes(society.notes) +
+                    _format_domains(society.domains))
 
     lines = ['%s: %s' % (society.society, society.description)] \
             + private \
@@ -109,4 +111,17 @@ def _format_notes(notes):
         s.append("Notes:")
         for line in notes.splitlines():
             s += tw.wrap(line)
+    return s
+
+def _format_domains(domains):
+    s = []
+    if domains:
+        s.append("Domains:")
+        for d in domains:
+            line = "  " + d.domain
+            if d.wild:
+                line += " (wild)"
+            if d.root:
+                line += " @ " + d.root
+            s.append(line)
     return s
