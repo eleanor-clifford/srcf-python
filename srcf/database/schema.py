@@ -228,11 +228,28 @@ if is_root or is_webapp:
         danger = Column(Boolean, nullable=False, server_default='f')
         last_good = Column(DateTime(timezone=True))
 
+        def __str__(self):
+            return self.domain
+
+        def __repr__(self):
+            return "<{}: {} ({} {}){}{}>".format(self.__class__.__name__,
+                                                 self.domain,
+                                                 self.class_,
+                                                 self.owner,
+                                                 " @ {}".format(repr(self.root)) if self.root else "",
+                                                 " wild" if self.wild else "")
+
     class HTTPSCert(Base):
         __tablename__ = "https_certs"
         id = Column(Integer, primary_key=True)
         domain = Column(String(256), nullable=False)
         name = Column(String(32))
+
+        def __str__(self):
+            return self.domain
+
+        def __repr__(self):
+            return "<{}: {} ({})>".format(self.__class__.__name__, self.domain, self.name)
 
     JobState = Enum('unapproved', 'queued', 'running', 'done', 'failed',
                     name='job_state')
