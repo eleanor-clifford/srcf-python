@@ -22,6 +22,7 @@ def summarise_member(member):
     private = []
     if not RESTRICTED:
         private = ([member.email,
+                    'Mail handler: %s' % member.mail_handler,
                     'Member: %s' % member.member,
                     'User: %s' % member.user,
                     'Joined: %s' % member.joined.strftime("%Y/%m"),
