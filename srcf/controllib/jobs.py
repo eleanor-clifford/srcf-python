@@ -1234,6 +1234,45 @@ class AddSocietyVhost(SocietyJob):
         mail_users(self.society, "Custom domain added", "add-vhost", domain=self.domain_text, root=self.root)
 
 @add_job
+class ChangeSocietyVhostDocroot(Job):
+    JOB_TYPE = 'change_society_vhost_docroot'
+
+    def __init__(self, row):
+        self.row = row
+        self.domain_text = render_domain_text(self.domain)
+
+    @classmethod
+    def new(cls, member, society, domain, root):
+        root = "public_html/{}".format(root) if root else None
+        args = {"society": society.society, "domain": domain, "root": root}
+        require_approval = society.danger or member.danger
+        return cls.create(member, args, require_approval)
+
+    domain = property(lambda s: s.row.args["domain"])
+    root = property(lambda s: s.row.args["root"])
+
+    def __repr__(self): return "<ChangeSocietyVhostDocroot {0.society_society} {0.domain}>".format(self)
+    def __str__(self): return "Change custom society domain root: {0.society.society} ({0.domain_text} -> {0.root})".format(self)
+
+    def run(self, sess):
+        self.log("Change domain entry")
+        results = sess.query(Domain).where(Domain.class_ == "soc",
+                                           Domain.owner == self.society_society,
+                                           Domain.domain == self.domain).execute()
+
+        if not results:
+            raise JobFailed("{0.domain} does not exist", self)
+        elif len(results) > 1:
+	    raise JobFailed("Multiple entries for {0.domain}", self)
+        domain = results[0]
+
+        domain.root = self.root
+        sess.add(domain)
+
+        self.log("Send confirmation")
+        mail_users(self.society, "Custom domain document root changed", "change-vhost-docroot", domain=self.domain_text, root=self.root)
+
+@add_job
 class RemoveSocietyVhost(SocietyJob):
     JOB_TYPE = 'remove_society_vhost'
 
