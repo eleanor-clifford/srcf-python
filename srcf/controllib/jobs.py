@@ -1234,7 +1234,7 @@ class AddSocietyVhost(SocietyJob):
         mail_users(self.society, "Custom domain added", "add-vhost", domain=self.domain_text, root=self.root)
 
 @add_job
-class ChangeSocietyVhostDocroot(Job):
+class ChangeSocietyVhostDocroot(SocietyJob):
     JOB_TYPE = 'change_society_vhost_docroot'
 
     def __init__(self, row):
