@@ -548,7 +548,7 @@ class ChangeUserVhostDocroot(Job):
         if not results:
             raise JobFailed("{0.domain} does not exist", self)
         elif len(results) > 1:
-	    raise JobFailed("Multiple entries for {0.domain}", self)
+            raise JobFailed("Multiple entries for {0.domain}", self)
         domain = results[0]
 
         domain.root = self.root
@@ -1263,7 +1263,7 @@ class ChangeSocietyVhostDocroot(SocietyJob):
         if not results:
             raise JobFailed("{0.domain} does not exist", self)
         elif len(results) > 1:
-	    raise JobFailed("Multiple entries for {0.domain}", self)
+            raise JobFailed("Multiple entries for {0.domain}", self)
         domain = results[0]
 
         domain.root = self.root
