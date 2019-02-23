@@ -517,6 +517,46 @@ class AddUserVhost(Job):
         self.log("Send confirmation")
         mail_users(self.owner, "Custom domain added", "add-vhost", domain=self.domain_text, root=self.root)
 
+
+@add_job
+class ChangeUserVhostDocroot(Job):
+    JOB_TYPE = 'change_user_vhost_docroot'
+
+    def __init__(self, row):
+        self.row = row
+        self.domain_text = render_domain_text(self.domain)
+
+    @classmethod
+    def new(cls, member, domain, root):
+        root = "public_html/{}".format(root) if root else None
+        args = {"domain": domain, "root": root}
+        require_approval = member.danger
+        return cls.create(member, args, require_approval)
+
+    domain = property(lambda s: s.row.args["domain"])
+    root = property(lambda s: s.row.args["root"])
+
+    def __repr__(self): return "<ChangeUserVhostDocroot {0.owner_crsid} {0.domain}>".format(self)
+    def __str__(self): return "Change custom domain root: {0.owner.crsid} ({0.domain_text} -> {0.root})".format(self)
+
+    def run(self, sess):
+        self.log("Change domain entry")
+        results = sess.query(Domain).where(Domain.class_ == "user",
+                                           Domain.owner == self.owner_crsid,
+                                           Domain.domain == self.domain).execute()
+
+        if not results:
+            raise JobFailed("{0.domain} does not exist", self)
+        elif len(results) > 1:
+	    raise JobFailed("Multiple entries for {0.domain}", self)
+        domain = results[0]
+
+        domain.root = self.root
+        sess.add(domain)
+
+        self.log("Send confirmation")
+        mail_users(self.owner, "Custom domain document root changed", "change-vhost-docroot", domain=self.domain_text, root=self.root)
+
 @add_job
 class RemoveUserVhost(Job):
     JOB_TYPE = 'remove_user_vhost'

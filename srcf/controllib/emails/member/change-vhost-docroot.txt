@@ -1,0 +1,5 @@
+The document root for your custom domain {{ domain }} has been changed.
+
+New document root: /public/home/{{ target.crsid }}/{% if root %}{{ root }}{% else %}public_html{% endif %}
+
+Any files or content in this directory will be served from your domain.  You may need to wait up to 20 minutes for changes to take effect.
