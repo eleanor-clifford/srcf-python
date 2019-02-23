@@ -541,9 +541,9 @@ class ChangeUserVhostDocroot(Job):
 
     def run(self, sess):
         self.log("Change domain entry")
-        results = sess.query(Domain).where(Domain.class_ == "user",
-                                           Domain.owner == self.owner_crsid,
-                                           Domain.domain == self.domain).execute()
+        results = sess.query(Domain).filter(Domain.class_ == "user",
+                                            Domain.owner == self.owner_crsid,
+                                            Domain.domain == self.domain).all()
 
         if not results:
             raise JobFailed("{0.domain} does not exist", self)
@@ -1256,9 +1256,9 @@ class ChangeSocietyVhostDocroot(SocietyJob):
 
     def run(self, sess):
         self.log("Change domain entry")
-        results = sess.query(Domain).where(Domain.class_ == "soc",
-                                           Domain.owner == self.society_society,
-                                           Domain.domain == self.domain).execute()
+        results = sess.query(Domain).filter(Domain.class_ == "soc",
+                                            Domain.owner == self.society_society,
+                                            Domain.domain == self.domain).all()
 
         if not results:
             raise JobFailed("{0.domain} does not exist", self)
