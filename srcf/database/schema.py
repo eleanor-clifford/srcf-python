@@ -253,7 +253,7 @@ if is_root or is_webapp:
 
     JobState = Enum('unapproved', 'queued', 'running', 'done', 'failed',
                     name='job_state')
-    LogType = Enum('approved', 'rejected', 'progress', 'done', 'failed',
+    LogType = Enum('approved', 'rejected', 'progress', 'done', 'failed', 'note'
                    name='log_type')
     LogLevel = Enum('debug', 'info', 'warning', 'error', 'critical',
                     name='log_level')
