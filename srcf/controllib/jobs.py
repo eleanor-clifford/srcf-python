@@ -748,7 +748,7 @@ class ChangeSocietyAdmin(SocietyJob):
         verb = self.action.title()
         prep = "to" if self.action == "add" else "from"
         fmt = "{verb} society admin: {0.target_member.crsid} ({0.target_member.name}) "\
-                "{prep} {0.society.society} ({0.society.description})"
+                "{prep} {0.society_society}"
         return fmt.format(self, verb=verb, prep=prep)
 
     def add_admin(self, sess):
@@ -979,7 +979,7 @@ class CreateMySQLSocietyDatabase(SocietyJob):
             mail_users(self.owner, "MySQL account created", "mysql-account", password=usrpassword, database=self.society)
 
     def __repr__(self): return "<CreateMySQLSocietyDatabase {0.society_society}>".format(self)
-    def __str__(self): return "Create society MySQL database: {0.society.society} ({0.society.description})".format(self)
+    def __str__(self): return "Create society MySQL database: {0.society_society}".format(self)
 
 @add_job
 class ResetMySQLSocietyPassword(SocietyJob):
@@ -1009,7 +1009,7 @@ class ResetMySQLSocietyPassword(SocietyJob):
         mail_users(self.society, "MySQL database password reset", "mysql-password", password=password, requester=self.owner)
 
     def __repr__(self): return "<ResetMySQLSocietyPassword {0.society_society}>".format(self)
-    def __str__(self): return "Reset society MySQL password: {0.society.society} ({0.society.description})".format(self)
+    def __str__(self): return "Reset society MySQL password: {0.society_society}".format(self)
 
 @add_job
 class CreatePostgresUserDatabase(Job):
@@ -1161,7 +1161,7 @@ class CreatePostgresSocietyDatabase(SocietyJob):
             mail_users(self.owner, "PostgreSQL account created", "postgres-account", password=userpassword, database=self.society)
 
     def __repr__(self): return "<CreatePostgresSocietyDatabase {0.society_society}>".format(self)
-    def __str__(self): return "Create society PostgreSQL database: {0.society.society} ({0.society.description})".format(self)
+    def __str__(self): return "Create society PostgreSQL database: {0.society_society}".format(self)
 
 @add_job
 class ResetPostgresSocietyPassword(SocietyJob):
@@ -1197,7 +1197,7 @@ class ResetPostgresSocietyPassword(SocietyJob):
         mail_users(self.society, "PostgreSQL database password reset", "postgres-password", password=password, requester=self.owner)
 
     def __repr__(self): return "<ResetPostgresSocietyPassword {0.society_society}>".format(self)
-    def __str__(self): return "Reset society PostgreSQL password: {0.society.society} ({0.society.description})".format(self)
+    def __str__(self): return "Reset society PostgreSQL password: {0.society_society}".format(self)
 
 @add_job
 class AddSocietyVhost(SocietyJob):
@@ -1220,7 +1220,7 @@ class AddSocietyVhost(SocietyJob):
     root = property(lambda s: s.row.args["root"])
 
     def __repr__(self): return "<AddSocietyVhost {0.society_society} {0.domain}>".format(self)
-    def __str__(self): return "Add custom society domain: {0.society.society} ({0.domain} -> {0.root})".format(self)
+    def __str__(self): return "Add custom society domain: {0.society_society} ({0.domain} -> {0.root})".format(self)
 
     def run(self, sess):
         self.log("Add domain entry")
@@ -1252,7 +1252,7 @@ class ChangeSocietyVhostDocroot(SocietyJob):
     root = property(lambda s: s.row.args["root"])
 
     def __repr__(self): return "<ChangeSocietyVhostDocroot {0.society_society} {0.domain}>".format(self)
-    def __str__(self): return "Change custom society domain root: {0.society.society} ({0.domain_text} -> {0.root})".format(self)
+    def __str__(self): return "Change custom society domain root: {0.society_society} ({0.domain_text} -> {0.root})".format(self)
 
     def run(self, sess):
         self.log("Change domain entry")
@@ -1289,7 +1289,7 @@ class RemoveSocietyVhost(SocietyJob):
     domain = property(lambda s: s.row.args["domain"])
 
     def __repr__(self): return "<RemoveSocietyVhost {0.society_society} {0.domain}>".format(self)
-    def __str__(self): return "Remove custom society domain: {0.society.society} ({0.domain})".format(self)
+    def __str__(self): return "Remove custom society domain: {0.society_society} ({0.domain})".format(self)
 
     def run(self, sess):
         self.log("Lookup domain entry")
