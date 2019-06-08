@@ -1,7 +1,9 @@
 import re
+import pwd
 from ldap3 import Server, Connection, ALL, ALL_ATTRIBUTES
 import configparser
 import pymysql
+import posix1e
 
 
 __all__ = ["email_re", "ldapsearch", "is_admin", "mysql_conn"]
@@ -13,7 +15,6 @@ email_re = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z][A-Za-z]+$")
 
 # LDAP helper
 def ldapsearch(crsid):
-
     server = Server('ldap.lookup.cam.ac.uk', get_info=ALL)
     conn = Connection(server, auto_bind=True)
     conn.search('ou=people, o=University of Cambridge,dc=cam,dc=ac,dc=uk', '(uid={0})'.format(crsid), attributes=ALL_ATTRIBUTES)
@@ -46,3 +47,19 @@ def mysql_conn():
 
 def is_valid_socname(s):
     return re.match(r'^[a-z0-9_-]+$', s)
+
+
+def set_homedir_acls(home_path):
+    acl = posix1e.ACL(file=home_path)
+    aclentry = acl.append()
+    aclentry.tag_type = posix1e.ACL_USER
+    aclentry.qualifier = pwd.getpwnam("Debian-exim").pw_uid
+    aclentry.permset.execute = True
+    aclmask = acl.append()
+    aclmask.tag_type = posix1e.ACL_MASK
+    aclmask.permset.read = True
+    aclmask.permset.write = True
+    aclmask.permset.execute = True
+    assert acl.valid()
+    acl.applyto(home_path)
+

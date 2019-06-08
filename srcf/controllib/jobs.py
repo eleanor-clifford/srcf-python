@@ -681,6 +681,9 @@ class CreateSociety(SocietyJob):
             os.chmod(path, perm)
             os.chown(path, uid, gid)
 
+        self.log("Set ACL on home directory")
+        utils.set_homedir_acls(home_path)
+
         for name in ("public_html", "cgi-bin"):
             dir_path = os.path.join("/public", "societies", self.society_society, name)
             link_path = os.path.join("/societies", self.society_society, name)
