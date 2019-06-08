@@ -122,8 +122,8 @@ def queued_jobs(conn, sess):
         yield n
 
 def main():
-    conn, sess = connect()
-    for i in queued_jobs(conn, sess):
+    sess = database.Session()
+    for i in queued_jobs(*connect()):
         job = jobs.Job.find(id=i, sess=sess)
         if job.state != "queued":
             sess.rollback()

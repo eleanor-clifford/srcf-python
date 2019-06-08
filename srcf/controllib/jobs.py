@@ -4,6 +4,7 @@ import logging
 import os
 import pwd
 import grp
+import time
 from datetime import datetime
 from contextlib import contextmanager
 
@@ -209,6 +210,33 @@ class SocietyJob(Job):
         return super(SocietyJob, self).visible_to(crsid) or \
                 self.society and crsid in self.society
 
+# Test job - takes a long time to test for concurrency issues
+@add_job
+class Test(Job):
+    JOB_TYPE = 'test'
+
+    def __init__(self, row):
+        self.row = row
+
+    def visible_to(self, crsid):
+        return self.crsid == crsid
+
+    @classmethod
+    def new(cls, crsid, sleep_time):
+        args = {
+            "crsid": crsid,
+	    "sleep_time": sleep_time
+        }
+        return cls.create(None, args)
+
+    crsid          = property(lambda s: s.row.args["crsid"])
+    sleep_time     = property(lambda s: int(s.row.args["sleep_time"]))
+
+    def run(self, sess):
+    	time.sleep(self.sleep_time)
+
+    def __repr__(self): return "<Test {0.crsid}>".format(self)
+    def __str__(self): return "Test: {0.crsid} {0.sleep_time}".format(self)
 
 @add_job
 class Signup(Job):
