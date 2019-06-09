@@ -24,14 +24,14 @@ _auto_create_global_session = True
 def _sess(session=None):
     global _global_session, _auto_create_global_session
     if session:
-        with session.begin():
+        with session.begin(subtransactions=True):
             yield session
     elif _global_session:
-        with _global_session.begin():
+        with _global_session.begin(subtransactions=True):
             yield _global_session
     elif _auto_create_global_session:
         _global_session = Session(autocommit=True)
-        with _global_session.begin():
+        with _global_session.begin(subtransactions=True):
             yield _global_session
     else:
         raise RuntimeError("Auto global session creation is disabled")
