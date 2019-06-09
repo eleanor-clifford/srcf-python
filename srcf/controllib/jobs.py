@@ -289,7 +289,7 @@ class Signup(Job):
                         email=self.email,
                         mail_handler=self.mail_handler,
                         member=True,
-                        user=True))
+                        user=True)
         sess.add(member)
         sess.commit()
 
