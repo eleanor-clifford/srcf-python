@@ -65,7 +65,6 @@ def connect():
         conn.execute(Listen("jobs_insert"))
 
     sess = sqlalchemy.orm.Session(bind=conn)
-    database.queries.disable_automatic_session(and_use_this_one_instead=sess)
     return conn, sess
 
 def notifications(conn):
@@ -84,7 +83,7 @@ def notifications(conn):
             notify = conn.notifies.pop()
             yield int(notify.payload)
 
-def queued_jobs(conn, sess):
+def queued_jobs():
     """
     Yields a list of job ids.
 
@@ -93,6 +92,10 @@ def queued_jobs(conn, sess):
     Does not leave a transaction open; moreover, requires that you commit
     your transactions (or notifications won't be received)
     """
+
+    # Use a separate dedicated connection just for this, so that we
+    # don't miss any notifications
+    conn, sess = connect()
 
     # We're using the advisory lock to protect us against other
     # job runners; not transactions (indeed, transactions would be
@@ -123,7 +126,8 @@ def queued_jobs(conn, sess):
 
 def main():
     sess = database.Session()
-    for i in queued_jobs(*connect()):
+    database.queries.disable_automatic_session(and_use_this_one_instead=sess)
+    for i in queued_jobs():
         job = jobs.Job.find(id=i, sess=sess)
         if job.state != "queued":
             sess.rollback()
