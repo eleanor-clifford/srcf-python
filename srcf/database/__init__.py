@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 
 
 __all__ = ["Member", "Society", "PendingAdmin",
-           "RESTRICTED", "assert_readwrite", "Session"]
+           "RESTRICTED", "assert_readwrite", "Session", "url"]
 
 from .schema import RESTRICTED, POSTGRES_USER
 from .schema import Member, Society, PendingAdmin
@@ -21,5 +21,6 @@ def assert_readwrite():
         raise RestrictedAccess
 
 # try and use a privileged user if we can, otherwise read only
-engine = create_engine("postgresql://{user}@postgres/sysadmins".format(user=POSTGRES_USER))
+url = "postgresql://{user}@postgres/sysadmins".format(user=POSTGRES_USER)
+engine = create_engine(url)
 Session = sessionmaker(bind=engine)
