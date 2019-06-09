@@ -63,6 +63,8 @@ class Member(Base, MemberCompat):
     member = Column(Boolean, nullable=False)
     user = Column(Boolean, nullable=False)
     if is_root or is_webapp:
+        uid = Column(Integer, FetchedValue())
+        gid = Column(Integer, FetchedValue())
         email = Column(String(100), CheckConstraint("email ~ E'@'"), unique=True)
         # FetchedValue: these columns are set by triggers (see below)
         joined = Column(DateTime(timezone=True), FetchedValue())
@@ -130,6 +132,8 @@ class Society(Base, SocietyCompat):
                      primary_key=True)
     description = Column(String(100), nullable=False)
     if is_root or is_webapp:
+        uid = Column(Integer, FetchedValue())
+        gid = Column(Integer, FetchedValue())
         joined = Column(DateTime(timezone=True), FetchedValue())
         modified = Column(DateTime(timezone=True), FetchedValue())
         role_email = Column(String(100), CheckConstraint("email ~ E'@'"))

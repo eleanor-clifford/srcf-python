@@ -283,18 +283,22 @@ class Signup(Job):
         name = (self.preferred_name + " " + self.surname).strip()
 
         self.log("Create memberdb entry")
-        sess.add(Member(crsid=self.crsid,
+        member = Member(crsid=self.crsid,
                         preferred_name=self.preferred_name,
                         surname=self.surname,
                         email=self.email,
                         mail_handler=self.mail_handler,
                         member=True,
                         user=True))
-
+        sess.add(member)
         sess.commit()
 
+        uid = member.uid
+        gid = member.gid
+
         # Most SRCF-specific tasks are handled by /usr/local/sbin/adduser.local
-        subproc_call(self, "Add UNIX user", ["adduser", "--disabled-password", "--gecos", name, crsid])
+        # NB: adduser --uid will implicitly use gid=uid; --gid does not do what we want (bypasses group creation)
+        subproc_call(self, "Add UNIX user (uid %d)" % uid, ["adduser", "--disabled-password", "--uid", str(uid), "--gecos", name, crsid])
         subproc_call(self, "Set quota", ["set_quota", crsid])
 
         if self.mail_handler == "pip":
@@ -305,8 +309,6 @@ class Signup(Job):
             f.close()
 
             self.log("Set correct permissions on .forward file")
-            uid = pwd.getpwnam(crsid).pw_uid
-            gid = grp.getgrnam(crsid).gr_gid
             os.chown(path, uid, gid)
 
         subproc_call(self, "Update Apache groups", ["/usr/local/sbin/srcf-updateapachegroups"])
@@ -649,11 +651,17 @@ class CreateSociety(SocietyJob):
 
     def run(self, sess):
         self.log("Create memberdb entry")
-        sess.add(Society(society=self.society_society,
+        soc = Society(society=self.society_society,
                          description=self.description,
-                         admins=find_admins(self.admin_crsids, sess)))
+                         admins=find_admins(self.admin_crsids, sess))
+        sess.add(soc)
+        sess.commit()
 
-        subproc_call(self, "Add group", ["/usr/sbin/addgroup", "--force-badname", self.society_society])
+        uid = soc.uid
+        gid = soc.gid
+
+        subproc_call(self, "Add group (gid %d)" % gid, ["/usr/sbin/addgroup", "--gid", str(gid),
+                "--force-badname", self.society_society])
 
         home_path = os.path.join("/societies", self.society_society)
         public_path = os.path.join("/public", "societies", self.society_society)
@@ -667,10 +675,7 @@ class CreateSociety(SocietyJob):
             except:
                 pass
 
-        gid = grp.getgrnam(self.society_society).gr_gid
-        uid = gid + 50000
-
-        subproc_call(self, "Add society user", ["/usr/sbin/adduser", "--force-badname", "--no-create-home",
+        subproc_call(self, "Add society user (uid %d)" % uid, ["/usr/sbin/adduser", "--force-badname", "--no-create-home",
                                                 "--uid", str(uid), "--gid", str(gid), "--gecos", self.description,
                                                 "--disabled-password", "--system", self.society_society])
         subproc_call(self, "Set home directory", ["/usr/sbin/usermod", "-d", home_path, self.society_society])

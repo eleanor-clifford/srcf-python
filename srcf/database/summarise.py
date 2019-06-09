@@ -26,6 +26,8 @@ def summarise_member(member):
                     'Member: %s' % member.member,
                     'User: %s' % member.user,
                     'Joined: %s' % member.joined.strftime("%Y/%m"),
+                    'UID: %s' % member.uid,
+                    'GID: %s' % member.gid,
                     'Danger: %s' % member.danger] +
                    _format_notes(member.notes) +
                    _format_domains(member.domains))
@@ -53,6 +55,8 @@ def summarise_society(society):
         else:
             private.append('No role email.')
         private += (['Joined: %s' % society.joined.strftime("%Y/%m"),
+                     'UID: %s' % society.uid,
+                     'GID: %s' % society.gid,
                      'Danger: %s' % society.danger] +
                     _format_notes(society.notes) +
                     _format_domains(society.domains))
