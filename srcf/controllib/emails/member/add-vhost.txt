@@ -6,4 +6,4 @@ Any files or content in this directory will be served from your newly configured
 
 If you haven't done so already, you should configure your domain's DNS records to resolve to our server.  More info can be found here:
 
-    http://wiki.srcf.net/DomainsAndHTTPS
+    https://wiki.srcf.net/DomainsAndHTTPS
