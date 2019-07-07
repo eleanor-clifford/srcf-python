@@ -1,6 +1,6 @@
 You have been granted access to the '{{ society.society }}' shared account on the SRCF.  A link to this account has been added to your home folder.  Inside, you will find a public_html and a cgi_bin folder -- you can upload web content here, which will appear at the following address:
 
-    https://{{ society.society }}.soc.srcf.net
+    http://{{ society.society }}.soc.srcf.net
 
 (However, it may take up to 20 minutes between uploading a new site and it being published.)
 
