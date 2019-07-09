@@ -790,6 +790,10 @@ class ChangeSocietyAdmin(SocietyJob):
     def add_admin(self, sess):
         if self.target_member in self.society.admins:
             raise JobFailed("{0.target_member.crsid} is already an admin of {0.society}".format(self))
+        if not self.target_member.member:
+            raise JobFailed("{0.target_member.crsid} is not a SRCF member".format(self))
+        if not self.target_member.user:
+            raise JobFailed("{0.target_member.crsid} is not a SRCF user".format(self))
 
         # Get the recipient lists before adding because we are sending the new admin a separate email.
         recipients = [(x.name, x.crsid + "@srcf.net") for x in self.society.admins]
