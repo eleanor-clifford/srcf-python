@@ -120,7 +120,8 @@ class Job(object):
     def find_by_user(cls, sess, crsid):
         job_row = db_Job
         jobs = sess.query(job_row) \
-                    .filter(job_row.owner_crsid == crsid) \
+                    .filter(job_row.owner_crsid == crsid,
+                            ~job_row.args.defined("society")) \
                     .order_by(job_row.job_id.desc())
         return [Job.of_row(r) for r in jobs]
 
