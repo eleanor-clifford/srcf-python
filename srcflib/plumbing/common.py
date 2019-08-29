@@ -1,4 +1,12 @@
+from functools import wraps
+import logging
+import platform
+import subprocess
+
 from srcf import pwgen
+
+
+LOG = logging.getLogger(__name__)
 
 
 class Password:
@@ -25,3 +33,51 @@ class Password:
             .Password
         """
         return cls(pwgen().decode("utf-8"))
+
+    def wrap(self, template):
+        """
+        Embed a plaintext password into a larger string, and wrap that as a ``Password``:
+
+            >>> passwd = Password("secret")
+            >>> line = passwd.wrap("username:{}")
+            >>> line
+            <Password: 'username:***'>
+            >>> str(line)
+            'username:secret'
+        """
+        return self.__class__(self._value, template.format(self._template))
+
+
+class Hosts:
+    USER = "pip"
+    LIST = "pip"
+
+
+def require_host(*hosts: str):
+    """
+    Only allow a function to be called on the given hosts, identified by hostname:
+
+        >>> @require_hosts(Hosts.USER)
+        ... def create_user(username): ...
+    """
+    def outer(fn):
+        @wraps(fn)
+        def inner(*args, **kwargs):
+            host = platform.node()
+            if host not in hosts:
+                raise RuntimeError("{}() can't be used on host {}, requires {}"
+                                   .format(fn.__name__, host, "/".join(hosts)))
+            return fn(*args, **kwargs)
+        return inner
+    return outer
+
+
+def command(args, input_=None):
+    """
+    Create a subprocess to execute an external command.
+    """
+    if input_:
+        LOG.debug("Exec: %r <<< %r", args, input_)
+    else:
+        LOG.debug("Exec: %r", args)
+    subprocess.run(args, input=str(input_).encode("utf-8") if input_ else None, check=True)
