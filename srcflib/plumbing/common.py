@@ -2,11 +2,28 @@ from functools import wraps
 import logging
 import platform
 import subprocess
+from typing import Union
 
 from srcf import pwgen
+from srcf.database import Member, Society
 
 
 LOG = logging.getLogger(__name__)
+
+
+Owner = Union[Member, Society]
+
+
+def owner_name(owner: Owner) -> str:
+    """
+    Return a ``Member`` CRSid, or a ``Society`` short name.
+    """
+    if isinstance(owner, Member):
+        return owner.crsid
+    elif isinstance(owner, Society):
+        return owner.society
+    else:
+        raise TypeError(owner)
 
 
 class Password:
