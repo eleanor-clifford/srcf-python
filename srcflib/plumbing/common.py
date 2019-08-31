@@ -2,10 +2,10 @@ from functools import wraps
 import logging
 import platform
 import subprocess
-from typing import Union
+from typing import Set, Union
 
 from srcf import pwgen
-from srcf.database import Member, Society
+from srcf.database import Member, Session, Society
 
 
 LOG = logging.getLogger(__name__)
@@ -24,6 +24,18 @@ def owner_name(owner: Owner) -> str:
         return owner.society
     else:
         raise TypeError(owner)
+
+
+def get_members(sess: Session, *crsids: str) -> Set:
+    """
+    Fetch multiple ``Member`` objects by their CRSids.
+    """
+    users = sess.query(Member).filter(Member.crsid.in_(crsids)).all()
+    missing = set(crsids) - {user.crsid for user in users}
+    if missing:
+        raise KeyError("Missing members: {}".format(", ".join(sorted(missing))))
+    else:
+        return set(users)
 
 
 class Password:
