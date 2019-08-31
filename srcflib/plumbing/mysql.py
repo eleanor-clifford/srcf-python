@@ -21,10 +21,11 @@ def _format(sql: str, *literals: str) -> str:
 
 def query(cursor: Cursor, sql: str, *args: str) -> bool:
     """
-    Run a SQL query against a database cursor.
+    Run a SQL query against a database cursor, and return whether rows were affected.
     """
-    LOG.debug("Query: %r %% %r", query, args)
-    return bool(cursor.execute(query, [str(arg) for arg in args]))
+    LOG.debug("Query: %r %% %r", sql, args)
+    return bool(cursor.execute(sql, [str(arg) if isinstance(arg, Password) else arg
+                                     for arg in args]))
 
 
 def create_user(cursor: Cursor, name: str) -> Optional[Password]:
@@ -36,7 +37,7 @@ def create_user(cursor: Cursor, name: str) -> Optional[Password]:
     return passwd if new else None
 
 
-def reset_user_password(cursor: Cursor, name: str) -> Password:
+def reset_password(cursor: Cursor, name: str) -> Password:
     """
     Reset the password of the given MySQL user.
     """
@@ -55,14 +56,14 @@ def drop_user(cursor: Cursor, name: str) -> bool:
     return query(cursor, "DROP USER IF EXISTS %s@'%%'", name)
 
 
-def grant_user_database(cursor: Cursor, user: str, db: str) -> bool:
+def grant_database(cursor: Cursor, user: str, db: str) -> bool:
     """
     Grant all permissions for the user to create, manage and delete this database.
     """
     return query(cursor, _format("GRANT ALL ON {}.* TO %s@'%%'", db), user)
 
 
-def revoke_user_database(cursor: Cursor, user: str, db: str) -> bool:
+def revoke_database(cursor: Cursor, user: str, db: str) -> bool:
     """
     Remove any permissions for the user to create, manage and delete this database.
     """
