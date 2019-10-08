@@ -88,6 +88,9 @@ def add_society_admin(member: Member, society: Society) -> ResultSet:
     Promote a member to a society account admin.
     """
     with bespoke.context() as sess:
+        # Re-fetch under current session for transaction safety.
+        member = get_member(member.crsid, sess)
+        society = get_society(society.society, sess)
         results = ResultSet(bespoke.add_to_society(sess, member, society))
     results.add(unix.add_to_group(unix.get_user(member.crsid), unix.get_group(society.society)),
                 bespoke.link_soc_home_dir(member, society))
@@ -99,6 +102,8 @@ def remove_society_admin(member: Member, society: Society) -> ResultSet:
     Demote a member from a society account's list of admins.
     """
     with bespoke.context() as sess:
+        member = get_member(member.crsid, sess)
+        society = get_society(society.society, sess)
         results = ResultSet(bespoke.remove_from_society(sess, member, society))
     results.add(unix.remove_from_group(unix.get_user(member.crsid),
                                        unix.get_group(society.society)),
