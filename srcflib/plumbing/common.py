@@ -97,7 +97,7 @@ class ResultSet(Result[V]):
 
     def __init__(self, *results: Result):
         self._state = None
-        super().__init__(State.unchanged)
+        super().__init__(None)
         self._results = []
         for result in results:
             if isinstance(result, ResultSet):
