@@ -4,6 +4,7 @@ Shared helper methods and base classes.
 
 from enum import Enum
 from functools import wraps
+import inspect
 import logging
 import platform
 import subprocess
@@ -73,6 +74,12 @@ class Result(Generic[V]):
     def __init__(self, state: State, value: V=None):
         self.state = state
         self.value = value
+        # Inspection magic to log the calling method, e.g. `module.sub:Class.method`.
+        frame = inspect.currentframe().f_back
+        if frame:
+            name = frame.f_code.co_name
+            func = frame.f_globals.get(name)
+            self.caller = "{}:{}".format(func.__module__, func.__qualname__) if func else name
 
     def __bool__(self) -> bool:
         return self.state is State.success
