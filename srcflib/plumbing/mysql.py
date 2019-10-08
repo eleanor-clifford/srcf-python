@@ -3,11 +3,11 @@ MySQL user and database management.
 """
 
 import logging
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from pymysql.cursors import Cursor
 
-from .common import Password
+from .common import Password, Result, State
 
 
 LOG = logging.getLogger(__name__)
@@ -19,7 +19,11 @@ def _format(sql: str, *literals: str) -> str:
     return sql.format(*params)
 
 
-def query(cursor: Cursor, sql: str, *args: str) -> bool:
+def _truthy(test: bool) -> Result:
+    return Result(State.success) if test else Result(State.unchanged)
+
+
+def query(cursor: Cursor, sql: str, *args: Union[str, Password]) -> bool:
     """
     Run a SQL query against a database cursor, and return whether rows were affected.
     """
@@ -28,58 +32,58 @@ def query(cursor: Cursor, sql: str, *args: str) -> bool:
                                      for arg in args]))
 
 
-def create_user(cursor: Cursor, name: str) -> Optional[Password]:
+def create_user(cursor: Cursor, name: str) -> Result[Optional[Password]]:
     """
     Create a MySQL user with a random password, if a user with that name doesn't already exist.
     """
     passwd = Password.new()
     new = query(cursor, "CREATE USER IF NOT EXISTS %s@'%%' IDENTIFIED BY %s", name, passwd)
-    return passwd if new else None
+    return Result(State.success, passwd) if new else Result(State.unchanged)
 
 
-def reset_password(cursor: Cursor, name: str) -> Password:
+def reset_password(cursor: Cursor, name: str) -> Result[Password]:
     """
     Reset the password of the given MySQL user.
     """
     passwd = Password.new()
     reset = query(cursor, "SET PASSWORD FOR %s@'%%' = %s", name, passwd)
     if reset:
-        return passwd
+        return Result(State.success, passwd)
     else:
         raise LookupError("No MySQL user {!r} to reset password".format(name))
 
 
-def drop_user(cursor: Cursor, name: str) -> bool:
+def drop_user(cursor: Cursor, name: str) -> Result:
     """
     Drop a MySQL user and all of its grants.
     """
-    return query(cursor, "DROP USER IF EXISTS %s@'%%'", name)
+    return _truthy(query(cursor, "DROP USER IF EXISTS %s@'%%'", name))
 
 
-def grant_database(cursor: Cursor, user: str, db: str) -> bool:
+def grant_database(cursor: Cursor, user: str, db: str) -> Result:
     """
     Grant all permissions for the user to create, manage and delete this database.
     """
-    return query(cursor, _format("GRANT ALL ON {}.* TO %s@'%%'", db), user)
+    return _truthy(query(cursor, _format("GRANT ALL ON {}.* TO %s@'%%'", db), user))
 
 
-def revoke_database(cursor: Cursor, user: str, db: str) -> bool:
+def revoke_database(cursor: Cursor, user: str, db: str) -> Result:
     """
     Remove any permissions for the user to create, manage and delete this database.
     """
-    return query(cursor, _format("REVOKE ALL ON {}.* FROM %s@'%%'", db), user)
+    return _truthy(query(cursor, _format("REVOKE ALL ON {}.* FROM %s@'%%'", db), user))
 
 
-def create_database(cursor: Cursor, name: str) -> bool:
+def create_database(cursor: Cursor, name: str) -> Result:
     """
     Create a MySQL database.  No permissions are granted.
     """
     # Always returns one row; emits a warning if the database already exist.
     query(cursor, _format("CREATE DATABASE IF NOT EXISTS {}", name))
-    return True
+    return Result(State.success)
 
 
-def list_databases(cursor: Cursor, like: str="%") -> List:
+def list_databases(cursor: Cursor, like: str="%") -> List[str]:
     """
     Fetch names of all databases matching the given pattern.
     """
@@ -87,10 +91,10 @@ def list_databases(cursor: Cursor, like: str="%") -> List:
     return [db[0] for db in cursor]
 
 
-def drop_database(cursor: Cursor, name: str) -> bool:
+def drop_database(cursor: Cursor, name: str) -> Result:
     """
     Drop a MySQL database and all of its tables.
     """
     # Always returns zero rows; emits a warning if the database doesn't exist.
     query(cursor, _format("DROP DATABASE IF EXISTS {}", name))
-    return True
+    return Result(State.success)

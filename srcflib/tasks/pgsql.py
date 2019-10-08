@@ -1,18 +1,18 @@
 from contextlib import contextmanager
-from typing import Tuple
+from typing import Optional, Tuple
 
 from psycopg2.extensions import connection as Connection, cursor as Cursor
 
 from srcf.database import Member
 
-from srcflib.plumbing import Owner, owner_name, pgsql
+from srcflib.plumbing import Owner, owner_name, Password, pgsql, Result, ResultSet
 
 
-def connect(db: str="sysadmins") -> Connection:
+def connect(db: str=None) -> Connection:
     """
     Connect to the PostgreSQL server using ident authentication.
     """
-    return pgsql.connect("postgres.internal", db)
+    return pgsql.connect("postgres.internal", db or "sysadmins")
 
 
 @contextmanager
@@ -31,21 +31,22 @@ def context(conn: Connection=None, db: str=None) -> Tuple[Connection, Cursor]:
         conn.close()
 
 
-def create_account(cursor: Cursor, owner: Owner) -> bool:
+def create_account(cursor: Cursor, owner: Owner) -> ResultSet[Optional[Password]]:
     """
     Create a PostgreSQL user account for a given member or society.
 
     For members, grants are added to all society roles for which they are a member.
     """
     username = owner_name(owner)
-    done = [bool(pgsql.add_user(cursor, username))]
+    results = ResultSet(pgsql.add_user(cursor, username))
+    results.value = results.last.value
     if isinstance(owner, Member):
         roles = pgsql.get_roles(cursor, *(soc.society for soc in owner.societies))
-        done.extend([pgsql.grant_role(cursor, username, role) for role in roles])
-    return any(done)
+        results.add(*(pgsql.grant_role(cursor, username, role) for role in roles))
+    return results
 
 
-def reset_password(cursor: Cursor, owner: Owner) -> bool:
+def reset_password(cursor: Cursor, owner: Owner) -> Result:
     """
     Reset the password of a member's or society's PostgreSQL user account.
     """

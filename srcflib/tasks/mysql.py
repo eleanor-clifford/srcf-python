@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from pymysql import connect as pymysql_connect
 from pymysql.cursors import Cursor
@@ -7,7 +7,7 @@ from pymysql.connections import Connection
 
 from srcf.database import Member
 
-from srcflib.plumbing import mysql, Owner, owner_name
+from srcflib.plumbing import mysql, Owner, owner_name, Password, Result, ResultSet
 
 
 def _root_passwd() -> str:
@@ -56,31 +56,40 @@ def context(conn: Connection=None) -> Tuple[Connection, Cursor]:
         conn.close()
 
 
-def create_account(cursor: Cursor, owner: Owner) -> bool:
+def list_databases(cursor: Cursor, owner: Owner) -> List[str]:
+    """
+    Find all MySQL databases belonging to a given owner.
+    """
+    return (mysql.list_databases(cursor, _database_name(owner)) +
+            mysql.list_databases(cursor, _database_name(owner, "%")))
+
+
+def create_account(cursor: Cursor, owner: Owner) -> ResultSet[Optional[Password]]:
     """
     Create a MySQL user account for a given member or society.
 
     For members, grants are added to all society databases for which they are a member.
     """
     user = _user_name(owner)
-    done = [mysql.create_user(cursor, user),
-            mysql.grant_database(cursor, user, _database_name(owner)),
-            mysql.grant_database(cursor, user, _database_name(owner, "%"))]
+    results = ResultSet(mysql.create_user(cursor, user))
+    results.value = results.last.value
+    results.add(mysql.grant_database(cursor, user, _database_name(owner)),
+                mysql.grant_database(cursor, user, _database_name(owner, "%")))
     if isinstance(owner, Member):
         for soc in owner.societies:
-            done.extend([mysql.grant_database(cursor, user, _database_name(soc)),
-                         mysql.grant_database(cursor, user, _database_name(soc, "%"))])
-    return any(done)
+            results.add(mysql.grant_database(cursor, user, _database_name(soc)),
+                        mysql.grant_database(cursor, user, _database_name(soc, "%")))
+    return results
 
 
-def reset_password(cursor: Cursor, owner: Owner) -> bool:
+def reset_password(cursor: Cursor, owner: Owner) -> Result[Password]:
     """
     Reset the password of a member's or society's MySQL user account.
     """
     return mysql.reset_password(cursor, _user_name(owner))
 
 
-def drop_account(cursor: Cursor, owner: Owner) -> bool:
+def drop_account(cursor: Cursor, owner: Owner) -> ResultSet:
     """
     Drop a MySQL user account for a given member or society.
 
@@ -89,32 +98,24 @@ def drop_account(cursor: Cursor, owner: Owner) -> bool:
     if list_databases(cursor, owner):
         raise ValueError("Drop databases for {} first".format(owner))
     user = _user_name(owner)
-    done = [mysql.revoke_database(cursor, user, _database_name(owner)),
-            mysql.revoke_database(cursor, user, _database_name(owner, "%"))]
+    results = ResultSet(mysql.revoke_database(cursor, user, _database_name(owner)),
+                        mysql.revoke_database(cursor, user, _database_name(owner, "%")))
     if isinstance(owner, Member):
         for soc in owner.societies:
-            done.extend([mysql.revoke_database(cursor, user, _database_name(soc)),
-                         mysql.revoke_database(cursor, user, _database_name(soc, "%"))])
-    done.append(mysql.drop_user(cursor, user))
-    return any(done)
+            results.add(mysql.revoke_database(cursor, user, _database_name(soc)),
+                        mysql.revoke_database(cursor, user, _database_name(soc, "%")))
+    results.add(mysql.drop_user(cursor, user))
+    return results
 
 
-def create_database(cursor: Cursor, owner: Owner, suffix: str=None) -> bool:
+def create_database(cursor: Cursor, owner: Owner, suffix: str=None) -> Result:
     """
     Create a new MySQL database for the owner, either the primary name or a suffixed alternative.
     """
     return mysql.create_database(cursor, _database_name(owner, suffix))
 
 
-def list_databases(cursor: Cursor, owner: Owner) -> List:
-    """
-    Find all MySQL databases belonging to a given owner.
-    """
-    return (mysql.list_databases(cursor, _database_name(owner)) +
-            mysql.list_databases(cursor, _database_name(owner, "%")))
-
-
-def drop_database(cursor: Cursor, owner: Owner, suffix: str=None) -> bool:
+def drop_database(cursor: Cursor, owner: Owner, suffix: str=None) -> Result:
     """
     Drop either the primary or a suffixed secondary MySQL database belonging to the owner.
     """

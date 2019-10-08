@@ -1,7 +1,7 @@
 """
 SRCF-specific tools.
 
-Most methods identify users and groups using the ``Member`` and ``Society`` database models.
+Most methods identify users and groups using the `Member` and `Society` database models.
 """
 
 from contextlib import contextmanager
@@ -12,17 +12,19 @@ from typing import Set
 
 import posix1e
 
+from sqlalchemy.orm import Session as SESSION_TYPE
+
 from srcf.database import Member, Session, Society
 from srcf.database.queries import get_member, get_society
 
-from .common import command, get_members, Hosts, Owner, owner_name, require_host
+from .common import command, get_members, Hosts, Owner, owner_name, require_host, Result, State
 
 
 LOG = logging.getLogger(__name__)
 
 
 @contextmanager
-def context(sess: Session=None):
+def context(sess: SESSION_TYPE=None):
     """
     Run multiple database commands and commit at the end::
 
@@ -40,8 +42,9 @@ def context(sess: Session=None):
         sess.commit()
 
 
-def create_member(sess: Session, crsid: str, preferred_name: str, surname: str, email: str,
-                  mail_handler: str="forward", is_member: bool=True, is_user: bool=True) -> Member:
+def create_member(sess: SESSION_TYPE, crsid: str, preferred_name: str, surname: str, email: str,
+                  mail_handler: str="forward", is_member: bool=True,
+                  is_user: bool=True) -> Result[Member]:
     """
     Register or update a member in the database.
     """
@@ -55,6 +58,8 @@ def create_member(sess: Session, crsid: str, preferred_name: str, surname: str, 
                      mail_handler=mail_handler,
                      member=is_member,
                      user=is_user)
+        sess.add(mem)
+        state = State.success
     else:
         mem.preferred_name = preferred_name
         mem.surname = surname
@@ -62,12 +67,12 @@ def create_member(sess: Session, crsid: str, preferred_name: str, surname: str, 
         mem.mail_handler = mail_handler
         mem.member = is_member
         mem.user = is_user
-    sess.add(mem)
-    return mem
+        state = State.success if sess.is_modified(mem) else State.unchanged
+    return Result(state, mem)
 
 
-def create_society(sess: Session, name: str, description: str, admins: Set,
-                   role_email: str=None) -> Society:
+def create_society(sess: SESSION_TYPE, name: str, description: str, admins: Set,
+                   role_email: str=None) -> Result[Society]:
     """
     Register or update a society in the database.
     """
@@ -78,39 +83,41 @@ def create_society(sess: Session, name: str, description: str, admins: Set,
                       description=description,
                       admins=get_members(sess, *admins),
                       role_email=role_email)
+        sess.add(soc)
+        state = State.success
     else:
         if admins != soc.admin_crsids:
             raise ValueError("Admins for {!r} are {}, expecting {}"
                              .format(name, soc.admin_crsids, admins))
         soc.description = description
         soc.role_email = role_email
-    sess.add(soc)
-    return soc
+        state = State.success if sess.is_modified(soc) else State.unchanged
+    return Result(state, soc)
 
 
-def add_to_society(sess: Session, member: Member, society: Society) -> bool:
+def add_to_society(sess: SESSION_TYPE, member: Member, society: Society) -> Result:
     """
     Add a new admin to a society account.
     """
     if member in society.admins:
-        return False
+        return Result(State.unchanged)
     society.admins.add(member)
     sess.add(society)
-    return True
+    return Result(State.success)
 
 
-def remove_from_society(sess: Session, member: Member, society: Society) -> bool:
+def remove_from_society(sess: SESSION_TYPE, member: Member, society: Society) -> Result:
     """
     Remove an existing admin from a society account.
     """
     if member not in society.admins:
-        return False
+        return Result(State.unchanged)
     society.admins.remove(member)
     sess.add(society)
-    return True
+    return Result(State.success)
 
 
-def link_soc_home_dir(member: Member, society: Society):
+def link_soc_home_dir(member: Member, society: Society) -> Result:
     """
     Add or remove a user's society symlink based on their admin membership.
     """
@@ -122,31 +129,33 @@ def link_soc_home_dir(member: Member, society: Society):
         current = None
     valid = current == target
     needed = member in society.admins
+    result = Result(State.unchanged)
     if valid == needed:
         # Includes if they're no longer an admin, and something other than the usual link exists
         # where we'd normally put this link, in which case we leave it be.
-        return False
+        return result
     if member in society.admins:
         try:
             os.symlink(link, target)
         except FileExistsError:
             LOG.warning("Not overwriting existing file %r", link)
-            return False
         except OSError:
             LOG.warning("Couldn't symlink %r", link, exc_info=True)
-            return False
+        else:
+            result.state = State.success
     else:
         try:
             os.unlink(link)
         except OSError:
             LOG.warning("Couldn't remove symlink %r", link, exc_info=True)
-            return False
-    return True
+        else:
+            result.state = State.success
+    return result
 
 
-def set_home_exim_acl(owner: Owner) -> bool:
+def set_home_exim_acl(owner: Owner) -> Result:
     """
-    Grant access to the user's .forward file for Exim.
+    Grant access to the user's ``.forward`` file for Exim.
     """
     path = pwd.getpwnam(owner_name(owner)).pw_dir
     acl = posix1e.ACL(file=path)
@@ -161,30 +170,32 @@ def set_home_exim_acl(owner: Owner) -> bool:
     mask.permset.execute = True
     assert acl.valid()
     acl.applyto(path)
-    return True
+    return Result(State.success)
 
 
-def create_forwarding_file(owner: Owner) -> bool:
+def create_forwarding_file(owner: Owner) -> Result:
     """
-    Write a default .forward file matching the user's external email address.
+    Write a default ``.forward`` file matching the user's external email address.
     """
     user = pwd.getpwnam(owner_name(owner))
     path = os.path.join(user.pw_dir, ".forward")
+    if os.path.exists(path):
+        return Result(State.unchanged)
     with open(path, "w") as f:
         f.write(owner.email + "\n")
     os.chown(path, user.pw_uid, user.pw_gid)
-    return True
+    return Result(State.success)
 
 
-def set_quota(owner: Owner) -> bool:
+def set_quota(owner: Owner) -> Result:
     """
     Apply the default quota to the owner's account.
     """
     command(["/usr/local/sbin/set_quota", owner_name(owner)])
-    return True
+    return Result(State.success)
 
 
-def set_web_status(owner: Owner, status: str) -> bool:
+def set_web_status(owner: Owner, status: str) -> Result:
     """
     Add or update the owner's website type, used for Apache configuration.
     """
@@ -198,7 +209,7 @@ def set_web_status(owner: Owner, status: str) -> bool:
         if name != username:
             continue
         if current == status:
-            return False
+            return Result(State.unchanged)
         else:
             data[i] = "{}:{}".format(name, status)
             break
@@ -207,64 +218,64 @@ def set_web_status(owner: Owner, status: str) -> bool:
     with open(path, "w") as f:
         for line in data:
             f.write("{}\n".format(line))
-    return True
+    return Result(State.success)
 
 
-def generate_apache_groups() -> bool:
+def generate_apache_groups() -> Result:
     """
     Synchronise the Apache groups file, providing ``srcfmembers`` and ``srcfusers`` groups.
     """
     # TODO: Port to SRCFLib, replace with entrypoint.
     command(["/usr/local/sbin/srcf-updateapachegroups"])
-    return True
+    return Result(State.success)
 
 
-def queue_list_subscription(member: Member, *lists: str) -> bool:
+def queue_list_subscription(member: Member, *lists: str) -> Result:
     """
     Subscribe the user to one or more mailing lists.
     """
     if not lists:
-        return False
+        return Result(State.unchanged)
     # TODO: Port to SRCFLib, replace with entrypoint.
     entry = '"{}" <{}>'.format(member.name, member.email)
     args = ["/usr/local/sbin/srcf-enqueue-mlsub"]
     for name in lists:
         args.append("soc-srcf-{}:{}".format(name, entry))
     command(args)
-    return True
+    return Result(State.success)
 
 
-def generate_sudoers() -> bool:
+def generate_sudoers() -> Result:
     """
     Update sudo permissions to allow admins to exdcute commands under their society accounts.
     """
     # TODO: Port to SRCFLib, replace with entrypoint.
     command(["/usr/local/sbin/srcf-generate-society-sudoers"])
-    return True
+    return Result(State.success)
 
 
-def export_members() -> bool:
+def export_members() -> Result:
     """
     Regenerate the legacy membership lists.
     """
     # TODO: Port to SRCFLib, replace with entrypoint.
     command(["/usr/local/sbin/srcf-memberdb-export"])
-    return True
+    return Result(State.success)
 
 
 @require_host(Hosts.USER)
-def make_yp() -> bool:
+def make_yp() -> Result:
     """
     Synchronise UNIX users and passwords over NIS.
     """
     command(["/usr/bin/make", "-C", "/var/yp"])
-    return True
+    return Result(State.success)
 
 
-def configure_mailing_list(name: str) -> bool:
+def configure_mailing_list(name: str) -> Result:
     """
     Apply default options to a new mailing list, and create the necessary mail aliases.
     """
     command(["/usr/sbin/config_list", "--inputfile", "/root/mailman-newlist-defaults", name])
     command(["/usr/local/sbin/gen_alias", name])
-    return True
+    return Result(State.success)
