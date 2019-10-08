@@ -65,7 +65,7 @@ def create_society(name: str, description: str, admins: Set[str],
     results.add(unix.create_user(name, uid=soc.uid, system=True, active=False,
                                  home_dir=os.path.join("/societies", name), real_name=description))
     user = results.last.value
-    results.add(unix.create_group(name, system=True))
+    results.add(unix.create_group(name, gid=soc.gid, system=True))
     group = results.last.value
     results.add(unix.create_home(user, os.path.join("/public/societies", name)))
     for admin in admins:
