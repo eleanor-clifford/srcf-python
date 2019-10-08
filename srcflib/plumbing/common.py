@@ -202,7 +202,7 @@ def require_host(*hosts: str):
     return outer
 
 
-def command(args, input_=None):
+def command(args, input_=None, output=False) -> subprocess.CompletedProcess:
     """
     Create a subprocess to execute an external command.
     """
@@ -210,4 +210,5 @@ def command(args, input_=None):
         LOG.debug("Exec: %r <<< %r", args, input_)
     else:
         LOG.debug("Exec: %r", args)
-    subprocess.run(args, input=str(input_).encode("utf-8") if input_ else None, check=True)
+    return subprocess.run(args, input=str(input_).encode("utf-8") if input_ else None,
+                          stdout=subprocess.PIPE if output else None, check=True)

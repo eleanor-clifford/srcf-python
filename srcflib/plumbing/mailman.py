@@ -28,6 +28,14 @@ def get_list(name: str) -> List:
         raise KeyError(name)
 
 
+def get_owners(mlist: List) -> Tuple[str]:
+    """
+    Look up all owner email addresses of a mailing list.
+    """
+    proc = command(["/usr/lib/mailman/bin/list_owners", mlist], output=True)
+    return tuple(proc.stdout.decode("utf-8").split("\n"))
+
+
 @require_host(Hosts.LIST)
 def new_list(name: str, owner: str) -> Result[Password]:
     """
@@ -54,6 +62,9 @@ def set_owner(mlist: List, *owners: str) -> Result:
     """
     Overwrite the owners of a list.
     """
+    current = get_owners(mlist)
+    if set(current) == set(owners):
+        return Result(State.unchanged)
     data = "owner = {}".format(repr(list(owners)))
     command(["/usr/sbin/config_list", "--inputfile", "/dev/stdin", mlist], data)
     return Result(State.success)
