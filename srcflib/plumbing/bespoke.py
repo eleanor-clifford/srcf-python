@@ -27,7 +27,7 @@ LOG = logging.getLogger(__name__)
 @contextmanager
 def context(sess: SESSION_TYPE=None):
     """
-    Run multiple database commands and commit at the end::
+    Run multiple database commands and commit at the end:
 
         >>> with context() as sess:
         ...     for ... in data:
@@ -135,9 +135,9 @@ def link_soc_home_dir(member: Member, society: Society) -> Result:
         # Includes if they're no longer an admin, and something other than the usual link exists
         # where we'd normally put this link, in which case we leave it be.
         return result
-    if member in society.admins:
+    if needed:
         try:
-            os.symlink(link, target)
+            os.symlink(target, link)
         except FileExistsError:
             LOG.warning("Not overwriting existing file %r", link)
         except OSError:
