@@ -17,7 +17,8 @@ from sqlalchemy.orm import Session as SESSION_TYPE
 from srcf.database import Member, Session, Society
 from srcf.database.queries import get_member, get_society
 
-from .common import command, get_members, Hosts, Owner, owner_name, require_host, Result, State
+from .common import (command, get_members, Hosts, Owner, owner_name, require_host, Result,
+                     ResultSet, State)
 
 
 LOG = logging.getLogger(__name__)
@@ -153,24 +154,38 @@ def link_soc_home_dir(member: Member, society: Society) -> Result:
     return result
 
 
-def set_home_exim_acl(owner: Owner) -> Result:
+def set_home_exim_acl(owner: Owner) -> ResultSet:
     """
     Grant access to the user's ``.forward`` file for Exim.
     """
     path = pwd.getpwnam(owner_name(owner)).pw_dir
+    exim = pwd.getpwnam("Debian-exim").pw_uid
     acl = posix1e.ACL(file=path)
-    entry = acl.append()
-    entry.tag_type = posix1e.ACL_USER
-    entry.qualifier = pwd.getpwnam("Debian-exim").pw_uid
-    entry.permset.execute = True
-    mask = acl.append()
-    mask.tag_type = posix1e.ACL_MASK
-    mask.permset.read = True
-    mask.permset.write = True
-    mask.permset.execute = True
+    granted = masked = None
+    for entry in acl:
+        if entry.tag_type == posix1e.ACL_USER and entry.qualifier == exim:
+            granted = entry.permset.execute
+        elif entry.tag_type == posix1e.ACL_MASK:
+            masked = entry.permset.read and entry.permset.write and entry.permset.execute
+    if granted is None:
+        grant = acl.append()
+        grant.tag_type = posix1e.ACL_USER
+        grant.qualifier = exim
+        grant.permset.execute = True
+    elif not granted:
+        LOG.warning("Ignoring invalid home directory grant")
+    if masked is None:
+        mask = acl.append()
+        mask.tag_type = posix1e.ACL_MASK
+        mask.permset.read = True
+        mask.permset.write = True
+        mask.permset.execute = True
+    elif not masked:
+        LOG.warning("Ignoring invalid home directory mask")
     assert acl.valid()
     acl.applyto(path)
-    return Result(State.success)
+    return ResultSet(Result(State.success if granted is None else State.unchanged),
+                     Result(State.success if masked is None else State.unchanged))
 
 
 def create_forwarding_file(owner: Owner) -> Result:
