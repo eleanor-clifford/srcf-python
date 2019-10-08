@@ -75,10 +75,10 @@ def enable_user(user: User, active: bool=True) -> Result:
     """
     login = user.pw_shell not in _NOLOGIN_SHELLS
     if login and not active:
-        command(["/usr/bin/chfn", "--shell", "/bin/bash", user.pw_name])
+        command(["/usr/bin/chsh", "--shell", "/bin/bash", user.pw_name])
         return Result(State.success)
     elif active and not login:
-        command(["/usr/bin/chfn", "--shell", _NOLOGIN_SHELLS[0], user.pw_name])
+        command(["/usr/bin/chsh", "--shell", _NOLOGIN_SHELLS[0], user.pw_name])
         return Result(State.success)
     else:
         return Result(State.unchanged)
@@ -89,11 +89,11 @@ def set_real_name(user: User, real_name: str="") -> Result:
     """
     Update a user's GECOS name field.
     """
-    current, *rest = user.pw_gecoss.split(",")
+    current, *rest = user.pw_gecos.split(",")
     if current == real_name:
         return Result(State.unchanged)
-    command(["/usr/bin/chsh", "--full-name", real_name, user.pw_name])
-    user.pw_gecoss = ",".join([real_name, *rest])
+    command(["/usr/bin/chfn", "--full-name", real_name, user.pw_name])
+    user.pw_gecos = ",".join([real_name, *rest])
     return Result(State.success)
 
 
