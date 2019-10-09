@@ -6,6 +6,7 @@ from pymysql.cursors import Cursor
 from pymysql.connections import Connection
 
 from srcf.database import Member
+from srcf.database.queries import get_society
 
 from srcflib.plumbing import mysql, Owner, owner_name, Password, Result, ResultSet
 
@@ -24,6 +25,10 @@ def _database_name(owner: Owner, suffix: str=None) -> str:
     if suffix:
         name = "{}/{}".format(name, suffix)
     return name
+
+
+def _database_name_rev(name: str) -> str:
+    return name.split("/", 1)[0].replace("_", "-")
 
 
 def connect_config() -> Connection:
@@ -76,9 +81,39 @@ def create_account(cursor: Cursor, owner: Owner) -> ResultSet[Optional[Password]
     results.add(mysql.grant_database(cursor, user, _database_name(owner)),
                 mysql.grant_database(cursor, user, _database_name(owner, "%")))
     if isinstance(owner, Member):
-        for soc in owner.societies:
-            results.add(mysql.grant_database(cursor, user, _database_name(soc)),
-                        mysql.grant_database(cursor, user, _database_name(soc, "%")))
+        results.add(sync_society_roles(cursor, owner))
+    return results
+
+
+def sync_society_roles(cursor: Cursor, member: Member) -> ResultSet:
+    """
+    Adjust grants for society roles to match account membership.
+    """
+    user = _user_name(member)
+    current = set()
+    seen = set()
+    for grant in mysql.get_user_grants(cursor, user):
+        # Filter active roles to those owned by society accounts.
+        root = _database_name_rev(grant)
+        if root == member.crsid:
+            continue
+        if root not in seen:
+            try:
+                get_society(root)
+            except KeyError:
+                continue
+            else:
+                seen.add(root)
+        if root in seen:
+            current.add(grant)
+    needed = set()
+    for name in mysql.get_users(cursor, *(_database_name(soc) for soc in member.societies)):
+        needed.update({name, "{}/%".format(name)})
+    results = ResultSet()
+    for database in needed - current:
+        results.add(mysql.grant_database(cursor, user, database))
+    for database in current - needed:
+        results.add(mysql.revoke_database(cursor, user, database))
     return results
 
 

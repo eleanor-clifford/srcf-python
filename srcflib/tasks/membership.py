@@ -5,6 +5,7 @@ from srcf.database import Member, Society
 from srcf.database.queries import get_member, get_society
 
 from srcflib.plumbing import bespoke, ResultSet, unix
+from srcflib.tasks import mysql, pgsql
 
 
 def create_member(crsid: str, preferred_name: str, surname: str, email: str, mail_handler: str,
@@ -94,6 +95,10 @@ def add_society_admin(member: Member, society: Society) -> ResultSet:
         results = ResultSet(bespoke.add_to_society(sess, member, society))
     results.add(unix.add_to_group(unix.get_user(member.crsid), unix.get_group(society.society)),
                 bespoke.link_soc_home_dir(member, society))
+    with mysql.connect_root() as (_, cursor):
+        mysql.sync_society_roles(cursor, member)
+    with pgsql.connect() as (_, cursor):
+        pgsql.sync_society_roles(cursor, member)
     return results
 
 
@@ -108,4 +113,8 @@ def remove_society_admin(member: Member, society: Society) -> ResultSet:
     results.add(unix.remove_from_group(unix.get_user(member.crsid),
                                        unix.get_group(society.society)),
                 bespoke.link_soc_home_dir(member, society))
+    with mysql.connect_root() as (_, cursor):
+        mysql.sync_society_roles(cursor, member)
+    with pgsql.connect() as (_, cursor):
+        pgsql.sync_society_roles(cursor, member)
     return results

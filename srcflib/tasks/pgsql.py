@@ -4,6 +4,7 @@ from typing import Optional, Tuple
 from psycopg2.extensions import connection as Connection, cursor as Cursor
 
 from srcf.database import Member
+from srcf.database.queries import get_society
 
 from srcflib.plumbing import Owner, owner_name, Password, pgsql, Result, ResultSet
 
@@ -41,8 +42,32 @@ def create_account(cursor: Cursor, owner: Owner) -> ResultSet[Optional[Password]
     results = ResultSet(pgsql.add_user(cursor, username))
     results.value = results.last.value
     if isinstance(owner, Member):
-        roles = pgsql.get_roles(cursor, *(soc.society for soc in owner.societies))
-        results.add(*(pgsql.grant_role(cursor, username, role) for role in roles))
+        results.add(sync_society_roles(cursor, owner))
+    return results
+
+
+def sync_society_roles(cursor: Cursor, member: Member) -> ResultSet:
+    """
+    Adjust grants for society roles to match account membership.
+    """
+    username = owner_name(member)
+    current = set()
+    for role in pgsql.get_user_roles(cursor, username):
+        # Filter active roles to those owned by society accounts.
+        if role[0] == member.crsid:
+            continue
+        try:
+            get_society(role[0])
+        except KeyError:
+            continue
+        else:
+            current.add(role)
+    needed = set(pgsql.get_roles(cursor, *(soc.society for soc in member.societies)))
+    results = ResultSet()
+    for role in needed - current:
+        results.add(pgsql.grant_role(cursor, username, role))
+    for role in current - needed:
+        results.add(pgsql.revoke_role(cursor, username, role))
     return results
 
 

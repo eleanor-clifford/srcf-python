@@ -3,7 +3,7 @@ PostgreSQL user and database management.
 """
 
 import logging
-from typing import List, NamedTuple, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 from psycopg2 import connect as psycopg2_connect
 from psycopg2.extensions import connection as Connection, cursor as Cursor

@@ -3,7 +3,8 @@ MySQL user and database management.
 """
 
 import logging
-from typing import List, Optional, Union
+import re
+from typing import List, Optional, Tuple, Union
 
 from pymysql.cursors import Cursor
 
@@ -23,13 +24,21 @@ def _truthy(test: bool) -> Result:
     return Result(State.success) if test else Result(State.unchanged)
 
 
-def query(cursor: Cursor, sql: str, *args: Union[str, Password]) -> bool:
+def query(cursor: Cursor, sql: str, *args: Union[str, Tuple[str, ...], Password]) -> bool:
     """
     Run a SQL query against a database cursor, and return whether rows were affected.
     """
     LOG.debug("Query: %r %% %r", sql, args)
     return bool(cursor.execute(sql, [str(arg) if isinstance(arg, Password) else arg
                                      for arg in args]))
+
+
+def get_users(cursor: Cursor, *names: str) -> List[str]:
+    """
+    Look up existing users by name.
+    """
+    query(cursor, "SELECT User FROM mysql.user WHERE User IN %s", names)
+    return [user[0] for user in cursor.fetchall()]
 
 
 def create_user(cursor: Cursor, name: str) -> Result[Optional[Password]]:
@@ -65,6 +74,23 @@ def grant_database(cursor: Cursor, user: str, db: str) -> Result:
     Grant all permissions for the user to create, manage and delete this database.
     """
     return _truthy(query(cursor, _format("GRANT ALL ON {}.* TO %s@'%%'", db), user))
+
+
+def get_user_grants(cursor: Cursor, user: str) -> List[str]:
+    """
+    Look up all grants that the given user has.
+    """
+    query(cursor, "SHOW GRANTS FOR %s@'%%'", user)
+    databases = []
+    for grant in cursor:
+        match = re.match(r"GRANT (.+) ON (?:\*|(['`\"])(.*?)\2)\.\*", grant[0])
+        if match:
+            if "ALL PRIVILEGES" in match.group(1).split(", "):
+                database = match.group(3) or "*"
+                databases.append(database.replace("\\_", "_"))
+        else:
+            LOG.warning("Ignoring non-parsable grant: %r", grant)
+    return databases
 
 
 def revoke_database(cursor: Cursor, user: str, db: str) -> Result:
