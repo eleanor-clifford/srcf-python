@@ -294,3 +294,9 @@ def configure_mailing_list(name: str) -> Result:
     command(["/usr/sbin/config_list", "--inputfile", "/root/mailman-newlist-defaults", name])
     command(["/usr/local/sbin/gen_alias", name])
     return Result(State.success)
+
+
+def generate_mailman_aliases() -> Result:
+    # TODO: Port to SRCFLib, replace with entrypoint.
+    command(["/usr/local/sbin/srcf-generate-mailman-aliases"])
+    return Result(State.success)

@@ -19,7 +19,8 @@ def create_list(owner: Owner, suffix: str=None) -> ResultSet[Password]:
     name, admin = _list_name_owner(owner, suffix)
     results = ResultSet(mailman.create_list(name, admin))
     results.value = results.last.value
-    results.add(bespoke.configure_mailing_list(name))
+    results.add(bespoke.configure_mailing_list(name),
+                bespoke.generate_mailman_aliases())
     return results
 
 
@@ -34,9 +35,10 @@ def reset_owner_password(owner: Owner, suffix: str=None) -> ResultSet[Password]:
     return results
 
 
-def remove_list(owner: Owner, suffix: str=None, remove_archive: bool=False) -> Result:
+def remove_list(owner: Owner, suffix: str=None, remove_archive: bool=False) -> ResultSet:
     """
     Delete an existing mailing list, and optionally its message archives.
     """
     name, _ = _list_name_owner(owner, suffix)
-    return mailman.remove_list(name, remove_archive)
+    return ResultSet(mailman.remove_list(name, remove_archive),
+                     bespoke.generate_mailman_aliases())
