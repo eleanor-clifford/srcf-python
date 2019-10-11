@@ -18,6 +18,7 @@ List = str
 LOG = logging.getLogger(__name__)
 
 
+@require_host(Hosts.LIST)
 def get_list(name: str) -> List:
     """
     Test if a list of the given name has been created.
@@ -28,6 +29,7 @@ def get_list(name: str) -> List:
         raise KeyError(name)
 
 
+@require_host(Hosts.LIST)
 def get_owners(mlist: List) -> Tuple[str]:
     """
     Look up all owner email addresses of a mailing list.
@@ -53,7 +55,7 @@ def new_list(name: str, owner: str) -> Result[Password]:
                                      "request", "subscribe", "unsubscribe"):
         raise ValueError("List name {!r} suffixed with reserved keyword".format(name))
     passwd = Password.new()
-    command(["/usr/bin/sshpass", "/usr/sbin/newlist", name, owner], passwd)
+    command(["/usr/bin/sshpass", "/usr/sbin/newlist", "--quiet", name, owner], passwd)
     return Result(State.success, passwd)
 
 
@@ -71,12 +73,17 @@ def set_owner(mlist: List, *owners: str) -> Result:
 
 
 @require_host(Hosts.LIST)
-def reset_password(mlist: List) -> Result:
+def reset_password(mlist: List) -> Result[Password]:
     """
     Let Mailman generate a new admin password for a list.
     """
-    command(["/usr/lib/mailman/bin/change_pw", "--listname", mlist])
-    return Result(State.success)
+    proc = command(["/usr/lib/mailman/bin/change_pw", "--quiet", "--listname", mlist], output=True)
+    for line in proc.stdout.decode("utf-8").split("\n"):
+        if line.startswith("New {} password: ".format(mlist)):
+            passwd = Password(line.split(": ", 1)[1])
+            return Result(State.success, passwd)
+    else:
+        raise ValueError("Couldn't find password in output")
 
 
 def create_list(name: str, owner: str) -> Result[List]:
@@ -89,4 +96,21 @@ def create_list(name: str, owner: str) -> Result[List]:
         return new_list(name, owner)
     else:
         result = set_owner(name, owner)
-        return Result(result.state, mlist)
+        result.value = mlist
+        return result
+
+
+@require_host(Hosts.LIST)
+def remove_list(name: str, remove_archive: bool=False) -> Result:
+    """
+    Delete an existing mailing list, and optionally its message archives.
+    """
+    config = os.path.exists(os.path.join("/var/lib/mailman/lists", name))
+    archive = os.path.exists(os.path.join("/var/lib/mailman/archives/private", name))
+    if not (config or (remove_archive and archive)):
+        return Result(State.unchanged)
+    args = ["/usr/sbin/rmlist", name]
+    if remove_archive:
+        args[1:1] = ["--archives"]
+    command(args)
+    return Result(State.success)
