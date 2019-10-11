@@ -71,22 +71,25 @@ class Result(Generic[V]):
     Mulitple results can be combined into a `ResultSet`.
     """
 
-    def __init__(self, state: State, value: V=None):
+    def __init__(self, state: State, value: V=None, _frames=1):
         self.state = state
         self.value = value
         # Inspection magic to log the calling method, e.g. `module.sub:Class.method`.
-        frame = inspect.currentframe().f_back
-        if frame:
-            name = frame.f_code.co_name
-            func = frame.f_globals.get(name)
-            self.caller = "{}:{}".format(func.__module__, func.__qualname__) if func else name
+        frame = inspect.currentframe()
+        for _ in range(_frames):
+            frame = frame.f_back
+            if not frame:
+                return
+        name = frame.f_code.co_name
+        func = frame.f_globals.get(name)
+        self.caller = "{}:{}".format(func.__module__, func.__qualname__) if func else name
 
     def __bool__(self) -> bool:
         return self.state is State.success
 
     def __repr__(self) -> str:
         return "{}({}{})".format(self.__class__.__name__, self.state,
-                                 ", {}".format(self.value) if self.value else "")
+                                 ", {!r}".format(self.value) if self.value else "")
 
 
 class ResultSet(Result[V]):
@@ -97,7 +100,7 @@ class ResultSet(Result[V]):
 
     def __init__(self, *results: Result):
         self._state = None
-        super().__init__(None)
+        super().__init__(None, _frames=2)
         self._results = []
         for result in results:
             if isinstance(result, ResultSet):
