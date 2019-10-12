@@ -8,7 +8,7 @@ import inspect
 import logging
 import platform
 import subprocess
-from typing import Generic, Set, Tuple, TypeVar, Union
+from typing import Generic, List, Optional, Set, Tuple, TypeVar, Union
 
 from sqlalchemy.orm import Session as SQLA_SESSION
 
@@ -71,15 +71,15 @@ class Result(Generic[V]):
     Mulitple results can be combined into a `ResultSet`.
     """
 
-    def __init__(self, state: State, value: V=None, _frames=1):
+    def __init__(self, state: Optional[State]=None, value: V=None, _frames=1):
         self.state = state
         self.value = value
         # Inspection magic to log the calling method, e.g. `module.sub:Class.method`.
         frame = inspect.currentframe()
         for _ in range(_frames):
-            frame = frame.f_back
-            if not frame:
-                return
+            frame = getattr(frame, "f_back", None)
+        if not frame:
+            return
         name = frame.f_code.co_name
         func = frame.f_globals.get(name)
         self.caller = "{}:{}".format(func.__module__, func.__qualname__) if func else name
@@ -92,27 +92,35 @@ class Result(Generic[V]):
                                  ", {!r}".format(self.value) if self.value else "")
 
 
+R = TypeVar("R")
+
+
 class ResultSet(Result[V]):
     """
     `Result` instance combining multiple results into one.  `state` and `value` are derived from
     the inner results unless set manually.
     """
 
-    def __init__(self, *results: Result):
-        self._state = None
-        super().__init__(None, _frames=2)
-        self._results = []
+    @classmethod
+    def flatten(cls, *results: Result) -> List[Result]:
+        flat = []
         for result in results:
             if isinstance(result, ResultSet):
-                self._results.extend(result._results)
+                flat.extend(result.results)
             else:
-                self._results.append(result)
+                flat.append(result)
+        return flat
+
+    def __init__(self, *results: Result):
+        self._state = None  # type: Optional[State]
+        super().__init__(_frames=2)
+        self.results = self.flatten(*results)
 
     @property
     def state(self) -> State:
         if self._state:
             return self._state
-        elif any(result.state is State.success for result in self._results):
+        elif any(result.state is State.success for result in self.results):
             return State.success
         else:
             return State.unchanged
@@ -126,20 +134,23 @@ class ResultSet(Result[V]):
         """
         Filtered set of non-``None`` result values.
         """
-        return tuple(result.value for result in self._results if result.value)
+        return tuple(result.value for result in self.results if result.value)
 
-    @property
-    def last(self) -> Result:
+    def add(self, result: Result[R], value: bool=False) -> Result[R]:
         """
-        Most recently added result.
+        Include an additional result into the set, optionally using it as the overall value, and
+        return that result for chaining.
         """
-        return self._results[-1]
+        self.results.append(result)
+        if value:
+            self.value = result.value
+        return result
 
-    def add(self, *results: Result) -> None:
+    def extend(self, *results: Result) -> None:
         """
-        Include an additional result into the set.
+        Include additional results into the set.
         """
-        self._results.extend(results)
+        self.results.extend(results)
 
 
 class Password:

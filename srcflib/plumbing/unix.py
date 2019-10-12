@@ -140,8 +140,8 @@ def create_user(username: str, uid: int=None, system: bool=False, active: bool=T
         if user.pw_dir != home_dir:
             raise ValueError("User {!r} has home directory {!r}, expected {!r}"
                              .format(username, user.pw_dir, home_dir))
-        result = ResultSet(set_real_name(user, real_name),
-                           enable_user(user, active))
+        result = ResultSet[User](set_real_name(user, real_name),
+                                 enable_user(user, active))
         result.value = user
         return result
 

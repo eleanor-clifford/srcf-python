@@ -5,7 +5,7 @@ Mailman mailing list management.
 import logging
 import os.path
 import re
-from typing import Tuple
+from typing import List
 
 from .common import command, Hosts, Password, require_host, Result, State
 

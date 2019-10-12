@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from typing import List, Optional, Tuple
+from typing import Generator, List, Optional
 
 from pymysql import connect as pymysql_connect
 from pymysql.cursors import Cursor
@@ -46,7 +46,7 @@ def connect_root() -> Connection:
 
 
 @contextmanager
-def context(conn: Connection=None) -> Tuple[Connection, Cursor]:
+def context(conn: Connection=None) -> Generator[Cursor, None, None]:
     """
     Run multiple MySQL commands in a single connection:
 
@@ -56,7 +56,7 @@ def context(conn: Connection=None) -> Tuple[Connection, Cursor]:
     """
     conn = conn or connect_config()
     try:
-        yield conn, conn.cursor()
+        yield conn.cursor()
     finally:
         conn.close()
 
@@ -76,10 +76,10 @@ def create_account(cursor: Cursor, owner: Owner) -> ResultSet[Optional[Password]
     For members, grants are added to all society databases for which they are a member.
     """
     user = _user_name(owner)
-    results = ResultSet(mysql.create_user(cursor, user))
-    results.value = results.last.value
-    results.add(mysql.grant_database(cursor, user, _database_name(owner)),
-                mysql.grant_database(cursor, user, _database_name(owner, "%")))
+    results = ResultSet[Optional[Password]]()
+    results.add(mysql.create_user(cursor, user), True)
+    results.extend(mysql.grant_database(cursor, user, _database_name(owner)),
+                   mysql.grant_database(cursor, user, _database_name(owner, "%")))
     if isinstance(owner, Member):
         results.add(sync_society_roles(cursor, owner))
     return results
@@ -111,9 +111,9 @@ def sync_society_roles(cursor: Cursor, member: Member) -> ResultSet:
         needed.update({name, "{}/%".format(name)})
     results = ResultSet()
     for database in needed - current:
-        results.add(mysql.grant_database(cursor, user, database))
+        results.extend(mysql.grant_database(cursor, user, database))
     for database in current - needed:
-        results.add(mysql.revoke_database(cursor, user, database))
+        results.extend(mysql.revoke_database(cursor, user, database))
     return results
 
 
@@ -137,9 +137,9 @@ def drop_account(cursor: Cursor, owner: Owner) -> ResultSet:
                         mysql.revoke_database(cursor, user, _database_name(owner, "%")))
     if isinstance(owner, Member):
         for soc in owner.societies:
-            results.add(mysql.revoke_database(cursor, user, _database_name(soc)),
-                        mysql.revoke_database(cursor, user, _database_name(soc, "%")))
-    results.add(mysql.drop_user(cursor, user))
+            results.extend(mysql.revoke_database(cursor, user, _database_name(soc)),
+                           mysql.revoke_database(cursor, user, _database_name(soc, "%")))
+    results.extend(mysql.drop_user(cursor, user))
     return results
 
 

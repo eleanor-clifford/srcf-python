@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from typing import Optional, Tuple
+from typing import Generator, Optional
 
 from psycopg2.extensions import connection as Connection, cursor as Cursor
 
@@ -17,7 +17,7 @@ def connect(db: str=None) -> Connection:
 
 
 @contextmanager
-def context(conn: Connection=None, db: str=None) -> Tuple[Connection, Cursor]:
+def context(conn: Connection=None, db: str=None) -> Generator[Cursor, None, None]:
     """
     Run multiple MySQL commands in a single connection:
 
@@ -27,7 +27,7 @@ def context(conn: Connection=None, db: str=None) -> Tuple[Connection, Cursor]:
     """
     conn = conn or connect(db)
     try:
-        yield conn, conn.cursor()
+        yield conn.cursor()
     finally:
         conn.close()
 
@@ -39,10 +39,10 @@ def create_account(cursor: Cursor, owner: Owner) -> ResultSet[Optional[Password]
     For members, grants are added to all society roles for which they are a member.
     """
     username = owner_name(owner)
-    results = ResultSet(pgsql.add_user(cursor, username))
-    results.value = results.last.value
+    results = ResultSet[Optional[Password]]()
+    results.add(pgsql.add_user(cursor, username), True)
     if isinstance(owner, Member):
-        results.add(sync_society_roles(cursor, owner))
+        results.extend(sync_society_roles(cursor, owner))
     return results
 
 
@@ -61,13 +61,14 @@ def sync_society_roles(cursor: Cursor, member: Member) -> ResultSet:
         except KeyError:
             continue
         else:
-            current.add(role)
-    needed = set(pgsql.get_roles(cursor, *(soc.society for soc in member.societies)))
+            current.add((username, role))
+    roles = pgsql.get_roles(cursor, *(soc.society for soc in member.societies))
+    needed = set((username, role) for role in roles)
     results = ResultSet()
-    for role in needed - current:
-        results.add(pgsql.grant_role(cursor, username, role))
-    for role in current - needed:
-        results.add(pgsql.revoke_role(cursor, username, role))
+    for username, role in needed - current:
+        results.extend(pgsql.grant_role(cursor, username, role))
+    for username, role in current - needed:
+        results.extend(pgsql.revoke_role(cursor, username, role))
     return results
 
 
