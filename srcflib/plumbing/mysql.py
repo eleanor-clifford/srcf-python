@@ -20,8 +20,8 @@ def _format(sql: str, *literals: str) -> str:
     return sql.format(*params)
 
 
-def _truthy(test: bool) -> Result:
-    return Result(State.success) if test else Result(State.unchanged)
+def _truthy(test: bool) -> State:
+    return State.success if test else State.unchanged
 
 
 def query(cursor: Cursor, sql: str, *args: Union[str, Tuple[str, ...], Password]) -> bool:
@@ -38,7 +38,7 @@ def get_users(cursor: Cursor, *names: str) -> List[str]:
     Look up existing users by name.
     """
     query(cursor, "SELECT User FROM mysql.user WHERE User IN %s", names)
-    return [user[0] for user in cursor.fetchall()]
+    return [user[0] for user in cursor]
 
 
 def create_user(cursor: Cursor, name: str) -> Result[Optional[Password]]:
@@ -66,14 +66,14 @@ def drop_user(cursor: Cursor, name: str) -> Result:
     """
     Drop a MySQL user and all of its grants.
     """
-    return _truthy(query(cursor, "DROP USER IF EXISTS %s@'%%'", name))
+    return Result(_truthy(query(cursor, "DROP USER IF EXISTS %s@'%%'", name)))
 
 
 def grant_database(cursor: Cursor, user: str, db: str) -> Result:
     """
     Grant all permissions for the user to create, manage and delete this database.
     """
-    return _truthy(query(cursor, _format("GRANT ALL ON {}.* TO %s@'%%'", db), user))
+    return Result(_truthy(query(cursor, _format("GRANT ALL ON {}.* TO %s@'%%'", db), user)))
 
 
 def get_user_grants(cursor: Cursor, user: str) -> List[str]:
@@ -93,11 +93,28 @@ def get_user_grants(cursor: Cursor, user: str) -> List[str]:
     return databases
 
 
+def get_user_databases(cursor: Cursor, user: str) -> List[str]:
+    """
+    Look up all databases that the given user has access to.
+    """
+    query(cursor, "SELECT Db FROM mysql.db WHERE Host = '%%' AND User = %s", user)
+    return [db[0].replace("\\_", "_") for db in cursor]
+
+
+def get_database_users(cursor: Cursor, database: str) -> List[str]:
+    """
+    Look up all users with access to the given database.
+    """
+    query(cursor, "SELECT User FROM mysql.db WHERE Host = '%%' AND Db = %s",
+          database.replace("_", "\\_"))
+    return [db[0] for db in cursor]
+
+
 def revoke_database(cursor: Cursor, user: str, db: str) -> Result:
     """
     Remove any permissions for the user to create, manage and delete this database.
     """
-    return _truthy(query(cursor, _format("REVOKE ALL ON {}.* FROM %s@'%%'", db), user))
+    return Result(_truthy(query(cursor, _format("REVOKE ALL ON {}.* FROM %s@'%%'", db), user)))
 
 
 def create_database(cursor: Cursor, name: str) -> Result:

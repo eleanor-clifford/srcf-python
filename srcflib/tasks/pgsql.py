@@ -1,10 +1,10 @@
 from contextlib import contextmanager
-from typing import Generator, Optional
+from typing import Generator, Optional, Set, Tuple
 
 from psycopg2.extensions import connection as Connection, cursor as Cursor
 
-from srcf.database import Member
-from srcf.database.queries import get_society
+from srcf.database import Member, Society
+from srcf.database.queries import get_member, get_society
 
 from srcflib.plumbing import Owner, owner_name, Password, pgsql, Result, ResultSet
 
@@ -42,13 +42,25 @@ def create_account(cursor: Cursor, owner: Owner) -> ResultSet[Optional[Password]
     results = ResultSet[Optional[Password]]()
     results.add(pgsql.add_user(cursor, username), True)
     if isinstance(owner, Member):
+        results.extend(sync_member_roles(cursor, owner))
+    elif isinstance(owner, Society):
         results.extend(sync_society_roles(cursor, owner))
     return results
 
 
-def sync_society_roles(cursor: Cursor, member: Member) -> ResultSet:
+def _sync_roles(cursor: Cursor, current: Set[Tuple[str, pgsql.Role]],
+                needed: Set[Tuple[str, pgsql.Role]]) -> ResultSet:
+    results = ResultSet()
+    for username, role in needed - current:
+        results.extend(pgsql.grant_role(cursor, username, role))
+    for username, role in current - needed:
+        results.extend(pgsql.revoke_role(cursor, username, role))
+    return results
+
+
+def sync_member_roles(cursor: Cursor, member: Member) -> ResultSet:
     """
-    Adjust grants for society roles to match account membership.
+    Adjust grants for society roles to match the given member's memberships.
     """
     username = owner_name(member)
     current = set()
@@ -64,12 +76,25 @@ def sync_society_roles(cursor: Cursor, member: Member) -> ResultSet:
             current.add((username, role))
     roles = pgsql.get_roles(cursor, *(soc.society for soc in member.societies))
     needed = set((username, role) for role in roles)
-    results = ResultSet()
-    for username, role in needed - current:
-        results.extend(pgsql.grant_role(cursor, username, role))
-    for username, role in current - needed:
-        results.extend(pgsql.revoke_role(cursor, username, role))
-    return results
+    return _sync_roles(cursor, current, needed)
+
+
+def sync_society_roles(cursor: Cursor, society: Society) -> ResultSet:
+    """
+    Adjust grants for member roles to match the given society's admins.
+    """
+    role = pgsql.get_role(cursor, owner_name(society))
+    current = set()
+    for username in pgsql.get_role_users(cursor, role):
+        # Filter active roles to those owned by member accounts.
+        try:
+            get_member(username)
+        except KeyError:
+            continue
+        else:
+            current.add((username, role))
+    needed = set((user[0], role) for user in pgsql.get_roles(cursor, *society.admin_crsids))
+    return _sync_roles(cursor, current, needed)
 
 
 def reset_password(cursor: Cursor, owner: Owner) -> Result:

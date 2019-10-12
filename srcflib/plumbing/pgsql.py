@@ -64,6 +64,15 @@ def get_user_roles(cursor: Cursor, name: str) -> List[Role]:
     return cursor.fetchall()
 
 
+def get_role_users(cursor: Cursor, role: Role) -> List[str]:
+    """
+    Look up all user names that are members of the given role.
+    """
+    query(cursor, "SELECT u.usename FROM pg_user u, pg_auth_members m, pg_roles r "
+                  "WHERE u.usesysid = m.member AND m.roleid = r.oid AND r.rolname = %s", role[0])
+    return [row[0] for row in cursor]
+
+
 def create_user(cursor: Cursor, name: str) -> Result[Password]:
     """
     Create a PostgreSQL user with a random password, if a user with that name doesn't already exist.
