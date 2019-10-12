@@ -10,7 +10,7 @@ import platform
 import subprocess
 from typing import Generic, Set, Tuple, TypeVar, Union
 
-from sqlalchemy.orm import Session as SESSION_TYPE
+from sqlalchemy.orm import Session as SQLA_SESSION
 
 from srcf import pwgen
 from srcf.database import Member, Society
@@ -34,7 +34,7 @@ def owner_name(owner: Owner) -> str:
         raise TypeError(owner)
 
 
-def get_members(sess: SESSION_TYPE, *crsids: str) -> Set[str]:
+def get_members(sess: SQLA_SESSION, *crsids: str) -> Set[str]:
     """
     Fetch multiple `Member` objects by their CRSids.
     """

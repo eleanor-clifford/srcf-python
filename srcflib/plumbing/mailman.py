@@ -12,14 +12,14 @@ from .common import command, Hosts, Password, require_host, Result, State
 
 # Type alias for external callers, who need not be aware of the internal structure when chaining
 # calls (e.g. get_list/new_list -> reset_password).
-List = str
+MailList = str
 
 
 LOG = logging.getLogger(__name__)
 
 
 @require_host(Hosts.LIST)
-def get_list(name: str) -> List:
+def get_list(name: str) -> MailList:
     """
     Test if a list of the given name has been created.
     """
@@ -30,12 +30,12 @@ def get_list(name: str) -> List:
 
 
 @require_host(Hosts.LIST)
-def get_owners(mlist: List) -> Tuple[str]:
+def get_owners(mlist: MailList) -> List[str]:
     """
     Look up all owner email addresses of a mailing list.
     """
     proc = command(["/usr/lib/mailman/bin/list_owners", mlist], output=True)
-    return tuple(proc.stdout.decode("utf-8").split("\n"))
+    return list(proc.stdout.decode("utf-8").split("\n"))
 
 
 @require_host(Hosts.LIST)
@@ -60,7 +60,7 @@ def new_list(name: str, owner: str) -> Result[Password]:
 
 
 @require_host(Hosts.LIST)
-def set_owner(mlist: List, *owners: str) -> Result:
+def set_owner(mlist: MailList, *owners: str) -> Result:
     """
     Overwrite the owners of a list.
     """
@@ -73,7 +73,7 @@ def set_owner(mlist: List, *owners: str) -> Result:
 
 
 @require_host(Hosts.LIST)
-def reset_password(mlist: List) -> Result[Password]:
+def reset_password(mlist: MailList) -> Result[Password]:
     """
     Let Mailman generate a new admin password for a list.
     """
@@ -86,7 +86,7 @@ def reset_password(mlist: List) -> Result[Password]:
         raise ValueError("Couldn't find password in output")
 
 
-def create_list(name: str, owner: str) -> Result[List]:
+def create_list(name: str, owner: str) -> Result[MailList]:
     """
     Create a new mailing list, or ensure the owner of an existing list is set.
     """

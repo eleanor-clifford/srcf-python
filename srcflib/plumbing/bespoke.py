@@ -8,24 +8,27 @@ from contextlib import contextmanager
 import logging
 import os.path
 import pwd
-from typing import Set
+from typing import List, Set
 
 import posix1e
 
-from sqlalchemy.orm import Session as SESSION_TYPE
+from requests import session, Session as REQS_SESSION
+
+from sqlalchemy.orm import Session as SQLA_SESSION
 
 from srcf.database import Member, Session, Society
 from srcf.database.queries import get_member, get_society
 
 from .common import (command, get_members, Hosts, Owner, owner_name, require_host, Result,
                      ResultSet, State)
+from .mailman import MailList
 
 
 LOG = logging.getLogger(__name__)
 
 
 @contextmanager
-def context(sess: SESSION_TYPE=None):
+def context(sess: SQLA_SESSION=None):
     """
     Run multiple database commands and commit at the end:
 
@@ -43,7 +46,7 @@ def context(sess: SESSION_TYPE=None):
         sess.commit()
 
 
-def create_member(sess: SESSION_TYPE, crsid: str, preferred_name: str, surname: str, email: str,
+def create_member(sess: SQLA_SESSION, crsid: str, preferred_name: str, surname: str, email: str,
                   mail_handler: str="forward", is_member: bool=True,
                   is_user: bool=True) -> Result[Member]:
     """
@@ -72,7 +75,7 @@ def create_member(sess: SESSION_TYPE, crsid: str, preferred_name: str, surname: 
     return Result(state, mem)
 
 
-def create_society(sess: SESSION_TYPE, name: str, description: str, admins: Set,
+def create_society(sess: SQLA_SESSION, name: str, description: str, admins: Set[str],
                    role_email: str=None) -> Result[Society]:
     """
     Register or update a society in the database.
@@ -96,7 +99,7 @@ def create_society(sess: SESSION_TYPE, name: str, description: str, admins: Set,
     return Result(state, soc)
 
 
-def add_to_society(sess: SESSION_TYPE, member: Member, society: Society) -> Result:
+def add_to_society(sess: SQLA_SESSION, member: Member, society: Society) -> Result:
     """
     Add a new admin to a society account.
     """
@@ -107,7 +110,7 @@ def add_to_society(sess: SESSION_TYPE, member: Member, society: Society) -> Resu
     return Result(State.success)
 
 
-def remove_from_society(sess: SESSION_TYPE, member: Member, society: Society) -> Result:
+def remove_from_society(sess: SQLA_SESSION, member: Member, society: Society) -> Result:
     """
     Remove an existing admin from a society account.
     """
@@ -285,6 +288,15 @@ def make_yp() -> Result:
     """
     command(["/usr/bin/make", "-C", "/var/yp"])
     return Result(State.success)
+
+
+def get_mailman_lists(owner: Owner, sess: REQS_SESSION=session()) -> List[MailList]:
+    """
+    Query mailing lists owned by the given member or society.
+    """
+    prefix = owner_name(owner)
+    resp = sess.get("https://lists.srcf.net/getlists.cgi", params={"prefix": prefix})
+    return resp.text.splitlines()
 
 
 def configure_mailing_list(name: str) -> Result:
