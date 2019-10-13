@@ -15,8 +15,9 @@ import posix1e
 from requests import session, Session as REQS_SESSION
 
 from sqlalchemy.orm import Session as SQLA_SESSION
+from sqlalchemy.orm.exc import NoResultFound
 
-from srcf.database import Member, Session, Society
+from srcf.database import Domain, HTTPSCert, Member, Session, Society
 from srcf.database.queries import get_member, get_society
 
 from .common import (command, get_members, Hosts, Owner, owner_name, require_host, Result,
@@ -237,6 +238,50 @@ def set_web_status(owner: Owner, status: str) -> Result:
         for line in data:
             f.write("{}\n".format(line))
     return Result(State.success)
+
+
+def add_custom_domain(sess: SQLA_SESSION, owner: Owner, name: str,
+                      root: str=None) -> Result[Domain]:
+    """
+    Assign a domain name to a member or society website.
+    """
+    if isinstance(owner, Member):
+        class_ = "user"
+    elif isinstance(owner, Society):
+        class_ = "soc"
+    else:
+        raise TypeError(owner)
+    try:
+        domain = sess.query(Domain).filter(Domain.domain == name).one()
+    except NoResultFound:
+        domain = Domain(domain=name,
+                        class_=class_,
+                        owner=owner_name(owner),
+                        root=root)
+        sess.add(domain)
+        state = State.success
+    else:
+        domain.class_ = class_
+        domain.owner = owner_name(owner)
+        domain.root = root
+        state = State.success if sess.is_modified(domain) else State.unchanged
+    return Result(state, domain)
+
+
+def queue_https_cert(sess: SQLA_SESSION, domain: str) -> Result[HTTPSCert]:
+    """
+    Add an existing domain to the queue for requesting an HTTPS certificate.
+    """
+    assert sess.query(Domain).filter(Domain.domain == domain).count()
+    try:
+        cert = sess.query(HTTPSCert).filter(HTTPSCert.domain == domain).one()
+    except NoResultFound:
+        cert = HTTPSCert(domain=domain)
+        sess.add(cert)
+        state = State.success
+    else:
+        state = State.unchanged
+    return Result(state, cert)
 
 
 def generate_apache_groups() -> Result:
