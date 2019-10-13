@@ -1,3 +1,7 @@
+"""
+Mailman mailing lists for members and societies.
+"""
+
 from typing import Tuple
 
 from srcf.database import Member

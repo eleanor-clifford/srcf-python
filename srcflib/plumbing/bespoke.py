@@ -8,7 +8,7 @@ from contextlib import contextmanager
 import logging
 import os.path
 import pwd
-from typing import List, Set
+from typing import Generator, List, Set
 
 import posix1e
 
@@ -28,7 +28,7 @@ LOG = logging.getLogger(__name__)
 
 
 @contextmanager
-def context(sess: SQLA_SESSION=None):
+def context(sess: SQLA_SESSION=None) -> Generator[SQLA_SESSION, None, None]:
     """
     Run multiple database commands and commit at the end:
 

@@ -1,3 +1,7 @@
+"""
+Creation and management of member and society accounts.
+"""
+
 import os
 from typing import Set
 
@@ -5,6 +9,7 @@ from srcf.database import Member, Society
 from srcf.database.queries import get_member, get_society
 
 from srcflib.plumbing import bespoke, pgsql as pgsql_p, ResultSet, unix
+from srcflib.plumbing.mysql import context as mysql_context
 from srcflib.tasks import mysql, pgsql
 
 
@@ -33,7 +38,6 @@ def create_member(crsid: str, preferred_name: str, surname: str, email: str,
                    bespoke.export_members(),
                    bespoke.make_yp())
     # TODO: adduser.local
-    # TODO: Welcome email
     return results
 
 
@@ -52,7 +56,7 @@ def create_sysadmin(member: Member) -> ResultSet:
     # TODO: sed -i~ -re "/^sysadmin/ s/$/ (,$admuser,)/" /etc/netgroup
     for soc in ("executive", "srcf-admin", "srcf-web"):
         results.extend(add_society_admin(member, get_society(soc)))
-    with pgsql.context() as cursor:
+    with pgsql_p.context() as cursor:
         results.extend(pgsql_p.create_user(cursor, username),
                        pgsql_p.grant_role(cursor, username, pgsql_p.get_role(cursor, "sysadmins")))
     return results
@@ -98,9 +102,9 @@ def add_society_admin(member: Member, society: Society) -> ResultSet:
         results = ResultSet(bespoke.add_to_society(sess, member, society))
     results.extend(unix.add_to_group(unix.get_user(member.crsid), unix.get_group(society.society)),
                    bespoke.link_soc_home_dir(member, society))
-    with mysql.connect_root() as (_, cursor):
+    with mysql_context() as cursor:
         results.extend(mysql.sync_society_roles(cursor, member))
-    with pgsql.connect() as (_, cursor):
+    with pgsql_p.context() as cursor:
         results.extend(pgsql.sync_society_roles(cursor, member))
     return results
 
@@ -116,8 +120,8 @@ def remove_society_admin(member: Member, society: Society) -> ResultSet:
     results.extend(unix.remove_from_group(unix.get_user(member.crsid),
                                           unix.get_group(society.society)),
                    bespoke.link_soc_home_dir(member, society))
-    with mysql.connect_root() as (_, cursor):
+    with mysql_context() as cursor:
         results.extend(mysql.sync_society_roles(cursor, member))
-    with pgsql.connect() as (_, cursor):
+    with pgsql_p.context() as cursor:
         results.extend(pgsql.sync_society_roles(cursor, member))
     return results

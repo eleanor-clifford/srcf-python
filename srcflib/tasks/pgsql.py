@@ -1,5 +1,8 @@
-from contextlib import contextmanager
-from typing import Generator, Optional, Set, Tuple
+"""
+PostgreSQL accounts and databases for members and societies.
+"""
+
+from typing import Optional, Set, Tuple
 
 from psycopg2.extensions import connection as Connection, cursor as Cursor
 
@@ -14,22 +17,6 @@ def connect(db: str=None) -> Connection:
     Connect to the PostgreSQL server using ident authentication.
     """
     return pgsql.connect("postgres.internal", db or "sysadmins")
-
-
-@contextmanager
-def context(conn: Connection=None, db: str=None) -> Generator[Cursor, None, None]:
-    """
-    Run multiple MySQL commands in a single connection:
-
-        >>> with context() as conn, cursor:
-        ...     create_account(cursor, owner)
-        ...     create_database(cursor, owner)
-    """
-    conn = conn or connect(db)
-    try:
-        yield conn.cursor()
-    finally:
-        conn.close()
 
 
 def create_account(cursor: Cursor, owner: Owner) -> ResultSet[Optional[Password]]:

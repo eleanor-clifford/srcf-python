@@ -2,10 +2,13 @@
 MySQL user and database management.
 """
 
+from contextlib import contextmanager
 import logging
 import re
-from typing import List, Optional, Tuple, Union
+from typing import Generator, List, Optional, Tuple, Union
 
+from pymysql import connect as pymysql_connect
+from pymysql.connections import Connection
 from pymysql.cursors import Cursor
 
 from .common import Password, Result, State
@@ -22,6 +25,29 @@ def _format(sql: str, *literals: str) -> str:
 
 def _truthy(test: bool) -> State:
     return State.success if test else State.unchanged
+
+
+def connect() -> Connection:
+    """
+    Connect to the MySQL database according to a .my.cnf config file.
+    """
+    return pymysql_connect(read_default_file="~/.my.cnf")
+
+
+@contextmanager
+def context(conn: Connection=None) -> Generator[Cursor, None, None]:
+    """
+    Run multiple MySQL commands in a single connection:
+
+        >>> with context() as conn, cursor:
+        ...     create_account(cursor, owner)
+        ...     create_database(cursor, owner)
+    """
+    conn = conn or connect()
+    try:
+        yield conn.cursor()
+    finally:
+        conn.close()
 
 
 def query(cursor: Cursor, sql: str, *args: Union[str, Tuple[str, ...], Password]) -> bool:

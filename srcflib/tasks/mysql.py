@@ -1,19 +1,15 @@
-from contextlib import contextmanager
-from typing import Generator, List, Optional, Set, Tuple, Union
+"""
+MySQL accounts and databases for members and societies.
+"""
 
-from pymysql import connect as pymysql_connect
+from typing import List, Optional, Set, Tuple, Union
+
 from pymysql.cursors import Cursor
-from pymysql.connections import Connection
 
 from srcf.database import Member, Society
 from srcf.database.queries import get_member, get_society
 
 from srcflib.plumbing import mysql, Owner, owner_name, Password, Result, ResultSet
-
-
-def _root_passwd() -> str:
-    with open("/root/mysql-root-password", "r") as f:
-        return f.readline().rstrip()
 
 
 def _user_name(owner: Owner) -> str:
@@ -34,36 +30,6 @@ def _database_name(name: Union[str, Owner], suffix: str=None) -> str:
 
 def _database_name_rev(name: str) -> str:
     return _user_name_rev(name.split("/", 1)[0])
-
-
-def connect_config() -> Connection:
-    """
-    Connect to the MySQL database according to a .my.cnf config file.
-    """
-    return pymysql_connect(read_default_file="~/.my.cnf")
-
-
-def connect_root() -> Connection:
-    """
-    Connect to the MySQL database as root.
-    """
-    return pymysql_connect(user="root", host="mysql.internal", passwd=_root_passwd(), db="mysql")
-
-
-@contextmanager
-def context(conn: Connection=None) -> Generator[Cursor, None, None]:
-    """
-    Run multiple MySQL commands in a single connection:
-
-        >>> with context() as conn, cursor:
-        ...     create_account(cursor, owner)
-        ...     create_database(cursor, owner)
-    """
-    conn = conn or connect_config()
-    try:
-        yield conn.cursor()
-    finally:
-        conn.close()
 
 
 def list_databases(cursor: Cursor, owner: Owner) -> List[str]:

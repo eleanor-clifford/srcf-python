@@ -2,8 +2,9 @@
 PostgreSQL user and database management.
 """
 
+from contextlib import contextmanager
 import logging
-from typing import List, Optional, Tuple, Union
+from typing import Generator, List, Optional, Tuple, Union
 
 from psycopg2 import connect as psycopg2_connect
 from psycopg2.extensions import connection as Connection, cursor as Cursor
@@ -27,6 +28,22 @@ def connect(host, db="template1") -> Connection:
     Create a PostgreSQL connection using Psycopg2 and namedtuple cursors.
     """
     return psycopg2_connect(host=host, database=db, cursor_factory=NamedTupleCursor)
+
+
+@contextmanager
+def context(conn: Connection=None, db: str=None) -> Generator[Cursor, None, None]:
+    """
+    Run multiple MySQL commands in a single connection:
+
+        >>> with context() as conn, cursor:
+        ...     create_account(cursor, owner)
+        ...     create_database(cursor, owner)
+    """
+    conn = conn or connect(db)
+    try:
+        yield conn.cursor()
+    finally:
+        conn.close()
 
 
 def query(cursor: Cursor, sql: str, *args: Union[str, Tuple[str, ...], Password]) -> None:
