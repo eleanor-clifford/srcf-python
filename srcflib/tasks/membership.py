@@ -8,7 +8,7 @@ from typing import Set
 from srcf.database import Member, Society
 from srcf.database.queries import get_member, get_society
 
-from srcflib.plumbing import bespoke, pgsql as pgsql_p, ResultSet, unix
+from srcflib.plumbing import bespoke, mailman, pgsql as pgsql_p, ResultSet, unix
 from srcflib.plumbing.mysql import context as mysql_context
 from srcflib.tasks import mysql, pgsql
 
@@ -124,4 +124,29 @@ def remove_society_admin(member: Member, society: Society) -> ResultSet:
         results.extend(mysql.sync_society_roles(cursor, member))
     with pgsql_p.context() as cursor:
         results.extend(pgsql.sync_society_roles(cursor, member))
+    return results
+
+
+def delete_society(society: Society) -> ResultSet:
+    """
+    Archive and delete all traces of a society account.
+    """
+    results = ResultSet()
+    for mem in society.admins:
+        results.extend(remove_society_admin(mem, society))
+    results.extend(bespoke.slay_user(society),
+                   # TODO: for server in {"cavein", "sinkhole"}: bespoke.slay_user(society)
+                   bespoke.archive_society_files(society),
+                   bespoke.delete_society_files(society))
+    with mysql_context() as cursor:
+        mysql.drop_all_databases(cursor, society)
+        mysql.drop_account(cursor, society)
+    with pgsql_p.context() as cursor:
+        pgsql.drop_all_databases(cursor, society)
+        pgsql.drop_account(cursor, society)
+    for mlist in bespoke.get_mailman_lists(society):
+        mailman.remove_list(mlist)
+    with bespoke.session() as sess:
+        results.extend(bespoke.delete_society(sess, society))
+    results.extend(bespoke.export_members())
     return results

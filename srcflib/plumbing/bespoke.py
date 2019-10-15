@@ -5,10 +5,12 @@ Most methods identify users and groups using the `Member` and `Society` database
 """
 
 from contextlib import contextmanager
+from datetime import date
 import logging
 import os.path
 import pwd
-from typing import Generator, List, Set
+import shutil
+from typing import Generator, List, Optional, Set
 
 import posix1e
 
@@ -19,6 +21,7 @@ from sqlalchemy.orm.exc import NoResultFound
 
 from srcf.database import Domain, HTTPSCert, Member, Session, Society
 from srcf.database.queries import get_member, get_society
+from srcf.database.summarise import summarise_society
 
 from .common import (command, get_members, Hosts, Owner, owner_name, require_host, Result,
                      ResultSet, State)
@@ -119,6 +122,16 @@ def remove_from_society(sess: SQLA_SESSION, member: Member, society: Society) ->
         return Result(State.unchanged)
     society.admins.remove(member)
     sess.add(society)
+    return Result(State.success)
+
+
+def delete_society(sess: SQLA_SESSION, society: Society) -> Result:
+    """
+    Drop a society record from the database.
+    """
+    if society.admins:
+        raise ValueError("Remove society admins for {} first".format(society))
+    sess.delete(society)
     return Result(State.success)
 
 
@@ -354,6 +367,62 @@ def configure_mailing_list(name: str) -> Result:
 
 
 def generate_mailman_aliases() -> Result:
+    """
+    Refresh the Exim alias file for Mailman lists.
+    """
     # TODO: Port to SRCFLib, replace with entrypoint.
     command(["/usr/local/sbin/srcf-generate-mailman-aliases"])
     return Result(State.success)
+
+
+def read_crontab(owner: Owner) -> Optional[str]:
+    """
+    Fetch the owning user's crontab, if one exists on the current server.
+    """
+    proc = command(["/usr/bin/crontab", "-u", owner_name(owner), "-l"], output=True)
+    return proc.stdout.decode("utf-8") if proc.stdout else None
+
+
+def archive_society_files(society: Society) -> Result[str]:
+    """
+    Create a backup of the society under /archive/societies.
+    """
+    home = os.path.join("/societies", society.society)
+    public = os.path.join("/public/societies", society.society)
+    root = os.path.join("/archive/societies", society.society)
+    os.mkdir(root)
+    tar = os.path.join(root, "soc-{}-{}.tar.bz2".format(society.society,
+                                                        date.today().strftime("%Y%m%d")))
+    command(["/bin/tar", "cjf", tar, home, public])
+    crontab = read_crontab(society)
+    if crontab:
+        with open(os.path.join(root, "crontab"), "w") as f:
+            f.write(crontab)
+    # TOOD: for host in {"cavein", "sinkhole"}: read_crontab(society)
+    with open(os.path.join(root, "society_info"), "w") as f:
+        f.write(summarise_society(society))
+    return Result(State.success, tar)
+
+
+def delete_society_files(society: Society) -> ResultSet:
+    """
+    Remove all public and private files of a society in /home.
+    """
+    home = os.path.join("/societies", society.society)
+    public = os.path.join("/public/societies", society.society)
+    results = ResultSet()
+    for path in (home, public):
+        if os.path.exists(path):
+            shutil.rmtree(home)
+            results.extend(Result(State.success))
+        else:
+            results.extend(Result(State.unchanged))
+    return results
+
+
+def slay_user(owner: Owner) -> Result:
+    """
+    Kill all processes belonging to the given account.
+    """
+    proc = command(["/usr/local/sbin/srcf-slay", owner_name(owner)], output=True)
+    return Result(State.success if proc.stdout else State.unchanged)
