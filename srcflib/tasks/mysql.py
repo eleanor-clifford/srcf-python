@@ -158,3 +158,13 @@ def drop_database(cursor: Cursor, owner: Owner, suffix: str=None) -> Result:
     Drop either the primary or a suffixed secondary MySQL database belonging to the owner.
     """
     return mysql.drop_database(cursor, _database_name(owner, suffix))
+
+
+def drop_all_databases(cursor: Cursor, owner: Owner) -> ResultSet:
+    """
+    Drop all databases belonging to the owner.
+    """
+    results = ResultSet()
+    for database in list_databases(cursor, owner):
+        results.extend(mysql.drop_database(cursor, database))
+    return results

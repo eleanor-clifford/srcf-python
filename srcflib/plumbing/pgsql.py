@@ -168,6 +168,15 @@ def revoke_role(cursor: Cursor, name: str, role: Role) -> Result:
     return Result(State.success)
 
 
+def list_databases(cursor: Cursor, owner: Role) -> List[str]:
+    """
+    Check if the given user has their own database.
+    """
+    query("SELECT datname FROM pg_database d, pg_user u"
+          "WHERE d.datdba = u.usesysid AND u.usename = %s", owner[0])
+    return [row[0] for row in cursor]
+
+
 def create_database(cursor: Cursor, name: str, owner: Role) -> Result:
     """
     Create a new database owned by the given role.

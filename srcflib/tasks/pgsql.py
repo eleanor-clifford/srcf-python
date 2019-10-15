@@ -2,7 +2,7 @@
 PostgreSQL accounts and databases for members and societies.
 """
 
-from typing import Optional, Set, Tuple
+from typing import Optional, List, Set, Tuple, Union
 
 from psycopg2.extensions import connection as Connection, cursor as Cursor
 
@@ -17,6 +17,18 @@ def connect(db: str=None) -> Connection:
     Connect to the PostgreSQL server using ident authentication.
     """
     return pgsql.connect("postgres.internal", db or "sysadmins")
+
+
+def list_databases(cursor: Cursor, owner: Owner) -> List[str]:
+    """
+    Find all PostgreSQL databases belonging to a given owner.
+    """
+    try:
+        role = pgsql.get_role(cursor, owner_name(owner))
+    except KeyError:
+        return []
+    else:
+        return pgsql.list_databases(cursor, role)
 
 
 def create_account(cursor: Cursor, owner: Owner) -> ResultSet[Optional[Password]]:
@@ -89,3 +101,38 @@ def reset_password(cursor: Cursor, owner: Owner) -> Result:
     Reset the password of a member's or society's PostgreSQL user account.
     """
     return pgsql.reset_password(cursor, owner_name(owner))
+
+
+def drop_account(cursor: Cursor, owner: Owner) -> Result:
+    """
+    Drop a PostgreSQL user account for a given member or society.
+    """
+    if list_databases(cursor, owner):
+        raise ValueError("Drop databases for {} first".format(owner))
+    return pgsql.drop_user(cursor, owner_name(owner))
+
+
+def create_database(cursor: Cursor, owner: Owner, name: str=None) -> Result:
+    """
+    Create a new PostgreSQL database for the owner, defaulting to one matching their username.
+    """
+    role = pgsql.get_role(cursor, owner_name(owner))
+    return pgsql.create_database(cursor, name or owner_name(owner), role)
+
+
+def drop_database(cursor: Cursor, target: Union[Owner, str]) -> Result:
+    """
+    Drop the named, or owner-named, PostgreSQL database.
+    """
+    name = target if isinstance(target, str) else owner_name(target)
+    return pgsql.drop_database(cursor, name)
+
+
+def drop_all_databases(cursor: Cursor, owner: Owner) -> ResultSet:
+    """
+    Drop all databases belonging to the owner.
+    """
+    results = ResultSet()
+    for database in list_databases(cursor, owner):
+        results.extend(pgsql.drop_database(cursor, database))
+    return results
