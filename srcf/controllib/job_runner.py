@@ -133,7 +133,7 @@ def main():
         if job.state != "queued":
             sess.rollback()
             continue
-        if job.environment != environment:
+        if job.row.environment != environment:
             continue
 
         job.logger = logger
