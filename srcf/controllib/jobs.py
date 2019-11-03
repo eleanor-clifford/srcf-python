@@ -229,7 +229,7 @@ class Test(Job):
         }
         return cls.create(mem, args, require_approval=False)
 
-    sleep_time = property(lambda s: int(s.row.args["sleep_time"]))
+    sleep_time = property(lambda s: max(40, int(s.row.args["sleep_time"])))
 
     def run(self, sess):
     	time.sleep(self.sleep_time)
