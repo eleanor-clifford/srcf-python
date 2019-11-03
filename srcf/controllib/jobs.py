@@ -69,6 +69,10 @@ def sql_exec(job, cur, desc, sql, *vals):
         raise JobFailed(desc, str(e))
 
 
+def get_environment():
+    return os.getenv("SRCF_JOB_QUEUE")
+
+
 # Borrowed from srcf-memberdb-cli
 def find_admins(admin_crsids, sess):
     admins = sess.query(Member)\
@@ -172,7 +176,8 @@ class Job(object):
             created_at=datetime.now(),
             owner=owner,
             state="unapproved" if require_approval else "queued",
-            args=args
+            args=args,
+            environment=get_environment()
         ))
 
     def log(self, msg="", type="progress", level=logging.DEBUG, raw=None, **kwargs):

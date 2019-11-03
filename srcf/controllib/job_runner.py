@@ -125,12 +125,15 @@ def queued_jobs():
         yield n
 
 def main():
+    environment = jobs.get_environment()
     sess = database.Session()
     database.queries.disable_automatic_session(and_use_this_one_instead=sess)
     for i in queued_jobs():
         job = jobs.Job.find(id=i, sess=sess)
         if job.state != "queued":
             sess.rollback()
+            continue
+        if job.environment != environment:
             continue
 
         job.logger = logger

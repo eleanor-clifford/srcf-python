@@ -261,6 +261,7 @@ if is_root or is_webapp:
         created_at = Column(DateTime)
         type = Column(String(100), nullable=False)
         args = Column(HSTORE, nullable=False)
+        environment = Column(Text)
 
     class JobLog(Base):
         __tablename__ = 'job_log'
