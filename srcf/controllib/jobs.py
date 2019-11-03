@@ -228,7 +228,7 @@ class Test(Job):
             "crsid": crsid,
 	    "sleep_time": sleep_time
         }
-        return cls.create(None, args)
+        return cls.create(None, args, require_approval=False)
 
     crsid          = property(lambda s: s.row.args["crsid"])
     sleep_time     = property(lambda s: int(s.row.args["sleep_time"]))
