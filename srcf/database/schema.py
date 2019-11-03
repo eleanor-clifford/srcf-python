@@ -204,23 +204,6 @@ if is_root or is_webapp:
             return '<PendingAdmin {0} {1}>'\
                         .format(self.crsid, self.society.society)
 
-    LogLevel = Enum('debug', 'info', 'warning', 'error', 'critical',
-                    name='log_level')
-
-    class LogRecord(Base):
-        __tablename__ = "log"
-
-        record_id = Column(Integer, primary_key=True)
-        created = Column(DateTime(timezone=True), FetchedValue())
-        level = Column(LogLevel)
-        logger = Column(Text)
-        message = Column(Text)
-
-        # "Tag" rows with the member/society they pertain to, so that relevant
-        # log lines may be quickly retrieved
-        crsid = Column(CRSID_TYPE, ForeignKey('members.crsid'))
-        society = Column(SOCIETY_TYPE, ForeignKey('societies.society'))
-
     class Domain(Base):
         __tablename__ = "domains"
         id = Column(Integer, primary_key=True)
@@ -294,7 +277,6 @@ else:
     PendingAdmin = None
 
     LogLevel = None
-    LogRecord = None
 
     Domain = None
     HTTPSCert = None
