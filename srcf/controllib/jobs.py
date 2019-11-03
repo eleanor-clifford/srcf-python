@@ -225,11 +225,11 @@ class Test(Job):
     @classmethod
     def new(cls, mem, sleep_time):
         args = {
-	    "sleep_time": sleep_time
+	    "sleep_time": str(sleep_time)
         }
         return cls.create(mem, args, require_approval=False)
 
-    sleep_time     = property(lambda s: int(s.row.args["sleep_time"]))
+    sleep_time = property(lambda s: int(s.row.args["sleep_time"]))
 
     def run(self, sess):
     	time.sleep(self.sleep_time)
