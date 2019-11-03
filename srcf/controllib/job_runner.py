@@ -28,7 +28,7 @@ logger.addHandler(PostgreSQLHandler({"host": "postgres.internal", "database": "s
 runner_id_string = "{} {}".format(platform.node(), os.getpid())
 
 
-RUNNER_LOCK_NUM = 0x366636F6E7472
+RUNNER_LOCK_NUM = 0x3666309f80b06
 
 pg_try_advisory_lock = sqlalchemy.sql.expression.func.pg_try_advisory_lock
 
@@ -51,7 +51,7 @@ def compile_listen(element, compiler, **kw):
     return "LISTEN {}".format(element.channel)
 
 
-def connect():
+def connect(environment):
     # By explicitly creating a connection, and not using the pool, the
     # connection should persist for the lifetime of the process (it won't
     # be closed after each .commit()), and therefore hold the session level
@@ -59,7 +59,8 @@ def connect():
     conn = database.engine.connect()
     conn.detach()
     with conn.begin():
-        row, = conn.execute(pg_try_advisory_lock(RUNNER_LOCK_NUM))
+        lock_num = RUNNER_LOCK_NUM + int.from_bytes(environment.encode("utf-8"), "little")
+        row, = conn.execute(pg_try_advisory_lock(lock_num))
         if not row[0]: raise DatabaseLocked
 
         conn.execute(Listen("jobs_insert"))
@@ -83,7 +84,7 @@ def notifications(conn):
             notify = conn.notifies.pop()
             yield int(notify.payload)
 
-def queued_jobs():
+def queued_jobs(environment):
     """
     Yields a list of job ids.
 
@@ -95,7 +96,7 @@ def queued_jobs():
 
     # Use a separate dedicated connection just for this, so that we
     # don't miss any notifications
-    conn, sess = connect()
+    conn, sess = connect(environment)
 
     # We're using the advisory lock to protect us against other
     # job runners; not transactions (indeed, transactions would be
@@ -105,7 +106,8 @@ def queued_jobs():
 
     existing = \
         sess.query(database.Job) \
-        .filter(database.Job.state == "queued") \
+        .filter(database.Job.state == "queued",
+                database.Job.environment == environment) \
         .all()
 
     existing_ids = [e.job_id for e in existing]
@@ -128,7 +130,7 @@ def main():
     environment = jobs.get_environment()
     sess = database.Session()
     database.queries.disable_automatic_session(and_use_this_one_instead=sess)
-    for i in queued_jobs():
+    for i in queued_jobs(environment):
         job = jobs.Job.find(id=i, sess=sess)
         if job.state != "queued":
             sess.rollback()
