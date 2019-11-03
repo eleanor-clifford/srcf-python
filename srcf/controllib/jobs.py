@@ -223,21 +223,19 @@ class Test(Job):
         return self.crsid == crsid
 
     @classmethod
-    def new(cls, crsid, sleep_time):
+    def new(cls, mem, sleep_time):
         args = {
-            "crsid": crsid,
 	    "sleep_time": sleep_time
         }
-        return cls.create(crsid, args, require_approval=False)
+        return cls.create(mem, args, require_approval=False)
 
-    crsid          = property(lambda s: s.row.args["crsid"])
     sleep_time     = property(lambda s: int(s.row.args["sleep_time"]))
 
     def run(self, sess):
     	time.sleep(self.sleep_time)
 
-    def __repr__(self): return "<Test {0.crsid}>".format(self)
-    def __str__(self): return "Test: {0.crsid} {0.sleep_time}".format(self)
+    def __repr__(self): return "<Test {0.owner.crsid}>".format(self)
+    def __str__(self): return "Test: {0.owner.crsid} {0.sleep_time}".format(self)
 
 @add_job
 class Signup(Job):
