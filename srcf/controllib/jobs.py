@@ -87,6 +87,10 @@ def subproc_call(job, desc, cmd, stdin=None):
     if pipe.returncode:
         raise JobFailed(desc, out or None)
     if out:
+        try:
+            out = out.decode("utf-8")
+        except UnicodeDecodeError as e:
+            output = b"[Could not decode output as UTF-8]\n" + output
         job.log(desc, "output", raw=out)
 
 def mail_users(target, subject, template, **kwargs):
