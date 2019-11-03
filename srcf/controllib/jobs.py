@@ -220,7 +220,7 @@ class Test(Job):
         self.row = row
 
     def visible_to(self, crsid):
-        return self.crsid == crsid
+        return self.owner.crsid == crsid
 
     @classmethod
     def new(cls, mem, sleep_time):
