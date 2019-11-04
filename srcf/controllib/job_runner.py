@@ -210,7 +210,8 @@ if __name__ == "__main__":
     run_logger.info("Starting job runner (host: {0})".format(runner_id_string))
     try:
         main(run_logger)
+    except (KeyboardInterrupt, SystemExit):
+        pass
     except Exception:
         run_logger.exception("Unhandled exception")
         raise
-
