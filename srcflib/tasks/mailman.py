@@ -21,6 +21,9 @@ def create_list(owner: Owner, suffix: str=None) -> ResultSet[Password]:
     Create a new mailing list for a user or society.
     """
     name, admin = _list_name_owner(owner, suffix)
+    if name.endswith(("-post", "-admin", "-bounces", "-confirm", "-join", "-leave", "-owner",
+                      "-request", "-subscribe", "-unsubscribe")):
+        raise ValueError("List name {!r} ends with reserved suffix".format(name))
     results = ResultSet[Password]()
     results.add(mailman.create_list(name, admin), True)
     results.extend(bespoke.configure_mailing_list(name),
