@@ -1,12 +1,14 @@
 from __future__ import print_function
 
-import sys
-import os
-import select
-import traceback
+from contextlib import contextmanager
 import logging
+import os
 import platform
+import select
+import signal
 import subprocess
+import sys
+import traceback
 
 import psycopg2.extensions
 
@@ -50,6 +52,25 @@ class Listen(sqlalchemy.sql.expression.Executable,
 @sqlalchemy.ext.compiler.compiles(Listen, 'postgresql')
 def compile_listen(element, compiler, **kw):
     return "LISTEN {}".format(element.channel)
+
+
+@contextmanager
+def exit_on_signal(logger):
+    traps = {signal.SIGINT, signal.SIGTERM}
+    trapped = None
+    def handler(signum, frame):
+        logger.info("Job in progress, deferring signal")
+        nonlocal trapped
+        trapped = signum
+    originals = {}
+    for sig in traps:
+        originals[sig] = signal.signal(sig, handler)
+    yield
+    for sig in traps:
+        signal.signal(sig, originals[sig])
+    if trapped:
+        logger.info("Exiting due to previous signal {}".format(trapped))
+        sys.exit()
 
 
 def connect(environment):
@@ -127,7 +148,7 @@ def queued_jobs(environment):
     for n in notifications(conn):
         yield n
 
-def main():
+def main(run_logger):
     sess = database.Session()
     database.queries.disable_automatic_session(and_use_this_one_instead=sess)
     for i in queued_jobs(environment):
@@ -138,46 +159,49 @@ def main():
         if job.row.environment != environment:
             continue
 
-        job.logger = logger
+        with exit_on_signal(run_logger):
 
-        job.log("Running (host: {0})".format(runner_id_string), "started", logging.INFO, str(job))
-        job.set_state("running", "Running (host: {0})".format(runner_id_string))
-        sess.add(job.row)
-        sess.commit()
+            job.logger = logger
 
-        run_state = "failed"
-        run_message = None
+            job.log("Running (host: {0})".format(runner_id_string), "started", logging.INFO, str(job))
+            job.set_state("running", "Running (host: {0})".format(runner_id_string))
+            sess.add(job.row)
+            sess.commit()
 
-        try:
-            run_message = job.run(sess=sess) or "Completed"
-            run_state = "done"
-            job.log(run_message, "done", logging.INFO)
+            run_state = "failed"
+            run_message = None
 
-        except jobs.JobFailed as e:
-            run_message = e.message or "Aborted"
-            job.log(run_message, "failed", logging.WARNING, e.raw)
+            try:
+                run_message = job.run(sess=sess) or "Completed"
+                run_state = "done"
+                job.log(run_message, "done", logging.INFO)
 
-            raw = e.raw
-            if isinstance(raw, bytes):
-                raw = raw.decode("utf-8")
+            except jobs.JobFailed as e:
+                run_message = e.message or "Aborted"
+                job.log(run_message, "failed", logging.WARNING, e.raw)
 
-            email_error(i, "{0}\n\n{1}".format(run_message, raw) if raw else run_message)
+                raw = e.raw
+                if isinstance(raw, bytes):
+                    raw = raw.decode("utf-8")
 
-        except Exception as e:
-            job.log("Unhandled exception", "failed", logging.ERROR, traceback.format_exc(), exc_info=1)
+                email_error(i, "{0}\n\n{1}".format(run_message, raw) if raw else run_message)
 
-            # rollback
-            sess.rollback()
-            job = jobs.Job.find(id=i, sess=sess)
+            except Exception as e:
+                job.log("Unhandled exception", "failed", logging.ERROR, traceback.format_exc(), exc_info=1)
 
-            exc = traceback.format_exception_only(*sys.exc_info()[:2])[0].strip()
-            run_message = exc
+                # rollback
+                sess.rollback()
+                job = jobs.Job.find(id=i, sess=sess)
 
-            email_error(i, run_message)
+                exc = traceback.format_exception_only(*sys.exc_info()[:2])[0].strip()
+                run_message = exc
 
-        job.set_state(run_state, run_message)
-        sess.add(job.row)
-        sess.commit()
+                email_error(i, run_message)
+
+            job.set_state(run_state, run_message)
+            sess.add(job.row)
+            sess.commit()
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO,
@@ -185,10 +209,8 @@ if __name__ == "__main__":
     run_logger = logging.LoggerAdapter(logger, {"task": "Runner"})
     run_logger.info("Starting job runner (host: {0})".format(runner_id_string))
     try:
-        main()
-    except KeyboardInterrupt:
-        pass
-    except:
+        main(run_logger)
+    except Exception:
         run_logger.exception("Unhandled exception")
         raise
 
