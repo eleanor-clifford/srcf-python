@@ -25,7 +25,8 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 logger.addHandler(PostgreSQLHandler({"host": "postgres.internal", "database": "sysadmins"}))
 
-runner_id_string = "{} {}".format(platform.node(), os.getpid())
+environment = jobs.get_environment()
+runner_id_string = "{} {} {}".format(platform.node(), os.getpid(), environment)
 
 
 RUNNER_LOCK_NUM = 0x3666309f80b06
@@ -127,7 +128,6 @@ def queued_jobs(environment):
         yield n
 
 def main():
-    environment = jobs.get_environment()
     sess = database.Session()
     database.queries.disable_automatic_session(and_use_this_one_instead=sess)
     for i in queued_jobs(environment):
