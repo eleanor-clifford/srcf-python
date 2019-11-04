@@ -15,16 +15,14 @@ from srcf.database import Domain, Session
 WELL_KNOWN = "/public/societies/srcf-admin/srcf-well-known"
 
 
-def verify(domain, session=None):
+def verify(domain):
     """
     Check if the given domain is correctly configured to serve an SRCF site.
 
     A one-off challenge will be created and retrieved via /.well-known/srcf.
+
+    Returns `True` if valid, `False` if not, `None` if we couldn't connect.
     """
-    session = session or Session()
-    # Check the domain exists in our records. No need for any further details.
-    # Raises sqlalchemy.orm.exc.NoResultFound if missing.
-    session.query(Domain).filter(Domain.domain == domain).one()
     # Generate a random challenge value to ensure we're talking to ourselves.
     challenge = binascii.hexlify(os.urandom(32))
     proof = tempfile.NamedTemporaryFile(prefix="domain-{}-".format(domain),
@@ -38,7 +36,10 @@ def verify(domain, session=None):
         # Read the temp file back via the given domain.
         url = ("http://{}/.well-known/srcf/{}"
                .format(domain, os.path.basename(proof.name)))
-        response = requests.get(url)
-        return response.content == challenge
+        try:
+            response = requests.get(url, timeout=5)
+            return response.content == challenge
+        except requests.ConnectionError:
+            return None
     finally:
         proof.close()
