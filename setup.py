@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import find_packages, setup
 
 
 setup(name="srcflib",
@@ -6,4 +6,7 @@ setup(name="srcflib",
       author="SRCF Sysadmins",
       author_email="sysadmins@srcf.net",
       url="https://www.srcf.net",
-      packages=["srcflib", "srcflib.plumbing", "srcflib.tasks"])
+      platforms=["Any"],
+      python_requires=">=3.5",
+      install_requires=["psycopg2-binary", "pylibacl", "PyMySQL", "requests", "SQLAlchemy"],
+      packages=find_packages())
