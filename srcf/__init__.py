@@ -16,21 +16,19 @@ SOCQUEUE = "/societies/srcf/admin/socqueue"
 
 from srcf.passwords import pwgen
 
-__all__ = [
-    'MEMBERLIST', 'SOCLIST',
-    'pwgen',
-    ]
-
 # No argcomplete for py3 yet
 if not __six.PY3:
     from srcf.argcompletors import complete_member, complete_user
     from srcf.argcompletors import complete_soc, complete_activesoc
     from srcf.argcompletors import complete_socadmin
+else:
+    complete_member = complete_user = complete_soc = complete_activesoc = complete_socadmin = None
 
-    __all__ += [
-        'complete_member', 'complete_user', 'complete_soc',
-        'complete_activesoc', 'complete_socadmin',
-        ]
+__all__ = [
+    'MEMBERLIST', 'SOCLIST', 'pwgen',
+    'complete_member', 'complete_user', 'complete_soc',
+    'complete_activesoc', 'complete_socadmin',
+]
 
 # Compatibility magic until all callers are updated
 from .compat import *

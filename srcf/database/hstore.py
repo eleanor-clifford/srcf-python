@@ -7,7 +7,8 @@
 import re
 import six
 
-from sqlalchemy.dialects.postgresql.base import ARRAY, ischema_names, PGTypeCompiler
+from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.dialects.postgresql.base import ischema_names, PGTypeCompiler
 from sqlalchemy import types as sqltypes
 from sqlalchemy.sql import functions as sqlfunc
 from sqlalchemy import util

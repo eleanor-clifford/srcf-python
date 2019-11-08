@@ -20,4 +20,6 @@ parser.add_argument('admin',
                     ).completer = complete_socadmin
 
 argcomplete.autocomplete(parser)
-print(parser.parse_args())
+
+if __name__ == "__main__":
+    print(parser.parse_args())
