@@ -74,7 +74,7 @@ class Member(Base, MemberCompat):
         domains = relationship("Domain", primaryjoin="foreign(Domain.owner) == Member.crsid")
     if is_root or is_webapp or is_hades:
         # Beware: Enum doesn't validate until sqlalchemy 1.1
-        mail_handler = Column(Enum(VALID_MAIL_HANDLERS), nullable=False, server_default='pip')
+        mail_handler = Column(Enum(*VALID_MAIL_HANDLERS), nullable=False, server_default='pip')
 
     __table_args__ = (
         CheckConstraint("""
