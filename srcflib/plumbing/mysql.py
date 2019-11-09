@@ -141,6 +141,7 @@ def grant_database(cursor: Cursor, user: str, db: str) -> Result:
     """
     Grant all permissions for the user to create, manage and delete this database.
     """
+    db = db.replace("%", "%%")
     return Result(_truthy(query(cursor, _format("GRANT ALL ON {}.* TO %s@'%%'", db), user)))
 
 
@@ -148,6 +149,7 @@ def revoke_database(cursor: Cursor, user: str, db: str) -> Result:
     """
     Remove any permissions for the user to create, manage and delete this database.
     """
+    db = db.replace("%", "%%")
     return Result(_truthy(query(cursor, _format("REVOKE ALL ON {}.* FROM %s@'%%'", db), user)))
 
 
