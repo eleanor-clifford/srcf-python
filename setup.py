@@ -16,4 +16,5 @@ setup(name="srcflib",
       platforms=["Any"],
       python_requires=">=3.5",
       install_requires=["psycopg2-binary", "pylibacl", "PyMySQL", "requests", "SQLAlchemy"],
-      packages=find_packages())
+      packages=find_packages(),
+      package_data={"srcflib.email": ["**/*.j2"]})

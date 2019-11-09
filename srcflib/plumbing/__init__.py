@@ -12,7 +12,7 @@ Each function also falls into one of two groups:
 - actions (returns a `Result` object, may modify state)
 """
 
-from .common import (command, get_members, Hosts, Owner, owner_name, Password, require_host,
-                     Result, ResultSet, State)
+from .common import (command, get_members, Hosts, Owner, owner_desc, owner_name, owner_website,
+                     Password, require_host, Result, ResultSet, State)
 
 from . import bespoke, mailman, mysql, pgsql, unix

@@ -34,6 +34,34 @@ def owner_name(owner: Owner) -> str:
         raise TypeError(owner)
 
 
+def owner_desc(owner: Owner, admins: bool=False) -> str:
+    """
+    Return a `Member` full name, or a `Society` description optionally addressing its admins.
+    """
+    if isinstance(owner, Member):
+        return owner.name
+    elif isinstance(owner, Society):
+        if admins:
+            return "{} admins".format(owner.description)
+        else:
+            return owner.description
+    else:
+        raise TypeError(owner)
+
+
+def owner_website(owner: Owner):
+    """
+    Return a member or society's default website address.
+    """
+    if isinstance(owner, Member):
+        key = "user"
+    elif isinstance(owner, Society):
+        key = "soc"
+    else:
+        raise TypeError(owner)
+    return "https://{}.{}.srcf.net".format(owner_name(owner), key)
+
+
 def get_members(sess: SQLA_SESSION, *crsids: str) -> Set[str]:
     """
     Fetch multiple `Member` objects by their CRSids.
