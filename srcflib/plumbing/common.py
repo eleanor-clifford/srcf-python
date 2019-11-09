@@ -202,6 +202,10 @@ class Hosts:
     """
     Server running Mailman, with its utilities installed.
     """
+    WEB = "sinkhole"
+    """
+    Server running Apache, for scripts altering its configuration.
+    """
 
 
 def require_host(*hosts: str):

@@ -314,6 +314,7 @@ def queue_https_cert(sess: SQLA_SESSION, domain: str) -> Result[HTTPSCert]:
     return Result(state, cert)
 
 
+@require_host(Hosts.WEB)
 def generate_apache_groups() -> Result:
     """
     Synchronise the Apache groups file, providing ``srcfmembers`` and ``srcfusers`` groups.
