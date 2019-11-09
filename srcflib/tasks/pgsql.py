@@ -31,7 +31,7 @@ def get_owned_databases(cursor: Cursor, owner: Owner) -> List[str]:
         return pgsql.get_role_databases(cursor, role)
 
 
-def create_account(cursor: Cursor, owner: Owner) -> ResultSet[Optional[Password]]:
+def new_account(cursor: Cursor, owner: Owner) -> ResultSet[Optional[Password]]:
     """
     Create a PostgreSQL user account for a given member or society.
 
@@ -112,20 +112,25 @@ def drop_account(cursor: Cursor, owner: Owner) -> Result:
     return pgsql.drop_user(cursor, owner_name(owner))
 
 
-def create_database(cursor: Cursor, owner: Owner, name: str=None) -> Result:
+def create_database(cursor: Cursor, owner: Owner, name: str=None) -> Result[str]:
     """
     Create a new PostgreSQL database for the owner, defaulting to one matching their username.
     """
     role = pgsql.get_role(cursor, owner_name(owner))
-    return pgsql.create_database(cursor, name or owner_name(owner), role)
+    name = name or role[0]
+    result = pgsql.create_database(cursor, name, role)
+    result.value = name
+    return result
 
 
-def drop_database(cursor: Cursor, target: Union[Owner, str]) -> Result:
+def drop_database(cursor: Cursor, target: Union[Owner, str]) -> Result[str]:
     """
     Drop the named, or owner-named, PostgreSQL database.
     """
     name = target if isinstance(target, str) else owner_name(target)
-    return pgsql.drop_database(cursor, name)
+    result = pgsql.drop_database(cursor, name)
+    result.value = name
+    return result
 
 
 def drop_all_databases(cursor: Cursor, owner: Owner) -> ResultSet:
@@ -135,4 +140,14 @@ def drop_all_databases(cursor: Cursor, owner: Owner) -> ResultSet:
     results = ResultSet()
     for database in get_owned_databases(cursor, owner):
         results.extend(pgsql.drop_database(cursor, database))
+    return results
+
+
+def create_account(cursor: Cursor, owner: Owner) -> ResultSet[Tuple[Optional[Password], str]]:
+    """
+    Create a PostgreSQL user account and initial database for a member or society.
+    """
+    results = ResultSet(new_account(cursor, owner),
+                        create_database(cursor, owner))
+    results.value = tuple(inner.value if inner else None for inner in results.results)
     return results

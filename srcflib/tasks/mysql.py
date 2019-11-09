@@ -40,7 +40,7 @@ def get_owned_databases(cursor: Cursor, owner: Owner) -> List[str]:
             mysql.get_matched_databases(cursor, _database_name(owner, "%")))
 
 
-def create_account(cursor: Cursor, owner: Owner) -> ResultSet[Optional[Password]]:
+def new_account(cursor: Cursor, owner: Owner) -> ResultSet[Optional[Password]]:
     """
     Create a MySQL user account for a given member or society.
 
@@ -146,18 +146,24 @@ def drop_account(cursor: Cursor, owner: Owner) -> ResultSet:
     return results
 
 
-def create_database(cursor: Cursor, owner: Owner, suffix: str=None) -> Result:
+def create_database(cursor: Cursor, owner: Owner, suffix: str=None) -> Result[str]:
     """
     Create a new MySQL database for the owner, either the primary name or a suffixed alternative.
     """
-    return mysql.create_database(cursor, _database_name(owner, suffix))
+    name = _database_name(owner, suffix)
+    result = mysql.create_database(cursor, name)
+    result.value = name
+    return result
 
 
-def drop_database(cursor: Cursor, owner: Owner, suffix: str=None) -> Result:
+def drop_database(cursor: Cursor, owner: Owner, suffix: str=None) -> Result[str]:
     """
     Drop either the primary or a suffixed secondary MySQL database belonging to the owner.
     """
-    return mysql.drop_database(cursor, _database_name(owner, suffix))
+    name = _database_name(owner, suffix)
+    result = mysql.drop_database(cursor, name)
+    result.value = name
+    return result
 
 
 def drop_all_databases(cursor: Cursor, owner: Owner) -> ResultSet:
@@ -167,4 +173,14 @@ def drop_all_databases(cursor: Cursor, owner: Owner) -> ResultSet:
     results = ResultSet()
     for database in get_owned_databases(cursor, owner):
         results.extend(mysql.drop_database(cursor, database))
+    return results
+
+
+def create_account(cursor: Cursor, owner: Owner) -> ResultSet[Tuple[Optional[Password], str]]:
+    """
+    Create a MySQL user account and initial database for a member or society.
+    """
+    results = ResultSet(new_account(cursor, owner),
+                       create_database(cursor, owner))
+    results.value = tuple(inner.value if inner else None for inner in results.results)
     return results
