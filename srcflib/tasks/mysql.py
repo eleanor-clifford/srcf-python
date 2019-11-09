@@ -9,7 +9,7 @@ from pymysql.cursors import Cursor
 from srcf.database import Member, Society
 from srcf.database.queries import get_member, get_society
 
-from srcflib.plumbing import mysql, Owner, owner_name, Password, Result, ResultSet
+from ..plumbing import mysql, Owner, owner_name, Password, Result, ResultSet
 
 
 def _user_name(owner: Owner) -> str:

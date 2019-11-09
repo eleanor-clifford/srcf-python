@@ -8,9 +8,9 @@ from typing import Set
 from srcf.database import Member, Society
 from srcf.database.queries import get_member, get_society
 
-from srcflib.plumbing import bespoke, mailman, pgsql as pgsql_p, ResultSet, unix
-from srcflib.plumbing.mysql import context as mysql_context
-from srcflib.tasks import mysql, pgsql
+from ..plumbing import bespoke, mailman, pgsql as pgsql_p, ResultSet, unix
+from ..plumbing.mysql import context as mysql_context
+from . import mysql, pgsql
 
 
 def create_member(crsid: str, preferred_name: str, surname: str, email: str,
@@ -146,6 +146,7 @@ def delete_society(society: Society) -> ResultSet:
         pgsql.drop_account(cursor, society)
     for mlist in bespoke.get_mailman_lists(society):
         mailman.remove_list(mlist)
+    # TODO: Unix user/group
     with bespoke.session() as sess:
         results.extend(bespoke.delete_society(sess, society))
     results.extend(bespoke.export_members())

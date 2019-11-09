@@ -6,7 +6,7 @@ from typing import Tuple
 
 from srcf.database import Member
 
-from srcflib.plumbing import bespoke, mailman, Owner, owner_name, Password, ResultSet
+from ..plumbing import bespoke, mailman, Owner, owner_name, Password, ResultSet
 
 
 def _list_name_owner(owner: Owner, suffix: str=None) -> Tuple[str, str]:
