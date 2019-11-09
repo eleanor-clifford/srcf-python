@@ -5,7 +5,7 @@ Mailman mailing list management.
 import logging
 import os.path
 import re
-from typing import List
+from typing import List, Optional
 
 from .common import command, Hosts, Password, require_host, Result, State
 
@@ -86,7 +86,7 @@ def reset_password(mlist: MailList) -> Result[Password]:
         raise ValueError("Couldn't find password in output")
 
 
-def create_list(name: str, owner: str) -> Result[MailList]:
+def create_list(name: str, owner: str) -> Result[Optional[Password]]:
     """
     Create a new mailing list, or ensure the owner of an existing list is set.
     """
@@ -95,21 +95,19 @@ def create_list(name: str, owner: str) -> Result[MailList]:
     except KeyError:
         return new_list(name, owner)
     else:
-        result = set_owner(name, owner)
-        result.value = mlist
-        return result
+        return set_owner(mlist, owner)
 
 
 @require_host(Hosts.LIST)
-def remove_list(name: str, remove_archive: bool=False) -> Result:
+def remove_list(mlist: MailList, remove_archive: bool=False) -> Result:
     """
     Delete an existing mailing list, and optionally its message archives.
     """
-    config = os.path.exists(os.path.join("/var/lib/mailman/lists", name))
-    archive = os.path.exists(os.path.join("/var/lib/mailman/archives/private", name))
+    config = os.path.exists(os.path.join("/var/lib/mailman/lists", mlist))
+    archive = os.path.exists(os.path.join("/var/lib/mailman/archives/private", mlist))
     if not (config or (remove_archive and archive)):
         return Result(State.unchanged)
-    args = ["/usr/sbin/rmlist", name]
+    args = ["/usr/sbin/rmlist", mlist]
     if remove_archive:
         args[1:1] = ["--archives"]
     command(args)

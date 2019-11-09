@@ -2,7 +2,7 @@
 Mailman mailing lists for members and societies.
 """
 
-from typing import Tuple
+from typing import Optional, Tuple
 
 from srcf.database import Member
 
@@ -16,7 +16,8 @@ def _list_name_owner(owner: Owner, suffix: str=None) -> Tuple[str, str]:
     return name, admin
 
 
-def create_list(owner: Owner, suffix: str=None) -> ResultSet[Password]:
+def create_list(owner: Owner, suffix: str=None) -> ResultSet[Tuple[mailman.MailList,
+                                                                   Optional[Password]]]:
     """
     Create a new mailing list for a user or society.
     """
@@ -24,10 +25,10 @@ def create_list(owner: Owner, suffix: str=None) -> ResultSet[Password]:
     if name.endswith(("-post", "-admin", "-bounces", "-confirm", "-join", "-leave", "-owner",
                       "-request", "-subscribe", "-unsubscribe")):
         raise ValueError("List name {!r} ends with reserved suffix".format(name))
-    results = ResultSet[Password]()
-    results.add(mailman.create_list(name, admin), True)
-    results.extend(bespoke.configure_mailing_list(name),
+    results = ResultSet(mailman.create_list(name, admin),
+                        bespoke.configure_mailing_list(name),
                    bespoke.generate_mailman_aliases())
+    results.value = (name, results.results[0].value)
     return results
 
 
