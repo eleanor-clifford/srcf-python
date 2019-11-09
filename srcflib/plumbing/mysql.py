@@ -147,6 +147,8 @@ def create_database(cursor: Cursor, name: str) -> Result:
     """
     Create a MySQL database.  No permissions are granted.
     """
+    if name in list_databases(cursor, name):
+        return Result(State.unchanged)
     # Always returns one row; emits a warning if the database already exist.
     query(cursor, _format("CREATE DATABASE IF NOT EXISTS {}", name))
     return Result(State.success)
@@ -164,6 +166,8 @@ def drop_database(cursor: Cursor, name: str) -> Result:
     """
     Drop a MySQL database and all of its tables.
     """
+    if name not in list_databases(cursor, name):
+        return Result(State.unchanged)
     # Always returns zero rows; emits a warning if the database doesn't exist.
     query(cursor, _format("DROP DATABASE IF EXISTS {}", name))
     return Result(State.success)
