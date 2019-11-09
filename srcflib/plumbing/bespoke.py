@@ -50,6 +50,23 @@ def context(sess: SQLA_SESSION=None) -> Generator[SQLA_SESSION, None, None]:
         sess.commit()
 
 
+def get_crontab(owner: Owner) -> Optional[str]:
+    """
+    Fetch the owning user's crontab, if one exists on the current server.
+    """
+    proc = command(["/usr/bin/crontab", "-u", owner_name(owner), "-l"], output=True)
+    return proc.stdout.decode("utf-8") if proc.stdout else None
+
+
+def get_mailman_lists(owner: Owner, sess: REQS_SESSION=session()) -> List[MailList]:
+    """
+    Query mailing lists owned by the given member or society.
+    """
+    prefix = owner_name(owner)
+    resp = sess.get("https://lists.srcf.net/getlists.cgi", params={"prefix": prefix})
+    return resp.text.splitlines()
+
+
 def create_member(sess: SQLA_SESSION, crsid: str, preferred_name: str, surname: str, email: str,
                   mail_handler: str="forward", is_member: bool=True,
                   is_user: bool=True) -> Result[Member]:
@@ -348,24 +365,16 @@ def make_yp() -> Result:
     return Result(State.success)
 
 
-def get_mailman_lists(owner: Owner, sess: REQS_SESSION=session()) -> List[MailList]:
-    """
-    Query mailing lists owned by the given member or society.
-    """
-    prefix = owner_name(owner)
-    resp = sess.get("https://lists.srcf.net/getlists.cgi", params={"prefix": prefix})
-    return resp.text.splitlines()
-
-
+@require_host(Hosts.LIST)
 def configure_mailing_list(name: str) -> Result:
     """
     Apply default options to a new mailing list, and create the necessary mail aliases.
     """
     command(["/usr/sbin/config_list", "--inputfile", "/root/mailman-newlist-defaults", name])
-    command(["/usr/local/sbin/gen_alias", name])
     return Result(State.success)
 
 
+@require_host(Hosts.LIST)
 def generate_mailman_aliases() -> Result:
     """
     Refresh the Exim alias file for Mailman lists.
@@ -373,14 +382,6 @@ def generate_mailman_aliases() -> Result:
     # TODO: Port to SRCFLib, replace with entrypoint.
     command(["/usr/local/sbin/srcf-generate-mailman-aliases"])
     return Result(State.success)
-
-
-def read_crontab(owner: Owner) -> Optional[str]:
-    """
-    Fetch the owning user's crontab, if one exists on the current server.
-    """
-    proc = command(["/usr/bin/crontab", "-u", owner_name(owner), "-l"], output=True)
-    return proc.stdout.decode("utf-8") if proc.stdout else None
 
 
 def archive_society_files(society: Society) -> Result[str]:
@@ -394,11 +395,11 @@ def archive_society_files(society: Society) -> Result[str]:
     tar = os.path.join(root, "soc-{}-{}.tar.bz2".format(society.society,
                                                         date.today().strftime("%Y%m%d")))
     command(["/bin/tar", "cjf", tar, home, public])
-    crontab = read_crontab(society)
+    crontab = get_crontab(society)
     if crontab:
         with open(os.path.join(root, "crontab"), "w") as f:
             f.write(crontab)
-    # TOOD: for host in {"cavein", "sinkhole"}: read_crontab(society)
+    # TOOD: for host in {"cavein", "sinkhole"}: get_crontab(society)
     with open(os.path.join(root, "society_info"), "w") as f:
         f.write(summarise_society(society))
     return Result(State.success, tar)

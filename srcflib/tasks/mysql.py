@@ -32,12 +32,12 @@ def _database_name_rev(name: str) -> str:
     return _user_name_rev(name.split("/", 1)[0])
 
 
-def list_databases(cursor: Cursor, owner: Owner) -> List[str]:
+def get_owned_databases(cursor: Cursor, owner: Owner) -> List[str]:
     """
     Find all MySQL databases belonging to a given owner.
     """
-    return (mysql.list_databases(cursor, _database_name(owner)) +
-            mysql.list_databases(cursor, _database_name(owner, "%")))
+    return (mysql.get_matched_databases(cursor, _database_name(owner)) +
+            mysql.get_matched_databases(cursor, _database_name(owner, "%")))
 
 
 def create_account(cursor: Cursor, owner: Owner) -> ResultSet[Optional[Password]]:
@@ -133,7 +133,7 @@ def drop_account(cursor: Cursor, owner: Owner) -> ResultSet:
 
     For members, grants are removed from all society databases for which they are a member.
     """
-    if list_databases(cursor, owner):
+    if get_owned_databases(cursor, owner):
         raise ValueError("Drop databases for {} first".format(owner))
     user = _user_name(owner)
     results = ResultSet(mysql.revoke_database(cursor, user, _database_name(owner)),
@@ -165,6 +165,6 @@ def drop_all_databases(cursor: Cursor, owner: Owner) -> ResultSet:
     Drop all databases belonging to the owner.
     """
     results = ResultSet()
-    for database in list_databases(cursor, owner):
+    for database in get_owned_databases(cursor, owner):
         results.extend(mysql.drop_database(cursor, database))
     return results

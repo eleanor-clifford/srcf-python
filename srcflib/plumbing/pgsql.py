@@ -90,6 +90,15 @@ def get_role_users(cursor: Cursor, role: Role) -> List[str]:
     return [row[0] for row in cursor]
 
 
+def get_role_databases(cursor: Cursor, owner: Role) -> List[str]:
+    """
+    Check if the given user has their own database.
+    """
+    query("SELECT datname FROM pg_database d, pg_user u"
+          "WHERE d.datdba = u.usesysid AND u.usename = %s", owner[0])
+    return [row[0] for row in cursor]
+
+
 def create_user(cursor: Cursor, name: str) -> Result[Password]:
     """
     Create a PostgreSQL user with a random password, if a user with that name doesn't already exist.
@@ -166,15 +175,6 @@ def revoke_role(cursor: Cursor, name: str, role: Role) -> Result:
         return Result(State.unchanged)
     query("REVOKE %s FROM %s", role[0], name)
     return Result(State.success)
-
-
-def list_databases(cursor: Cursor, owner: Role) -> List[str]:
-    """
-    Check if the given user has their own database.
-    """
-    query("SELECT datname FROM pg_database d, pg_user u"
-          "WHERE d.datdba = u.usesysid AND u.usename = %s", owner[0])
-    return [row[0] for row in cursor]
 
 
 def create_database(cursor: Cursor, name: str, owner: Role) -> Result:

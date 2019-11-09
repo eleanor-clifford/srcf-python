@@ -19,7 +19,7 @@ def connect(db: str=None) -> Connection:
     return pgsql.connect("postgres.internal", db or "sysadmins")
 
 
-def list_databases(cursor: Cursor, owner: Owner) -> List[str]:
+def get_owned_databases(cursor: Cursor, owner: Owner) -> List[str]:
     """
     Find all PostgreSQL databases belonging to a given owner.
     """
@@ -28,7 +28,7 @@ def list_databases(cursor: Cursor, owner: Owner) -> List[str]:
     except KeyError:
         return []
     else:
-        return pgsql.list_databases(cursor, role)
+        return pgsql.get_role_databases(cursor, role)
 
 
 def create_account(cursor: Cursor, owner: Owner) -> ResultSet[Optional[Password]]:
@@ -107,7 +107,7 @@ def drop_account(cursor: Cursor, owner: Owner) -> Result:
     """
     Drop a PostgreSQL user account for a given member or society.
     """
-    if list_databases(cursor, owner):
+    if get_owned_databases(cursor, owner):
         raise ValueError("Drop databases for {} first".format(owner))
     return pgsql.drop_user(cursor, owner_name(owner))
 
@@ -133,6 +133,6 @@ def drop_all_databases(cursor: Cursor, owner: Owner) -> ResultSet:
     Drop all databases belonging to the owner.
     """
     results = ResultSet()
-    for database in list_databases(cursor, owner):
+    for database in get_owned_databases(cursor, owner):
         results.extend(pgsql.drop_database(cursor, database))
     return results

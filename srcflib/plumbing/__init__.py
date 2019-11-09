@@ -1,11 +1,15 @@
 """
 Low-level APIs for fine-grained service management.
 
-Each function in this module should:
+Each public function in this module should:
 
 - perform a single action idempotently
-- return a `Result` object
 - raise an exception on any failures
+
+Each function also falls into one of two groups:
+
+- getters (prefixed with `get_`, returns a value directly, does not modify state)
+- actions (returns a `Result` object, may modify state)
 """
 
 from .common import (command, get_members, Hosts, Owner, owner_name, Password, require_host,

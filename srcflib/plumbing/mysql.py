@@ -67,6 +67,48 @@ def get_users(cursor: Cursor, *names: str) -> List[str]:
     return [user[0] for user in cursor]
 
 
+def get_user_grants(cursor: Cursor, user: str) -> List[str]:
+    """
+    Look up all grants that the given user has.
+    """
+    query(cursor, "SHOW GRANTS FOR %s@'%%'", user)
+    databases = []
+    for grant in cursor:
+        match = re.match(r"GRANT (.+) ON (?:\*|(['`\"])(.*?)\2)\.\*", grant[0])
+        if match:
+            if "ALL PRIVILEGES" in match.group(1).split(", "):
+                database = match.group(3) or "*"
+                databases.append(database.replace("\\_", "_"))
+        else:
+            LOG.warning("Ignoring non-parsable grant: %r", grant)
+    return databases
+
+
+def get_matched_databases(cursor: Cursor, like: str="%") -> List[str]:
+    """
+    Fetch names of all databases matching the given pattern.
+    """
+    query(cursor, "SHOW DATABASES LIKE %s", like)
+    return [db[0] for db in cursor]
+
+
+def get_user_databases(cursor: Cursor, user: str) -> List[str]:
+    """
+    Look up all databases that the given user has access to.
+    """
+    query(cursor, "SELECT Db FROM mysql.db WHERE Host = '%%' AND User = %s", user)
+    return [db[0].replace("\\_", "_") for db in cursor]
+
+
+def get_database_users(cursor: Cursor, database: str) -> List[str]:
+    """
+    Look up all users with access to the given database.
+    """
+    query(cursor, "SELECT User FROM mysql.db WHERE Host = '%%' AND Db = %s",
+          database.replace("_", "\\_"))
+    return [db[0] for db in cursor]
+
+
 def create_user(cursor: Cursor, name: str) -> Result[Optional[Password]]:
     """
     Create a MySQL user with a random password, if a user with that name doesn't already exist.
@@ -102,40 +144,6 @@ def grant_database(cursor: Cursor, user: str, db: str) -> Result:
     return Result(_truthy(query(cursor, _format("GRANT ALL ON {}.* TO %s@'%%'", db), user)))
 
 
-def get_user_grants(cursor: Cursor, user: str) -> List[str]:
-    """
-    Look up all grants that the given user has.
-    """
-    query(cursor, "SHOW GRANTS FOR %s@'%%'", user)
-    databases = []
-    for grant in cursor:
-        match = re.match(r"GRANT (.+) ON (?:\*|(['`\"])(.*?)\2)\.\*", grant[0])
-        if match:
-            if "ALL PRIVILEGES" in match.group(1).split(", "):
-                database = match.group(3) or "*"
-                databases.append(database.replace("\\_", "_"))
-        else:
-            LOG.warning("Ignoring non-parsable grant: %r", grant)
-    return databases
-
-
-def get_user_databases(cursor: Cursor, user: str) -> List[str]:
-    """
-    Look up all databases that the given user has access to.
-    """
-    query(cursor, "SELECT Db FROM mysql.db WHERE Host = '%%' AND User = %s", user)
-    return [db[0].replace("\\_", "_") for db in cursor]
-
-
-def get_database_users(cursor: Cursor, database: str) -> List[str]:
-    """
-    Look up all users with access to the given database.
-    """
-    query(cursor, "SELECT User FROM mysql.db WHERE Host = '%%' AND Db = %s",
-          database.replace("_", "\\_"))
-    return [db[0] for db in cursor]
-
-
 def revoke_database(cursor: Cursor, user: str, db: str) -> Result:
     """
     Remove any permissions for the user to create, manage and delete this database.
@@ -147,26 +155,18 @@ def create_database(cursor: Cursor, name: str) -> Result:
     """
     Create a MySQL database.  No permissions are granted.
     """
-    if name in list_databases(cursor, name):
+    if name in get_matched_databases(cursor, name):
         return Result(State.unchanged)
     # Always returns one row; emits a warning if the database already exist.
     query(cursor, _format("CREATE DATABASE IF NOT EXISTS {}", name))
     return Result(State.success)
 
 
-def list_databases(cursor: Cursor, like: str="%") -> List[str]:
-    """
-    Fetch names of all databases matching the given pattern.
-    """
-    query(cursor, "SHOW DATABASES LIKE %s", like)
-    return [db[0] for db in cursor]
-
-
 def drop_database(cursor: Cursor, name: str) -> Result:
     """
     Drop a MySQL database and all of its tables.
     """
-    if name not in list_databases(cursor, name):
+    if name not in get_matched_databases(cursor, name):
         return Result(State.unchanged)
     # Always returns zero rows; emits a warning if the database doesn't exist.
     query(cursor, _format("DROP DATABASE IF EXISTS {}", name))

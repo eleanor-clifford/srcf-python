@@ -30,6 +30,13 @@ def get_user(username: str) -> User:
     return pwd.getpwnam(username)
 
 
+def get_group(username: str) -> Group:
+    """
+    Look up an existing group by name.
+    """
+    return grp.getgrnam(username)
+
+
 @require_host(Hosts.USER)
 def add_user(username: str, uid: int=None, system: bool=False, active: bool=True,
              home_dir: str=None, real_name: str="") -> Result[User]:
@@ -111,7 +118,7 @@ def create_home(user: User, path: str) -> Result:
     """
     Create an empty home directory owned by the given user.
     """
-    result = Result(State.unchanged)  # type: Result
+    result = Result(State.unchanged)
     try:
         os.mkdir(path, 0o2775)
     except FileExistsError:
@@ -144,13 +151,6 @@ def create_user(username: str, uid: int=None, system: bool=False, active: bool=T
                                  enable_user(user, active))
         result.value = user
         return result
-
-
-def get_group(username: str) -> Group:
-    """
-    Look up an existing group by name.
-    """
-    return grp.getgrnam(username)
 
 
 @require_host(Hosts.USER)
