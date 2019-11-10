@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session as SQLASession
 from srcf.database import MailHandler, Member, Society
 from srcf.database.queries import get_member, get_society
 
+from ..email import send
 from ..plumbing import bespoke, pgsql as pgsql_p, unix
 from ..plumbing.common import Collect, Password, Result, State
 from . import mailman, mysql, pgsql
@@ -184,8 +185,7 @@ def create_society(name: str, description: str, admins: Set[str],
         yield bespoke.generate_sudoers()
     if res_record:
         yield bespoke.export_members()
-    # TODO: Welcome email
-    # TODO: Existing admins email
+    send(society, "tasks/society_create.j2")
     return society
 
 

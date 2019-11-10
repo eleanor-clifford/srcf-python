@@ -8,6 +8,7 @@ Email templates placed inside the `templates` directory of this module should:
 """
 
 from enum import Enum
+import logging
 import os.path
 
 from jinja2 import Environment, FileSystemLoader
@@ -18,6 +19,9 @@ from srcf.database import Member, Society
 from srcf.mail import send_mail
 
 from ..plumbing.common import Owner, owner_desc, owner_name, owner_website
+
+
+LOG = logging.getLogger(__name__)
 
 
 ENV = Environment(loader=FileSystemLoader(os.path.join(os.path.dirname(__file__), "templates")),
@@ -94,4 +98,5 @@ def send(target: Owner, template: str, context: dict = None, session: SQLASessio
     subject = wrapper.render(template, Layout.SUBJECT, target, context)
     body = wrapper.render(template, Layout.BODY, target, context)
     recipient = (owner_desc(target, True), target.email)
+    LOG.debug("Sending email %r to %s", template, target)
     send_mail(recipient, subject, body, copy_sysadmins=False, session=session)

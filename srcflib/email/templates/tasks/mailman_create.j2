@@ -1,0 +1,32 @@
+{% extends layout %}
+
+{% block subject %}
+Mailing list created
+{% endblock %}
+
+{% block body %}
+{% if password %}
+Your new mailing list '{{ listname }}@srcf.net' is now active.  You will need the following password to manage it (note that this is *not* your main SRCF password):
+
+    {{ password }}
+
+{% include "/common/password_sharing.j2" %}
+
+{% else %}
+Your mailing list {{ listname }}@srcf.net is now active.  You can use your existing list password to manage it.
+{% endif %}
+
+To manage the list via a web interface (Mailman):
+
+    https://lists.srcf.net/mailman/admin/{{ listname }}
+
+Your list also comes with an information page where prospective members can join:
+
+    https://lists.srcf.net/mailman/listinfo/{{ listname }}
+
+{% if target | is_society %}
+We recommend you keep the list owner set solely to the unified society admin email address (though you may add additional moderators if needed).  This way, ownership of the list matches the rest of the society account.
+{% else %}
+We recommend you keep the list owner set solely to your email address (though you may add additional moderators if needed).  For shared ownership, consider creating a society account to own mailing lists.
+{% endif %}
+{% endblock %}

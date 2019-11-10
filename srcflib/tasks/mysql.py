@@ -9,8 +9,9 @@ from pymysql.cursors import Cursor
 from srcf.database import Member, Society
 from srcf.database.queries import get_member, get_society
 
+from ..email import send
 from ..plumbing import mysql
-from ..plumbing.common import Collect, Owner, owner_name, Password, Result
+from ..plumbing.common import Collect, Owner, owner_name, Password, Result, State
 
 
 # Re-export connection plumbing to avoid unnecessary imports elsewhere.
@@ -131,7 +132,10 @@ def reset_password(cursor: Cursor, owner: Owner) -> Result[Password]:
     """
     Reset the password of a member's or society's MySQL user account.
     """
-    return mysql.reset_password(cursor, _user_name(owner))
+    result = mysql.reset_password(cursor, _user_name(owner))
+    send(owner, "tasks/mysql_password.j2", {"username": _user_name(owner),
+                                            "password": result.value})
+    return result
 
 
 @Result.collect
@@ -187,6 +191,10 @@ def create_account(cursor: Cursor, owner: Owner) -> Collect[Tuple[Optional[Passw
     """
     Create a MySQL user account and initial database for a member or society.
     """
-    res_passwd = yield from new_account(cursor, owner)
+    res_account = yield from new_account(cursor, owner)
     res_db = yield from create_database(cursor, owner)
-    return (res_passwd.value, res_db.value)
+    if res_account.state == State.created:
+        send(owner, "tasks/mysql_create.j2", {"username": _user_name(owner),
+                                              "password": res_account.value,
+                                              "database": res_db.value})
+    return (res_account.value, res_db.value)

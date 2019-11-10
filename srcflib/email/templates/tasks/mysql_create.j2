@@ -1,0 +1,34 @@
+{% extends layout %}
+
+{% block subject %}
+MySQL account created
+{% endblock %}
+
+{% block body %}
+{% if password %}
+Your new MySQL account '{{ username }}' and database{% if database and database != username %} '{{ database }}'{% endif %} are now active.  You will need the following password to login (note that this is not your main SRCF password):
+
+    {{ password }}
+
+{% include "/common/password_sharing.j2" %}
+
+{% else %}
+Your new MySQL database '{{ database }}' is now active.  You can use your existing MySQL account to access it.
+{% endif %}
+
+{% if target | is_society %}
+If you have a personal MySQL account already, you can also login with that to manage both your personal and society databases.  However, as this new account is shared between all admins of the '{{ target | owner_name }}' society account, you MUST use the society account's username/password (rather than your own personal credentials) when configuring any websites, scripts or other programmatic access within the society account.
+
+{% endif %}
+To access the database via a web interface (phpMyAdmin):
+
+    https://www.srcf.net/phpmyadmin
+
+To access the database from the shell, use the following command:
+
+    mysql -u {{ username }} -p {{ password or "<password>" }}
+
+You can change your MySQL password via phpMyAdmin or by issuing the following query:
+
+    SET PASSWORD = PASSWORD('<new password>');
+{% endblock %}

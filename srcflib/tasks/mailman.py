@@ -6,6 +6,7 @@ from typing import List, Optional, Tuple
 
 from srcf.database import Member
 
+from ..email import send
 from ..plumbing import bespoke, mailman
 from ..plumbing.common import Collect, Owner, State, owner_name, Password, Result
 
@@ -38,6 +39,8 @@ def create_list(owner: Owner, suffix: Optional[str] = None) -> Collect[Tuple[str
     if res_create.state == State.created:
         yield bespoke.configure_mailing_list(name)
         yield bespoke.generate_mailman_aliases()
+        send(owner, "tasks/mailman_create.j2", {"listname": name,
+                                                "password": res_create.value})
     return (name, res_create.value)
 
 
@@ -49,6 +52,8 @@ def reset_owner_password(owner: Owner, suffix: Optional[str] = None) -> Collect[
     name, admin = _list_name_owner(owner, suffix)
     yield mailman.set_owner(name, admin)
     res_passwd = yield from mailman.reset_password(name)
+    send(owner, "tasks/mailman_password.j2", {"listname": name,
+                                              "password": res_passwd.value})
     return res_passwd.value
 
 
