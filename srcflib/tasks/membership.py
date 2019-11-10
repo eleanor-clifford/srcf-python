@@ -62,6 +62,25 @@ def create_sysadmin(member: Member) -> ResultSet:
     return results
 
 
+def update_member_name(member: Member, preferred_name: str, surname: str) -> ResultSet:
+    """
+    Update a member's registered name.
+    """
+    results = ResultSet()
+    with bespoke.context() as sess:
+        member = results.add(bespoke.create_member(sess=sess, crsid=member.crsid,
+                                                   preferred_name=preferred_name,
+                                                   surname=surname,
+                                                   email=member.email,
+                                                   mail_handler=member.mail_handler,
+                                                   is_member=member.member,
+                                                   is_user=member.user))
+    pwd_info = unix.get_user(member.crsid)
+    results.extend(unix.set_real_name(pwd_info, member.name),
+                   bespoke.make_yp())
+    return results
+
+
 def create_society(name: str, description: str, admins: Set[str],
                    role_email: str=None) -> ResultSet[Society]:
     """
@@ -150,4 +169,21 @@ def delete_society(society: Society) -> ResultSet:
     with bespoke.session() as sess:
         results.extend(bespoke.delete_society(sess, society))
     results.extend(bespoke.export_members())
+    return results
+
+
+def update_society_description(society: Society, description: str) -> ResultSet:
+    """
+    Update a society's description ('full name').
+    """
+    results = ResultSet()
+    with bespoke.context() as sess:
+        member = results.add(bespoke.create_society(sess=sess, crsid=member.crsid,
+                                                    name=society.society,
+                                                    description=description,
+                                                    admins=society.admins,
+                                                    role_email=society.role_email))
+    pwd_info = unix.get_user(society.society)
+    results.extend(unix.set_real_name(pwd_info, description),
+                   bespoke.make_yp())
     return results
