@@ -17,6 +17,8 @@ from srcf.database import schema, queries, Job as db_Job
 from srcf.database.schema import Member, Society, Domain
 from srcf.mail import send_mail
 
+from srcflib.tasks import mailman
+
 from . import utils
 
 
@@ -484,19 +486,18 @@ class CreateUserMailingList(Job):
     def __str__(self): return "Create user mailing list: {0.owner_crsid}-{0.listname}".format(self)
 
     def run(self, sess):
-        full_listname = "{}-{}".format(self.owner, self.listname)
-        password = make_pwd()
-
         self.log("Sanity check list name")
         if not re.match(r"^[A-Za-z0-9\-]+$", self.listname) \
         or self.listname.split("-")[-1] in ("admin", "bounces", "confirm", "join", "leave",
                                             "owner", "request", "subscribe", "unsubscribe"):
             raise JobFailed("Invalid list name {}".format(full_listname))
 
-        subproc_call(self, "Create mailing list {0}".format(full_listname),
-                     ["sshpass", "newlist", full_listname, self.owner.crsid + "@srcf.net"], password.encode("utf-8"))
-        subproc_call(self, "Configure list", ["/usr/sbin/config_list", "-i", "/root/mailman-newlist-defaults", full_listname])
-        subproc_call(self, "Generate aliases", ["/usr/local/sbin/srcf-generate-mailman-aliases"])
+        self.log("Create list")
+        result = mailman.create_list(self.owner, self.listname)
+
+        self.log("Send password")
+        full_listname = "{}-{}".format(self.owner, self.listname)
+        mail_users(self.owner, "Mailing list created", "list-create", listname=full_listname, password=result.value)
 
 @add_job
 class ResetUserMailingListPassword(Job):
@@ -517,9 +518,19 @@ class ResetUserMailingListPassword(Job):
     def __str__(self): return "Reset user mailing list password: {0.listname}".format(self)
 
     def run(self, sess):
-        subproc_call(self, "Reset list admins", ["/usr/sbin/config_list", "-v", "-i", "/dev/stdin", self.listname],
-                     "owner = ['{0}@srcf.net']".format(self.owner).encode("utf-8"))
-        subproc_call(self, "Reset list password", ["/usr/lib/mailman/bin/change_pw", "-l", self.listname])
+        # TODO: allow name input
+        try:
+            owner, mlist = self.listname.split("-", 1)
+        except ValueError:
+            owner = self.listname
+            mlist = None
+        assert owner == self.owner.crsid
+
+        self.log("Reset owner and password")
+        result = mailman.reset_owner_password(self.owner, mlist)
+
+        self.log("Send new password")
+        mail_users(self.owner, "Mailing list password reset", "list-password", listname=self.listname, password=result.value)
 
 @add_job
 class AddUserVhost(Job):
@@ -883,18 +894,18 @@ class CreateSocietyMailingList(SocietyJob):
     def __str__(self): return "Create society mailing list: {0.society_society}-{0.listname}".format(self)
 
     def run(self, sess):
-        full_listname = "{}-{}".format(self.society_society, self.listname)
-        password = make_pwd()
-
+        self.log("Sanity check list name")
         if not re.match(r"^[A-Za-z0-9\-]+$", self.listname) \
         or self.listname.split("-")[-1] in ("admin", "bounces", "confirm", "join", "leave",
                                             "owner", "request", "subscribe", "unsubscribe"):
             raise JobFailed("Invalid list name {}".format(full_listname))
 
-        subproc_call(self, "Create mailing list {0}".format(full_listname),
-                     ["sshpass", "newlist", full_listname, self.society.society + "-admins@srcf.net"], password.encode("utf-8"))
-        subproc_call(self, "Configure list", ["/usr/sbin/config_list", "-i", "/root/mailman-newlist-defaults", full_listname])
-        subproc_call(self, "Generate aliases", ["/usr/local/sbin/srcf-generate-mailman-aliases"])
+        self.log("Create list")
+        result = mailman.create_list(self.society, self.listname)
+
+        self.log("Send password")
+        full_listname = "{}-{}".format(self.owner, self.listname)
+        mail_users(self.society, "Mailing list created", "list-create", listname=full_listname, password=result.value)
 
 @add_job
 class ResetSocietyMailingListPassword(SocietyJob):
@@ -918,9 +929,19 @@ class ResetSocietyMailingListPassword(SocietyJob):
     def __str__(self): return "Reset society mailing list password: {0.listname}".format(self)
 
     def run(self, sess):
-        subproc_call(self, "Reset list admins", ["/usr/sbin/config_list", "-v", "-i", "/dev/stdin", self.listname],
-                     "owner = ['{0}-admins@srcf.net']".format(self.society_society).encode("utf-8"))
-        subproc_call(self, "Reset list password", ["/usr/lib/mailman/bin/change_pw", "-l", self.listname])
+        # TODO: allow name input
+        try:
+            owner, mlist = self.listname.split("-", 1)
+        except ValueError:
+            owner = self.listname
+            mlist = None
+        assert owner == self.society.society
+
+        self.log("Reset owner and password")
+        result = mailman.reset_owner_password(self.owner, mlist)
+
+        self.log("Send new password")
+        mail_users(self.society, "Mailing list password reset", "list-password", listname=self.listname, password=result.value)
 
 # Here be dragons: we trust the value of crsid a *lot* (such that it appears unescaped in SQL queries).
 # Quote with backticks and ensure only valid characters (alnum for crsid, alnum + [_-] for society).
