@@ -2,8 +2,6 @@ The mailing list {{ listname }}@srcf.net has been created for your shared accoun
 
 List password: {{ password }}
 
-{% include "common/password-sharing.txt" %}
-
 To manage the list via a web interface (Mailman):
 
     https://lists.srcf.net/mailman/admin/{{ listname }}
