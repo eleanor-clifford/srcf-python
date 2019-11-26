@@ -905,7 +905,7 @@ class CreateSocietyMailingList(SocietyJob):
 
         self.log("Send password")
         full_listname = "{}-{}".format(self.owner, self.listname)
-        mail_users(self.society, "Mailing list created", "list-create", listname=full_listname, password=result.value)
+        mail_users(self.society, "Mailing list created", "list-create", listname=full_listname, password=result.value, requester=self.owner)
 
 @add_job
 class ResetSocietyMailingListPassword(SocietyJob):
