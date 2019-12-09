@@ -904,7 +904,7 @@ class CreateSocietyMailingList(SocietyJob):
         result = mailman.create_list(self.society, self.listname)
 
         self.log("Send password")
-        full_listname = "{}-{}".format(self.owner, self.listname)
+        full_listname = "{}-{}".format(self.society, self.listname)
         mail_users(self.society, "Mailing list created", "list-create", listname=full_listname, password=result.value, requester=self.owner)
 
 @add_job
@@ -938,7 +938,7 @@ class ResetSocietyMailingListPassword(SocietyJob):
         assert owner == self.society.society
 
         self.log("Reset owner and password")
-        result = mailman.reset_owner_password(self.owner, mlist)
+        result = mailman.reset_owner_password(self.society, mlist)
 
         self.log("Send new password")
         mail_users(self.society, "Mailing list password reset", "list-password", listname=self.listname, password=result.value)
