@@ -941,7 +941,7 @@ class ResetSocietyMailingListPassword(SocietyJob):
         result = mailman.reset_owner_password(self.society, mlist)
 
         self.log("Send new password")
-        mail_users(self.society, "Mailing list password reset", "list-password", listname=self.listname, password=result.value)
+        mail_users(self.society, "Mailing list password reset", "list-password", listname=self.listname, password=result.value, requester=self.owner)
 
 # Here be dragons: we trust the value of crsid a *lot* (such that it appears unescaped in SQL queries).
 # Quote with backticks and ensure only valid characters (alnum for crsid, alnum + [_-] for society).
