@@ -496,8 +496,8 @@ class CreateUserMailingList(Job):
         result = mailman.create_list(self.owner, self.listname)
 
         self.log("Send password")
-        full_listname = "{}-{}".format(self.owner, self.listname)
-        mail_users(self.owner, "Mailing list created", "list-create", listname=full_listname, password=result.value)
+        full_listname, password = result.value
+        mail_users(self.owner, "Mailing list created", "list-create", listname=full_listname, password=password)
 
 @add_job
 class ResetUserMailingListPassword(Job):
@@ -904,8 +904,8 @@ class CreateSocietyMailingList(SocietyJob):
         result = mailman.create_list(self.society, self.listname)
 
         self.log("Send password")
-        full_listname = "{}-{}".format(self.society, self.listname)
-        mail_users(self.society, "Mailing list created", "list-create", listname=full_listname, password=result.value, requester=self.owner)
+        full_listname, password = result.value
+        mail_users(self.society, "Mailing list created", "list-create", listname=full_listname, password=password, requester=self.owner)
 
 @add_job
 class ResetSocietyMailingListPassword(SocietyJob):
