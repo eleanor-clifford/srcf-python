@@ -236,14 +236,14 @@ class Test(Job):
     @classmethod
     def new(cls, mem, sleep_time):
         args = {
-	    "sleep_time": str(sleep_time)
+            "sleep_time": str(sleep_time)
         }
         return cls.create(mem, args, require_approval=False)
 
     sleep_time = property(lambda s: min(40, int(s.row.args["sleep_time"])))
 
     def run(self, sess):
-    	time.sleep(self.sleep_time)
+        time.sleep(self.sleep_time)
 
     def __repr__(self): return "<Test {0.owner.crsid}>".format(self)
     def __str__(self): return "Test: {0.owner.crsid} {0.sleep_time}".format(self)
