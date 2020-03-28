@@ -71,6 +71,7 @@ class Member(Base, MemberCompat):
         modified = Column(DateTime(timezone=True), FetchedValue())
         danger = Column(Boolean, nullable=False, server_default='f')
         notes = Column(Text, nullable=False, server_default='')
+        disk_quota_gb = Column(Integer, FetchedValue())
         domains = relationship("Domain", primaryjoin="foreign(Domain.owner) == Member.crsid")
     if is_root or is_webapp or is_hades:
         # Beware: Enum doesn't validate until sqlalchemy 1.1
@@ -139,6 +140,7 @@ class Society(Base, SocietyCompat):
         role_email = Column(String(100), CheckConstraint("email ~ E'@'"))
         danger = Column(Boolean, nullable=False, server_default='f')
         notes = Column(Text, nullable=False, server_default='')
+        disk_quota_gb = Column(Integer, FetchedValue())
 
     admins = relationship("Member",
             secondary=society_admins, collection_class=AdminsSetCompat,
