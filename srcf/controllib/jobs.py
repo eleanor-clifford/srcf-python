@@ -309,7 +309,7 @@ class Signup(Job):
         # Most SRCF-specific tasks are handled by /usr/local/sbin/adduser.local
         # NB: adduser --uid will implicitly use gid=uid; --gid does not do what we want (bypasses group creation)
         subproc_call(self, "Add UNIX user (uid %d)" % uid, ["adduser", "--disabled-password", "--uid", str(uid), "--gecos", name, crsid])
-        subproc_call(self, "Set quota", ["set_quota", crsid])
+        subproc_call(self, "Update quotas", ["/usr/local/sbin/srcf-update-quotas", crsid])
 
         if self.mail_handler == "pip":
             self.log("Create default .forward file")
@@ -723,7 +723,7 @@ class CreateSociety(SocietyJob):
         with open("/societies/srcf-admin/socwebstatus", "a") as myfile:
             myfile.write(self.society_society + ":subdomain\n")
 
-        subproc_call(self, "Set quota", ["/usr/local/sbin/set_quota", self.society_society])
+        subproc_call(self, "Update quotas", ["/usr/local/sbin/srcf-update-quotas", self.society_society])
         subproc_call(self, "Generate sudoers", ["/usr/local/sbin/srcf-generate-society-sudoers"])
         subproc_call(self, "Export memberdb", ["/usr/local/sbin/srcf-memberdb-export"])
         subproc_call(self, "Rebuild /var/yp", ["make", "-C", "/var/yp"])
