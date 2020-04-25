@@ -82,6 +82,12 @@ def get_society(name, session=None):
         else:
             raise KeyError(name)
 
+def get_member_or_society(name, session=None):
+    try:
+        return get_member(name, session)
+    except KeyError:
+        return get_society(name, session)
+
 def dict_users(session = None):
     with _sess(session) as sess:
         return {m.crsid: m for m in sess.query(Member).filter(Member.user == True)}
