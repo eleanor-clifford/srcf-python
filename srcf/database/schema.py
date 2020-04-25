@@ -62,6 +62,9 @@ class Member(Base, MemberCompat):
     preferred_name = Column(String(100))
     member = Column(Boolean, nullable=False)
     user = Column(Boolean, nullable=False)
+    disk_quota_gb = Column(Integer, FetchedValue())
+    disk_usage_gb = Column(Numeric, FetchedValue())
+    disk_usage_updated = Column(DateTime(timezone=True), FetchedValue())
     if is_root or is_webapp:
         uid = Column(Integer, FetchedValue())
         gid = Column(Integer, FetchedValue())
@@ -71,9 +74,6 @@ class Member(Base, MemberCompat):
         modified = Column(DateTime(timezone=True), FetchedValue())
         danger = Column(Boolean, nullable=False, server_default='f')
         notes = Column(Text, nullable=False, server_default='')
-        disk_quota_gb = Column(Integer, FetchedValue())
-        disk_usage_gb = Column(Numeric, FetchedValue())
-        disk_usage_updated = Column(DateTime(timezone=True), FetchedValue())
         domains = relationship("Domain", primaryjoin="foreign(Domain.owner) == Member.crsid")
     if is_root or is_webapp or is_hades:
         # Beware: Enum doesn't validate until sqlalchemy 1.1
@@ -134,6 +134,9 @@ class Society(Base, SocietyCompat):
     society = Column(SOCIETY_TYPE, CheckConstraint('society = lower(society)'),
                      primary_key=True)
     description = Column(String(100), nullable=False)
+    disk_quota_gb = Column(Integer, FetchedValue())
+    disk_usage_gb = Column(Numeric, FetchedValue())
+    disk_usage_updated = Column(DateTime(timezone=True), FetchedValue())
     if is_root or is_webapp:
         uid = Column(Integer, FetchedValue())
         gid = Column(Integer, FetchedValue())
@@ -142,9 +145,6 @@ class Society(Base, SocietyCompat):
         role_email = Column(String(100), CheckConstraint("email ~ E'@'"))
         danger = Column(Boolean, nullable=False, server_default='f')
         notes = Column(Text, nullable=False, server_default='')
-        disk_quota_gb = Column(Integer, FetchedValue())
-        disk_usage_gb = Column(Numeric, FetchedValue())
-        disk_usage_updated = Column(DateTime(timezone=True), FetchedValue())
 
     admins = relationship("Member",
             secondary=society_admins, collection_class=AdminsSetCompat,
