@@ -6,7 +6,7 @@ import pwd
 
 import six
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, Enum
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, Enum, Numeric
 from sqlalchemy import event
 from sqlalchemy.dialects.postgresql import HSTORE
 #from .hstore import HSTORE
@@ -72,6 +72,8 @@ class Member(Base, MemberCompat):
         danger = Column(Boolean, nullable=False, server_default='f')
         notes = Column(Text, nullable=False, server_default='')
         disk_quota_gb = Column(Integer, FetchedValue())
+        disk_usage_gb = Column(Numeric, FetchedValue())
+        disk_usage_updated = Column(DateTime(timezone=True), FetchedValue())
         domains = relationship("Domain", primaryjoin="foreign(Domain.owner) == Member.crsid")
     if is_root or is_webapp or is_hades:
         # Beware: Enum doesn't validate until sqlalchemy 1.1
@@ -141,6 +143,8 @@ class Society(Base, SocietyCompat):
         danger = Column(Boolean, nullable=False, server_default='f')
         notes = Column(Text, nullable=False, server_default='')
         disk_quota_gb = Column(Integer, FetchedValue())
+        disk_usage_gb = Column(Numeric, FetchedValue())
+        disk_usage_updated = Column(DateTime(timezone=True), FetchedValue())
 
     admins = relationship("Member",
             secondary=society_admins, collection_class=AdminsSetCompat,
