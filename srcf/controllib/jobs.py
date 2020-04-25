@@ -124,6 +124,7 @@ class JobFailed(Exception):
 class Job(object):
     def __init__(self, row):
         self.row = row
+        self.type = row.type
 
     @staticmethod
     def of_row(row):
@@ -212,6 +213,8 @@ class Job(object):
         self.state = state
         self.state_message = message
 
+    def __repr__(self): return "<Unknown {0.type}>".format(self)
+    def __str__(self): return "Unknown job type: {0.type}".format(self)
 
 class SocietyJob(Job):
     society_society = property(lambda s: s.row.args["society"])
