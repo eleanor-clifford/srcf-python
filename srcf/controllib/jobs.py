@@ -122,9 +122,15 @@ class JobFailed(Exception):
 
 
 class Job(object):
+    def __init__(self, row):
+        self.row = row
+
     @staticmethod
     def of_row(row):
-        return all_jobs[row.type](row)
+        if row.type in all_jobs:
+            return all_jobs[row.type](row)
+        else:
+            return Job(row)
 
     @classmethod
     def find_by_user(cls, sess, crsid):
