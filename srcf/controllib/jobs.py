@@ -708,6 +708,8 @@ class CreateSociety(SocietyJob):
                                                 "--disabled-password", "--system", self.society_society])
         subproc_call(self, "Set home directory", ["/usr/sbin/usermod", "-d", home_path, self.society_society])
 
+        subproc_call(self, "Rebuild /var/yp", ["make", "-C", "/var/yp"])
+
         self.log("Create home and public directories")
         for path, perm in ((home_path, 0o2770), (public_path, 0o2775)):
             os.mkdir(path)
@@ -735,7 +737,6 @@ class CreateSociety(SocietyJob):
         subproc_call(self, "Update quotas", ["/usr/local/sbin/srcf-update-quotas", self.society_society])
         subproc_call(self, "Generate sudoers", ["/usr/local/sbin/srcf-generate-society-sudoers"])
         subproc_call(self, "Export memberdb", ["/usr/local/sbin/srcf-memberdb-export"])
-        subproc_call(self, "Rebuild /var/yp", ["make", "-C", "/var/yp"])
 
         self.log("Send welcome email")
         newsoc = queries.get_society(self.society_society)
