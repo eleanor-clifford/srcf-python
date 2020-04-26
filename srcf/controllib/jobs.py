@@ -1007,6 +1007,8 @@ class ResetMySQLUserPassword(Job):
         password = make_pwd()
 
         with mysql_context(self) as (db, cursor):
+            sql_exec(self, cursor, "(Re-)grant privileges (base)", "GRANT ALL PRIVILEGES ON `" + crsid + "`.*    to '" + crsid + "'@'%%'")
+            sql_exec(self, cursor, "(Re-)grant privileges (wild)", "GRANT ALL PRIVILEGES ON `" + crsid + "/%%`.* to '" + crsid + "'@'%%'")
             sql_exec(self, cursor, "Reset password", "SET PASSWORD FOR '" + crsid + "'@'%%' = %s", password)
 
         self.log("Send new password")
