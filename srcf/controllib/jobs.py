@@ -1167,7 +1167,7 @@ class ResetPostgresUserPassword(Job):
 
             if len(results) == 0:
                 sql_exec(self, cursor, "Create user", "CREATE USER " + crsid + " ENCRYPTED PASSWORD %s NOCREATEDB NOCREATEUSER", password)
-            else
+            else:
                 sql_exec(self, cursor, "(Re-)enable user logins", "ALTER ROLE " + crsid + " LOGIN")
                 sql_exec(self, cursor, "Reset password", "ALTER USER " + crsid + " PASSWORD %s", password)
 
