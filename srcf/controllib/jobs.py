@@ -990,6 +990,8 @@ class CreateMySQLUserDatabase(Job):
 class ResetMySQLUserPassword(Job):
     JOB_TYPE = 'reset_mysql_user_password'
 
+    # NB: also used to create a MySQL user (in cases where a database doesn't need to be created)
+
     def __init__(self, row):
         self.row = row
 
