@@ -1145,6 +1145,8 @@ class CreatePostgresUserDatabase(Job):
 class ResetPostgresUserPassword(Job):
     JOB_TYPE = 'reset_postgres_user_password'
 
+    # NB: also used to create a Postgres user (in cases where a database doesn't need to be created)
+
     def __init__(self, row):
         self.row = row
 
@@ -1164,9 +1166,10 @@ class ResetPostgresUserPassword(Job):
             results = cursor.fetchall()
 
             if len(results) == 0:
-                raise JobFailed(crsid + " does not have a Postgres user")
-
-            sql_exec(self, cursor, "Reset password", "ALTER USER " + crsid + " PASSWORD %s", password)
+                sql_exec(self, cursor, "Create user", "CREATE USER " + crsid + " ENCRYPTED PASSWORD %s NOCREATEDB NOCREATEUSER", password)
+            else
+                sql_exec(self, cursor, "(Re-)enable user logins", "ALTER ROLE " + crsid + " LOGIN")
+                sql_exec(self, cursor, "Reset password", "ALTER USER " + crsid + " PASSWORD %s", password)
 
         self.log("Send new password")
         mail_users(self.owner, "PostgreSQL database password reset", "postgres-password", password=password)
