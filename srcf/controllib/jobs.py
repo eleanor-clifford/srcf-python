@@ -1115,7 +1115,7 @@ class CreatePostgresUserDatabase(Job):
         dbcreated = False
 
         with pgsql_context(self) as (db, cursor):
-            sql_exec(self, cursor, "Check for existing user", "SELECT usename FROM pg_shadow WHERE usename = %s", crsid)
+            sql_exec(self, cursor, "Check for existing user", "SELECT rolname FROM pg_roles WHERE rolname = %s", crsid)
             results = cursor.fetchall()
 
             if len(results) == 0:
