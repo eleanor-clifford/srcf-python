@@ -1,1 +1,1 @@
-../../listsdotcam/listsdotcam.py
+/usr/local/lib/listsdotcam/listsdotcam.py
