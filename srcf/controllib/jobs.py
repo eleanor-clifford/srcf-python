@@ -499,7 +499,7 @@ class CreateUserMailingList(Job):
         if not re.match(r"^[A-Za-z0-9\-]+$", self.listname) \
         or self.listname.split("-")[-1] in ("admin", "bounces", "confirm", "join", "leave",
                                             "owner", "request", "subscribe", "unsubscribe"):
-            raise JobFailed("Invalid list name {}".format(full_listname))
+            raise JobFailed("Invalid list name {}".format(self.listname))
 
         self.log("Create list")
         result = mailman.create_list(self.owner, self.listname)
