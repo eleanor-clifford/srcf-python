@@ -1086,7 +1086,11 @@ class ResetMySQLSocietyPassword(SocietyJob):
         password = make_pwd()
 
         with mysql_context(self) as (db, cursor):
-            sql_exec(self, cursor, "Set password", "SET PASSWORD FOR '" + socname + "'@'%%' = %s", password)
+            sql_exec(
+                self, cursor,
+                "Set password",
+                "SET PASSWORD FOR '" + socname.replace('-', '_') + "'@'%%' = %s", password
+            )
 
         self.log("Send new password")
         mail_users(self.society, "MySQL database password reset", "mysql-password", password=password, requester=self.owner)
