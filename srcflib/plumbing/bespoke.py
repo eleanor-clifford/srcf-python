@@ -12,8 +12,6 @@ import pwd
 import shutil
 from typing import Generator, List, Optional, Set
 
-import posix1e
-
 from requests import session, Session as REQS_SESSION
 
 from sqlalchemy.orm import Session as SQLA_SESSION
@@ -193,33 +191,8 @@ def set_home_exim_acl(owner: Owner) -> ResultSet:
     Grant access to the user's ``.forward`` file for Exim.
     """
     path = pwd.getpwnam(owner_name(owner)).pw_dir
-    exim = pwd.getpwnam("Debian-exim").pw_uid
-    acl = posix1e.ACL(file=path)
-    granted = masked = None
-    for entry in acl:
-        if entry.tag_type == posix1e.ACL_USER and entry.qualifier == exim:
-            granted = entry.permset.execute
-        elif entry.tag_type == posix1e.ACL_MASK:
-            masked = entry.permset.read and entry.permset.write and entry.permset.execute
-    if granted is None:
-        grant = acl.append()
-        grant.tag_type = posix1e.ACL_USER
-        grant.qualifier = exim
-        grant.permset.execute = True
-    elif not granted:
-        LOG.warning("Ignoring invalid home directory grant")
-    if masked is None:
-        mask = acl.append()
-        mask.tag_type = posix1e.ACL_MASK
-        mask.permset.read = True
-        mask.permset.write = True
-        mask.permset.execute = True
-    elif not masked:
-        LOG.warning("Ignoring invalid home directory mask")
-    assert acl.valid()
-    acl.applyto(path)
-    return ResultSet(Result(State.success if granted is None else State.unchanged),
-                     Result(State.success if masked is None else State.unchanged))
+    command(["/usr/bin/nfs4_setfacl", "-a", "A::Debian-exim@srcf.net:RX", path])
+    return Result(State.success)
 
 
 def create_forwarding_file(owner: Owner) -> Result:
