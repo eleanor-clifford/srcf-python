@@ -716,8 +716,7 @@ class CreateSociety(SocietyJob):
             os.chmod(path, perm)
             os.chown(path, uid, gid)
 
-        self.log("Set ACL on home directory")
-        utils.set_homedir_acls(home_path)
+        subproc_call(self, "Set ACL on home directory", ["/usr/bin/nfs4_setfacl", "-a", "A::Debian-exim@srcf.net:RX", home_path])
 
         for name in ("public_html", "cgi-bin"):
             dir_path = os.path.join("/public", "societies", self.society_society, name)

@@ -48,18 +48,3 @@ def mysql_conn():
 def is_valid_socname(s):
     return re.match(r'^[a-z0-9_-]+$', s)
 
-
-def set_homedir_acls(home_path):
-    acl = posix1e.ACL(file=home_path)
-    aclentry = acl.append()
-    aclentry.tag_type = posix1e.ACL_USER
-    aclentry.qualifier = pwd.getpwnam("Debian-exim").pw_uid
-    aclentry.permset.execute = True
-    aclmask = acl.append()
-    aclmask.tag_type = posix1e.ACL_MASK
-    aclmask.permset.read = True
-    aclmask.permset.write = True
-    aclmask.permset.execute = True
-    assert acl.valid()
-    acl.applyto(home_path)
-
