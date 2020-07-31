@@ -497,9 +497,9 @@ class CreateUserMailingList(Job):
     def run(self, sess):
         self.log("Sanity check list name")
         if not re.match(r"^[A-Za-z0-9\-]+$", self.listname) \
-        or self.listname.split("-")[-1] in ("admin", "bounces", "confirm", "join", "leave",
+        or self.listname.split("-")[-1] in ("admins", "admin", "bounces", "confirm", "join", "leave",
                                             "owner", "request", "subscribe", "unsubscribe"):
-            raise JobFailed("Invalid list name {}".format(self.listname))
+            raise JobFailed("Invalid list suffix {}".format(self.listname))
 
         self.log("Create list")
         result = mailman.create_list(self.owner, self.listname)
@@ -907,9 +907,9 @@ class CreateSocietyMailingList(SocietyJob):
     def run(self, sess):
         self.log("Sanity check list name")
         if not re.match(r"^[A-Za-z0-9\-]+$", self.listname) \
-        or self.listname.split("-")[-1] in ("admin", "bounces", "confirm", "join", "leave",
+        or self.listname.split("-")[-1] in ("admins", "admin", "bounces", "confirm", "join", "leave",
                                             "owner", "request", "subscribe", "unsubscribe"):
-            raise JobFailed("Invalid list name {}".format(full_listname))
+            raise JobFailed("Invalid list suffix {}".format(self.listname))
 
         self.log("Create list")
         result = mailman.create_list(self.society, self.listname)
