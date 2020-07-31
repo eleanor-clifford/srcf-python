@@ -794,11 +794,13 @@ class ChangeSocietyAdmin(SocietyJob):
             "target_member": target_member.crsid,
             "action": action
         }
-        require_approval = \
-                society.danger \
-             or target_member.danger \
-             or requesting_member.danger \
-             or requesting_member == target_member
+        require_approval = (
+                society.danger
+             or target_member.danger
+             or requesting_member.danger
+             or (    action == "remove"
+                 and len(society.admin_crsids) == 1
+                 and society.role_email))
         return cls.create(requesting_member, args, require_approval)
 
     target_member_crsid = property(lambda s: s.row.args["target_member"])
