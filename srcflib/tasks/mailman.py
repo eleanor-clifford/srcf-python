@@ -27,7 +27,7 @@ def create_list(owner: Owner, suffix: str=None) -> ResultSet[Tuple[mailman.MailL
         raise ValueError("List name {!r} ends with reserved suffix".format(name))
     results = ResultSet(mailman.create_list(name, admin),
                         bespoke.configure_mailing_list(name),
-                   bespoke.generate_mailman_aliases())
+                        bespoke.generate_mailman_aliases())
     results.value = (name, results.results[0].value)
     return results
 

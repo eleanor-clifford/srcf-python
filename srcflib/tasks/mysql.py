@@ -181,6 +181,6 @@ def create_account(cursor: Cursor, owner: Owner) -> ResultSet[Tuple[Optional[Pas
     Create a MySQL user account and initial database for a member or society.
     """
     results = ResultSet(new_account(cursor, owner),
-                       create_database(cursor, owner))
+                        create_database(cursor, owner))
     results.value = tuple(inner.value if inner else None for inner in results.results)
     return results
