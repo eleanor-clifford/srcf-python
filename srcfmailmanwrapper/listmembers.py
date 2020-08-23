@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 """List all the members of a mailing list.
 (SRCF wrapper around Mailman's list_members, but note different options.)
@@ -65,14 +65,14 @@ def main():
 
 	try:
 		opts, args = getopt.gnu_getopt(sys.argv[1:], shortopts, longopts)
-	except getopt.error, e:
+	except getopt.error as e:
 		raise util.GetoptError(e)
 
 	mailmanargs = [targetscript]
 
 	for opt, arg in opts:
 		if opt in ("-h", "--help"):
-			print __doc__
+			print(__doc__)
 			sys.exit(0)
 		elif opt in ("-r", "--regular"):
 			mailmanargs += ["-r"]
@@ -109,9 +109,9 @@ def main():
 if __name__=="__main__":
 	try:
 		main()
-	except util.Error, e:
-		print e
+	except util.Error as e:
+		print(e)
 		if e.printusage:
-			print >>sys.stderr, "-----\n%s" % __doc__
+			print("-----\n%s" % __doc__, file=sys.stderr)
 		sys.exit(1)
 

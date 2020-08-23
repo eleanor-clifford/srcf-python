@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 """Remove members from a list.
 (SRCF wrapper around Mailman's remove_members, but note different options.)
@@ -46,14 +46,14 @@ def main():
 
 	try:
 		opts, args = getopt.gnu_getopt(sys.argv[1:], shortopts, longopts)
-	except getopt.error, e:
+	except getopt.error as e:
 		raise util.GetoptError(e)
 
 	mailmanargs = [targetscript]
 
 	for opt, arg in opts:
 		if opt in ("-h", "--help"):
-			print __doc__
+			print(__doc__)
 			sys.exit(0)
 		elif opt in ("-s", "--stdin"):
 			mailmanargs += ["-f", "-"]
@@ -76,9 +76,9 @@ def main():
 if __name__=="__main__":
 	try:
 		main()
-	except util.Error, e:
-		print e
+	except util.Error as e:
+		print(e)
 		if e.printusage:
-			print >>sys.stderr, "-----\n%s" % __doc__
+			print("-----\n%s" % __doc__, file=sys.stderr)
 		sys.exit(1)
 
