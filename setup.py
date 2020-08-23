@@ -17,4 +17,4 @@ setup(name="srcf",
       python_requires=">=3.5",
       install_requires=["argcomplete", "jinja2", "ldap3", "psycopg2-binary", "PyMySQL", "six", "SQLAlchemy"],
       packages=find_packages(),
-      package_data={"srcf.controllib": ["**/*.txt"]})
+      package_data={"srcf.controllib": ["emails/*/*.txt"]})
