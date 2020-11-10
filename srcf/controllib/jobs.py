@@ -99,14 +99,18 @@ def subproc_call(job, desc, cmd, stdin=None):
             output = b"[Could not decode output as UTF-8]\n" + output
         job.log(desc, "output", raw=out)
 
-def mail_users(target, subject, template, **kwargs):
-    target_type = "member" if isinstance(target, Member) else "society"
-    to = (target.name if target_type == "member" else target.description, target.email)
-    subject = "[SRCF] " + (target.society + ": " if target_type == "society" else "") + subject
+def render_email(target, template, **kwargs):
     content = "\n\n".join([
         email_headers[target_type].render(target=target),
         emails.get_template(target_type + "/" + template + ".txt").render(target=target, **kwargs),
         email_footer])
+    return content
+
+def mail_users(target, subject, template, **kwargs):
+    target_type = "member" if isinstance(target, Member) else "society"
+    to = (target.name if target_type == "member" else target.description, target.email)
+    subject = "[SRCF] " + (target.society + ": " if target_type == "society" else "") + subject
+    content = render_email(target, template, **kwargs)
     send_mail(to, subject, content, copy_sysadmins=False)
 
 all_jobs = {}
@@ -315,9 +319,30 @@ class Signup(Job):
         uid = member.uid
         gid = member.gid
 
-        # Most SRCF-specific tasks are handled by /usr/local/sbin/adduser.local
+        home_path = os.path.join("/home", crsid)
+        public_path = os.path.join("/public", "home", crsid)
+
         # NB: adduser --uid will implicitly use gid=uid; --gid does not do what we want (bypasses group creation)
-        subproc_call(self, "Add UNIX user (uid %d)" % uid, ["adduser", "--disabled-password", "--uid", str(uid), "--gecos", name, crsid])
+        # NB: adduser --system doesn't call adduser.local (we do all the work here)
+        subproc_call(self, "Add UNIX user (uid %d)" % uid, ["adduser", "--no-create-home", "--disabled-password",
+                                                            "--system", "--uid", str(uid), "--gecos", name, crsid])
+
+        password = make_pwd()
+        subproc_call(self, "Set password", ["chpasswd"], stdin="%s:%s" % (crsid, password))
+
+        subproc_call(self, "Update NIS maps", ["make", "-C", "/var/yp"])
+
+        self.log("Create home and public directories")
+        for path, perm in ((home_path, 0o2770), (public_path, 0o2775)):
+            os.mkdir(path)
+            os.chmod(path, perm)
+            os.chown(path, uid, gid)
+
+        subproc_call(self, "Set ACL on home directory", ["/usr/bin/nfs4_setfacl", "-a", "A::Debian-exim@srcf.net:RX", home_path])
+
+        self.log("Populate home directory from /etc/skel")
+        utils.copytree_chown_chmod("/etc/skel", home_path, uid, gid)
+
         subproc_call(self, "Update quotas", ["/usr/local/sbin/srcf-update-quotas", crsid])
 
         if self.mail_handler == "pip":
@@ -336,6 +361,12 @@ class Signup(Job):
                                                         "soc-srcf-maintenance:" + ml_entry,
                                                         ("soc-srcf-social:" + ml_entry) if self.social else ""])
         subproc_call(self, "Export memberdb", ["/usr/local/sbin/srcf-memberdb-export"])
+
+        self.log("Create legacy mailbox")
+        send_mail("real-%s" % crsid, render_email(member, "mailbox-placeholder"), copy_sysadmins=False)
+
+        self.log("Send welcome email")
+        mail_users(member, "Your SRCF account", "signup", password=password)
 
     def __repr__(self): return "<Signup {0.crsid}>".format(self)
     def __str__(self): return "Signup: {0.crsid} ({0.preferred_name} {0.surname}, {0.email}, {0.mail_handler} mail)".format(self)
@@ -708,7 +739,7 @@ class CreateSociety(SocietyJob):
                                                 "--disabled-password", "--system", self.society_society])
         subproc_call(self, "Set home directory", ["/usr/sbin/usermod", "-d", home_path, self.society_society])
 
-        subproc_call(self, "Rebuild /var/yp", ["make", "-C", "/var/yp"])
+        subproc_call(self, "Update NIS maps", ["make", "-C", "/var/yp"])
 
         self.log("Create home and public directories")
         for path, perm in ((home_path, 0o2770), (public_path, 0o2775)):

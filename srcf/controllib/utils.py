@@ -1,6 +1,9 @@
+import os
 import re
 import pwd
 from ldap3 import Server, Connection, ALL, ALL_ATTRIBUTES
+import stat
+import shutil
 import configparser
 import pymysql
 import posix1e
@@ -47,4 +50,35 @@ def mysql_conn():
 
 def is_valid_socname(s):
     return re.match(r'^[a-z0-9_-]+$', s)
+
+
+# Copy a tree, overriding the owner, group and permissions
+# (for installing /etc/skel into homedirs)
+# "Inspired by" (an antique version of) shutil.copytree but:
+#  -  Errors are immediately fatal
+#  -  The destination directory must already exist
+# /!\ User permissions are copied to group permissions
+def copytree_chown_chmod(src, dst, uid, gid):
+    for name in os.listdir(src):
+        srcname = os.path.join(src, name)
+        dstname = os.path.join(dst, name)
+        linkto = None
+        if os.path.islink(srcname):
+            linkto = os.readlink(srcname)
+            os.symlink(linkto, dstname)
+        elif os.path.isdir(srcname):
+            os.mkdir(dstname)
+            copytree(srcname, dstname, symlinks)
+        else:
+            shutil.copy(srcname, dstname)
+        # The rest is "inspired by" shutil.copystat...
+        # (but doesn't handle xattrs or flags because we don't need that)
+        os.chown(dstname, uid, gid, follow_symlinks=False)
+        st = os.stat(srcname, follow_symlinks=False)
+        os.utime(dstname, ns=(st.st_atime_ns, st.st_mtime_ns), follow_symlinks=False)
+        if linkto is None:
+            mode = stat.S_IMODE(st.st_mode)
+            # Copy user mode bits to group mode
+            mode = (mode & 0o7707) | ((mode & 0o0700) >> 3)
+            os.chmod(dstname, mode)
 
