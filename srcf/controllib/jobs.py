@@ -729,10 +729,6 @@ class CreateSociety(SocietyJob):
             os.lchown(link_path, uid, gid)
             os.chmod(dir_path, 0o2775)
 
-        self.log("Write subdomain status")
-        with open("/societies/srcf-admin/socwebstatus", "a") as myfile:
-            myfile.write(self.society_society + ":subdomain\n")
-
         subproc_call(self, "Update quotas", ["/usr/local/sbin/srcf-update-quotas", self.society_society])
         subproc_call(self, "Generate sudoers", ["/usr/local/sbin/srcf-generate-society-sudoers"])
         subproc_call(self, "Export memberdb", ["/usr/local/sbin/srcf-memberdb-export"])
