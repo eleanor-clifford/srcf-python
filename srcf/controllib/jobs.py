@@ -367,7 +367,7 @@ class Signup(Job):
         # NB: adduser --system doesn't call adduser.local (we do all the work here)
         subproc_call(self, "Add UNIX user (uid %d)" % uid, ["adduser", "--no-create-home", "--disabled-password",
                                                             "--system", "--uid", str(uid), "--group",
-                                                            "--gecos", name, crsid])
+                                                            "--shell", "/bin/bash", "--gecos", name, crsid])
 
         password = make_pwd()
         chpasswd_data = ("%s:%s" % (crsid, password)).encode("ascii")
