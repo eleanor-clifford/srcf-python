@@ -108,6 +108,7 @@ def update_nis(job, wait_netapp=False):
         time.sleep(16)
 
 def render_email(target, template, **kwargs):
+    target_type = "member" if isinstance(target, Member) else "society"
     content = "\n\n".join([
         email_headers[target_type].render(target=target),
         emails.get_template(target_type + "/" + template + ".txt").render(target=target, **kwargs),
