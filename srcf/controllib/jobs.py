@@ -406,7 +406,8 @@ class Signup(Job):
         subproc_call(self, "Export memberdb", ["/usr/local/sbin/srcf-memberdb-export"])
 
         self.log("Create legacy mailbox")
-        send_mail("real-%s" % crsid, render_email(member, "mailbox-placeholder"), copy_sysadmins=False)
+        send_mail("real-%s" % crsid, "Welcome to your SRCF inbox",
+                  render_email(member, "mailbox-placeholder"), copy_sysadmins=False)
 
         self.log("Send welcome email")
         mail_users(member, "Your SRCF account", "signup", password=password)
