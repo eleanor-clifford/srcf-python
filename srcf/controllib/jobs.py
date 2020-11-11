@@ -99,6 +99,14 @@ def subproc_call(job, desc, cmd, stdin=None):
             output = b"[Could not decode output as UTF-8]\n" + output
         job.log(desc, "output", raw=out)
 
+def update_nis(job, wait_netapp=False):
+    subproc_call(job, "Update NIS maps", ["make", "-C", "/var/yp"])
+    if wait_netapp:
+        # NetApp processes pushes asynchronously and I know of no way to find out when it's finished :-(
+        # We only need to wait for it if we're creating a user/group and need to immediately use it on NFS.
+        job.log("Waiting for NIS servers to process the map update")
+        time.sleep(16)
+
 def render_email(target, template, **kwargs):
     content = "\n\n".join([
         email_headers[target_type].render(target=target),
@@ -332,7 +340,7 @@ class Signup(Job):
         chpasswd_data = ("%s:%s" % (crsid, password)).encode("ascii")
         subproc_call(self, "Set password", ["chpasswd"], stdin=chpasswd_data)
 
-        subproc_call(self, "Update NIS maps", ["make", "-C", "/var/yp"])
+        update_nis(self, wait_netapp=True)
 
         self.log("Create home and public directories")
         for path, perm in ((home_path, 0o2770), (public_path, 0o2775)):
@@ -403,7 +411,7 @@ class Reactivate(Job):
 
         subproc_call(self, "Re-enable UNIX user", ["/usr/sbin/usermod", "-s", "/bin/bash", "-e", "", crsid])
         subproc_call(self, "Change UNIX password for {0}".format(crsid), ["/usr/sbin/chpasswd"], (crsid + ":" + password).encode("utf-8"))
-        subproc_call(self, "Rebuild /var/yp", ["make", "-C", "/var/yp"])
+        update_nis(self)
 
         self.log("Check existing .forward file")
         path = "/home/" + crsid + "/.forward"
@@ -438,7 +446,7 @@ class ResetUserPassword(Job):
         password = make_pwd()
 
         subproc_call(self, "Change UNIX password for {0}".format(crsid), ["/usr/sbin/chpasswd"], (crsid + ":" + password).encode("utf-8"))
-        subproc_call(self, "Rebuild /var/yp", ["make", "-C", "/var/yp"])
+        update_nis(self)
 
         self.log("Send new password")
         mail_users(self.owner, "Password reset", "srcf-password", password=password)
@@ -741,7 +749,7 @@ class CreateSociety(SocietyJob):
                                                 "--disabled-password", "--system", self.society_society])
         subproc_call(self, "Set home directory", ["/usr/sbin/usermod", "-d", home_path, self.society_society])
 
-        subproc_call(self, "Update NIS maps", ["make", "-C", "/var/yp"])
+        update_nis(self, wait_netapp=True)
 
         self.log("Create home and public directories")
         for path, perm in ((home_path, 0o2770), (public_path, 0o2775)):
@@ -867,7 +875,7 @@ class ChangeSocietyAdmin(SocietyJob):
             self.log("Create society home symlink")
             os.symlink(source_ln, target_ln)
 
-        subproc_call(self, "Rebuild /var/yp", ["make", "-C", "/var/yp"])
+        update_nis(self)
 
         self.log("Send confirmation to new member")
         mail_users(self.target_member, "Access granted to " + self.society_society, "add-admin", society=self.society)
@@ -896,7 +904,7 @@ class ChangeSocietyAdmin(SocietyJob):
             self.log("Remove society home symlink")
             os.remove(target_ln)
 
-        subproc_call(self, "Rebuild /var/yp", ["make", "-C", "/var/yp"])
+        update_nis(self)
 
         self.log("Send confirmation to remaining admins")
         adminNames = sorted("{0.name} ({0.crsid})".format(m) for m in self.society.admins)
