@@ -328,7 +328,8 @@ class Signup(Job):
                                                             "--system", "--uid", str(uid), "--gecos", name, crsid])
 
         password = make_pwd()
-        subproc_call(self, "Set password", ["chpasswd"], stdin="%s:%s" % (crsid, password))
+        chpasswd_data = ("%s:%s" % (crsid, password)).encode("ascii")
+        subproc_call(self, "Set password", ["chpasswd"], stdin=chpasswd_data)
 
         subproc_call(self, "Update NIS maps", ["make", "-C", "/var/yp"])
 
