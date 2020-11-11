@@ -325,7 +325,8 @@ class Signup(Job):
         # NB: adduser --uid will implicitly use gid=uid; --gid does not do what we want (bypasses group creation)
         # NB: adduser --system doesn't call adduser.local (we do all the work here)
         subproc_call(self, "Add UNIX user (uid %d)" % uid, ["adduser", "--no-create-home", "--disabled-password",
-                                                            "--system", "--uid", str(uid), "--gecos", name, crsid])
+                                                            "--system", "--uid", str(uid), "--group",
+                                                            "--gecos", name, crsid])
 
         password = make_pwd()
         chpasswd_data = ("%s:%s" % (crsid, password)).encode("ascii")
