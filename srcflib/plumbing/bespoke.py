@@ -10,6 +10,7 @@ import logging
 import os.path
 import pwd
 import shutil
+import time
 from typing import Generator, List, Optional, Set
 
 from requests import session, Session as REQS_SESSION
@@ -23,6 +24,7 @@ from srcf.database.summarise import summarise_society
 
 from .common import command, get_members, Owner, owner_name, require_host, Result, ResultSet, State
 from .mailman import MailList
+from .unix import copytree_chown_chmod
 from . import hosts
 
 
@@ -147,6 +149,21 @@ def delete_society(sess: SQLA_SESSION, society: Society) -> Result:
     if society.admins:
         raise ValueError("Remove society admins for {} first".format(society))
     sess.delete(society)
+    return Result(State.success)
+
+
+def populate_home_dir(member: Member):
+    """
+    Copy the contents of ``/etc/skel`` to a new user's home directory.
+
+    This must be done before creating anything else in the directory.
+    """
+    target = os.path.join("/home", member.crsid)
+    if os.listdir(target):
+        # Avoid potentially clobbering existing files.
+        return Result(State.unchanged)
+    copytree_chown_chmod("/etc/skel", os.path.join("/home", member.crsid),
+                         member.uid, member.gid)
     return Result(State.success)
 
 
@@ -330,12 +347,17 @@ def export_members() -> Result:
     return Result(State.success)
 
 
-@require_host(Hosts.USER)
-def make_yp() -> Result:
+@require_host(hosts.USER)
+def update_nis(wait: bool=False) -> Result:
     """
     Synchronise UNIX users and passwords over NIS.
+
+    If a new user or group has just been created, and is about to be used, set ``wait`` to avoid
+    the caching of non-existent UIDs or GIDs.
     """
     command(["/usr/bin/make", "-C", "/var/yp"])
+    if wait:
+        time.sleep(16)
     return Result(State.success)
 
 

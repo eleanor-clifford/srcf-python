@@ -9,6 +9,11 @@ import logging
 import os
 import pwd
 
+# Expose these here for now, so that other parts of SRCFLib can reference them locally, but keep a
+# single implementation in case it needs revising.  TODO: Move here as part of control migration.
+from srcf.controllib.jobs import nfs_aware_chown
+from srcf.controllib.utils import copytree_chown_chmod
+
 from .common import command, Password, require_host, Result, ResultSet, State
 from . import hosts
 
@@ -115,20 +120,20 @@ def reset_password(user: User) -> Result[Password]:
     return Result(State.success, passwd)
 
 
-def create_home(user: User, path: str) -> Result:
+def create_home(user: User, path: str, world_read: bool=False) -> Result:
     """
     Create an empty home directory owned by the given user.
     """
     result = Result(State.unchanged)
     try:
-        os.mkdir(path, 0o2775)
+        os.mkdir(path, 0o2775 if world_read else 0o2770)
     except FileExistsError:
         pass
     else:
         result.state = State.success
     stat = os.stat(path)
-    os.chown(path, user.pw_uid, user.pw_gid)
     if stat.st_uid != user.pw_uid or stat.st_gid != user.pw_gid:
+        nfs_aware_chown(path, user.pw_uid, user.pw_gid)
         result.state = State.success
     return result
 

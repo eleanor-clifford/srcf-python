@@ -24,11 +24,17 @@ def create_member(crsid: str, preferred_name: str, surname: str, email: str,
         result = bespoke.create_member(sess, crsid, preferred_name, surname, email,
                                        mail_handler, is_member, is_user)
         mem = results.add(result, True).value
-    user = results.add(unix.create_user(crsid, uid=mem.uid, real_name=mem.name)).value
-    results.extend(unix.create_home(user, os.path.join("/public/home", crsid)),
-                   bespoke.set_home_exim_acl(mem))
+    user = results.add(unix.create_user(crsid, uid=mem.uid, system=True,
+                                        home_dir=os.path.join("/home", crsid),
+                                        real_name=mem.name)).value
+    passwd = results.add(unix.reset_password(user)).value
+    results.extend(bespoke.update_nis(True),
+                   unix.create_home(user, os.path.join("/public/home", crsid), True),
+                   bespoke.set_home_exim_acl(mem),
+                   bespoke.populate_home_dir(mem))
     if mail_handler == "pip":
         results.extend(bespoke.create_forwarding_file(mem))
+    # TODO: Legacy mailbox creation
     results.extend(bespoke.set_quota(mem),
                    bespoke.set_web_status(mem, "subdomain"),
                    bespoke.queue_list_subscription(mem, "maintenance"))
@@ -36,8 +42,8 @@ def create_member(crsid: str, preferred_name: str, surname: str, email: str,
         results.extend(bespoke.queue_list_subscription(mem, "social"))
     results.extend(bespoke.generate_apache_groups(),
                    bespoke.export_members(),
-                   bespoke.make_yp())
-    # TODO: adduser.local
+                   bespoke.update_nis())
+    # TODO: Welcome email
     return results
 
 
@@ -77,7 +83,7 @@ def update_member_name(member: Member, preferred_name: str, surname: str) -> Res
                                                    is_user=member.user))
     pwd_info = unix.get_user(member.crsid)
     results.extend(unix.set_real_name(pwd_info, member.name),
-                   bespoke.make_yp())
+                   bespoke.update_nis())
     return results
 
 
@@ -94,7 +100,8 @@ def create_society(name: str, description: str, admins: Set[str],
                                         home_dir=os.path.join("/societies", name),
                                         real_name=description)).value
     group = results.add(unix.create_group(name, gid=soc.gid, system=True)).value
-    results.add(unix.create_home(user, os.path.join("/public/societies", name)))
+    results.add(bespoke.update_nis(True))
+    results.add(unix.create_home(user, os.path.join("/public/societies", name), True))
     for admin in admins:
         results.extend(unix.add_to_group(unix.get_user(admin), group),
                        bespoke.link_soc_home_dir(get_member(admin), soc))
@@ -103,8 +110,7 @@ def create_society(name: str, description: str, admins: Set[str],
                    bespoke.set_web_status(soc, "subdomain"),
                    bespoke.generate_apache_groups(),
                    bespoke.generate_sudoers(),
-                   bespoke.export_members(),
-                   bespoke.make_yp())
+                   bespoke.export_members())
     # TODO: Welcome email
     # TODO: Existing admins email
     return results
@@ -184,5 +190,5 @@ def update_society_description(society: Society, description: str) -> ResultSet:
                                                      role_email=society.role_email))
     pwd_info = unix.get_user(society.society)
     results.extend(unix.set_real_name(pwd_info, description),
-                   bespoke.make_yp())
+                   bespoke.update_nis())
     return results
