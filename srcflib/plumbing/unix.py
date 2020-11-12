@@ -11,8 +11,7 @@ import pwd
 
 # Expose these here for now, so that other parts of SRCFLib can reference them locally, but keep a
 # single implementation in case it needs revising.  TODO: Move here as part of control migration.
-from srcf.controllib.jobs import nfs_aware_chown
-from srcf.controllib.utils import copytree_chown_chmod
+from srcf.controllib.utils import copytree_chown_chmod, nfs_aware_chown
 
 from .common import command, Password, require_host, Result, ResultSet, State
 from . import hosts
