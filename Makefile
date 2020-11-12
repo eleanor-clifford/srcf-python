@@ -6,7 +6,7 @@ VERSION = r$$(git rev-list --count HEAD)$$([ "$$(git diff-index --name-only HEAD
 INSTALL = -e
 DISTS = sdist bdist_wheel bdist_deb
 
-SETUP = $(PYTHON) setup.py --command-packages=stdeb.command egg_info $(if $(strip $(VERSION)), -b $(VERSION))
+SETUP = FAKEROOTDONTTRYCHOWN=1 $(PYTHON) setup.py --command-packages=stdeb.command egg_info $(if $(strip $(VERSION)), -b $(VERSION))
 DOCS = $(PDOC) --html --force --config show_type_annotations=True
 
 MODULE = srcflib

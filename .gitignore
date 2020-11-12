@@ -1,0 +1,6 @@
+__pycache__/
+build/
+deb_dist/
+dist/
+srcf.egg-info/
+*.swp
