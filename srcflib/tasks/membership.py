@@ -178,11 +178,10 @@ def update_society_description(society: Society, description: str) -> ResultSet:
     """
     results = ResultSet()
     with bespoke.context() as sess:
-        member = results.add(bespoke.create_society(sess=sess, crsid=member.crsid,
-                                                    name=society.society,
-                                                    description=description,
-                                                    admins=society.admins,
-                                                    role_email=society.role_email))
+        society = results.add(bespoke.create_society(sess=sess, name=society.society,
+                                                     description=description,
+                                                     admins=society.admins,
+                                                     role_email=society.role_email))
     pwd_info = unix.get_user(society.society)
     results.extend(unix.set_real_name(pwd_info, description),
                    bespoke.make_yp())
