@@ -21,9 +21,9 @@ from srcf.database import Domain, HTTPSCert, Member, Session, Society
 from srcf.database.queries import get_member, get_society
 from srcf.database.summarise import summarise_society
 
-from .common import (command, get_members, Hosts, Owner, owner_name, require_host, Result,
-                     ResultSet, State)
+from .common import command, get_members, Owner, owner_name, require_host, Result, ResultSet, State
 from .mailman import MailList
+from . import hosts
 
 
 LOG = logging.getLogger(__name__)
@@ -287,7 +287,7 @@ def queue_https_cert(sess: SQLA_SESSION, domain: str) -> Result[HTTPSCert]:
     return Result(state, cert)
 
 
-@require_host(Hosts.WEB)
+@require_host(hosts.WEB)
 def generate_apache_groups() -> Result:
     """
     Synchronise the Apache groups file, providing ``srcfmembers`` and ``srcfusers`` groups.
@@ -339,7 +339,7 @@ def make_yp() -> Result:
     return Result(State.success)
 
 
-@require_host(Hosts.LIST)
+@require_host(hosts.LIST)
 def configure_mailing_list(name: str) -> Result:
     """
     Apply default options to a new mailing list, and create the necessary mail aliases.
@@ -348,7 +348,7 @@ def configure_mailing_list(name: str) -> Result:
     return Result(State.success)
 
 
-@require_host(Hosts.LIST)
+@require_host(hosts.LIST)
 def generate_mailman_aliases() -> Result:
     """
     Refresh the Exim alias file for Mailman lists.

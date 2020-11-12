@@ -9,7 +9,8 @@ import logging
 import os
 import pwd
 
-from .common import command, Hosts, Password, require_host, Result, ResultSet, State
+from .common import command, Password, require_host, Result, ResultSet, State
+from . import hosts
 
 
 # Type aliases for external callers, who need not be aware of the internal structure when chaining
@@ -37,7 +38,7 @@ def get_group(username: str) -> Group:
     return grp.getgrnam(username)
 
 
-@require_host(Hosts.USER)
+@require_host(hosts.USER)
 def add_user(username: str, uid: int=None, system: bool=False, active: bool=True,
              home_dir: str=None, real_name: str="") -> Result[User]:
     """
@@ -75,7 +76,7 @@ def add_user(username: str, uid: int=None, system: bool=False, active: bool=True
     return Result(State.success, user)
 
 
-@require_host(Hosts.USER)
+@require_host(hosts.USER)
 def enable_user(user: User, active: bool=True) -> Result:
     """
     Change the default shell for this user, using a no-login shell to disable, and bash to enable.
@@ -91,7 +92,7 @@ def enable_user(user: User, active: bool=True) -> Result:
         return Result(State.unchanged)
 
 
-@require_host(Hosts.USER)
+@require_host(hosts.USER)
 def set_real_name(user: User, real_name: str="") -> Result:
     """
     Update a user's GECOS name field.
@@ -104,7 +105,7 @@ def set_real_name(user: User, real_name: str="") -> Result:
     return Result(State.success)
 
 
-@require_host(Hosts.USER)
+@require_host(hosts.USER)
 def reset_password(user: User) -> Result[Password]:
     """
     Set the user's password to a new random value.
@@ -153,7 +154,7 @@ def create_user(username: str, uid: int=None, system: bool=False, active: bool=T
         return result
 
 
-@require_host(Hosts.USER)
+@require_host(hosts.USER)
 def add_group(username: str, gid: int=None, system: bool=False) -> Result[Group]:
     """
     Create a new group.
@@ -178,7 +179,7 @@ def add_group(username: str, gid: int=None, system: bool=False) -> Result[Group]
     return Result(State.success, get_group(username))
 
 
-@require_host(Hosts.USER)
+@require_host(hosts.USER)
 def add_to_group(user: User, group: Group) -> Result:
     """
     Add a user to a secondary group.
@@ -190,7 +191,7 @@ def add_to_group(user: User, group: Group) -> Result:
     return Result(State.success)
 
 
-@require_host(Hosts.USER)
+@require_host(hosts.USER)
 def remove_from_group(user: User, group: Group) -> Result:
     """
     Remove a user from a secondary group.

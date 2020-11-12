@@ -217,25 +217,6 @@ class Password:
         return self.__class__(self._value, template.format(self._template))
 
 
-class Hosts:
-    """
-    Hostnames used to restricted sets of plumbing commands.
-    """
-
-    USER = "pip"
-    """
-    Server providing an authoritative user database.
-    """
-    LIST = "pip"
-    """
-    Server running Mailman, with its utilities installed.
-    """
-    WEB = "sinkhole"
-    """
-    Server running Apache, for scripts altering its configuration.
-    """
-
-
 def require_host(*hosts: str):
     """
     Only allow a function to be called on the given hosts, identified by hostname:

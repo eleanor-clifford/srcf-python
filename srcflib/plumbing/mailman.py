@@ -7,7 +7,8 @@ import os.path
 import re
 from typing import List, Optional
 
-from .common import command, Hosts, Password, require_host, Result, State
+from .common import command, Password, require_host, Result, State
+from . import hosts
 
 
 # Type alias for external callers, who need not be aware of the internal structure when chaining
@@ -18,7 +19,7 @@ MailList = str
 LOG = logging.getLogger(__name__)
 
 
-@require_host(Hosts.LIST)
+@require_host(hosts.LIST)
 def get_list(name: str) -> MailList:
     """
     Test if a list of the given name has been created.
@@ -29,7 +30,7 @@ def get_list(name: str) -> MailList:
         raise KeyError(name)
 
 
-@require_host(Hosts.LIST)
+@require_host(hosts.LIST)
 def get_owners(mlist: MailList) -> List[str]:
     """
     Look up all owner email addresses of a mailing list.
@@ -38,7 +39,7 @@ def get_owners(mlist: MailList) -> List[str]:
     return list(proc.stdout.decode("utf-8").split("\n"))
 
 
-@require_host(Hosts.LIST)
+@require_host(hosts.LIST)
 def new_list(name: str, owner: str) -> Result[Password]:
     """
     Create a new mailing list for the owning email address, with a random password.
@@ -59,7 +60,7 @@ def new_list(name: str, owner: str) -> Result[Password]:
     return Result(State.success, passwd)
 
 
-@require_host(Hosts.LIST)
+@require_host(hosts.LIST)
 def set_owner(mlist: MailList, *owners: str) -> Result:
     """
     Overwrite the owners of a list.
@@ -72,7 +73,7 @@ def set_owner(mlist: MailList, *owners: str) -> Result:
     return Result(State.success)
 
 
-@require_host(Hosts.LIST)
+@require_host(hosts.LIST)
 def reset_password(mlist: MailList) -> Result[Password]:
     """
     Let Mailman generate a new admin password for a list.
@@ -98,7 +99,7 @@ def create_list(name: str, owner: str) -> Result[Optional[Password]]:
         return set_owner(mlist, owner)
 
 
-@require_host(Hosts.LIST)
+@require_host(hosts.LIST)
 def remove_list(mlist: MailList, remove_archive: bool=False) -> Result:
     """
     Delete an existing mailing list, and optionally its message archives.
