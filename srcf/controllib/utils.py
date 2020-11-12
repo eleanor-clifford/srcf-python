@@ -52,6 +52,39 @@ def is_valid_socname(s):
     return re.match(r'^[a-z0-9_-]+$', s)
 
 
+def nfs_aware_chown(path, *args, **kwargs):
+    # NFSv4 is fickle.  The protocol might either use numeric UIDs/GIDs, or
+    # (canonically, but not by default) user/group names.  The latter requires
+    # the NFS server to know about the user/group in advance.  This might go
+    # wrong if we only just created them, especially since NetApp caches
+    # nonexistence for a long time.
+    #
+    # We *try* not to do anything that will cause nonexistence to be cached
+    # (we update NIS and wait a good while for the server before we chown)
+    # but actions elsewhere (e.g. someone trying to manually chown to a
+    # not-yet-existant user) might have already triggered the problem.  We
+    # can't do anything about that except give the poor sysadmin a hint.
+    try:
+        os.chown(path, *args, **kwargs)
+    except OSError as e:
+        if e.errno == 22: # EINVAL
+            dev = os.stat(path).st_dev
+            dev_str = "%s:%s" % (os.major(dev), os.minor(dev))
+            with open("/proc/net/nfsfs/volumes", "r") as f:
+                for line in f:
+                    fields = line.split()
+                    if fields[3] == dev_str:
+                        server = fields[1]
+                        ver = fields[0]
+                        with open("/proc/net/nfsfs/servers", "r") as ff:
+                            for lline in ff:
+                                ffields = lline.split()
+                                if ffields[1] == server:
+                                    hostname = ffields[4]
+                                    raise Exception("Got EINVAL when attempting to chown(%s) on %s via NFS%s.  That might mean that the user or group is unknown to the NFS server.  If this seems wrong, it may have cached nonexistence.  If it's a NetApp, try 'nfs nsdb flush' on %s, or just wait an hour or two then retry." % (path, hostname, ver, hostname))
+        raise
+
+
 # Copy a tree, overriding the owner, group and permissions
 # (for installing /etc/skel into homedirs)
 # "Inspired by" (an antique version of) shutil.copytree but:
