@@ -1,6 +1,11 @@
 __pycache__/
+.pybuild/
 build/
 deb_dist/
+debian/debhelper-build-stamp
+debian/files
+debian/*.*
+debian/*/
 dist/
 html/
 srcf.egg-info/

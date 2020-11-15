@@ -1,0 +1,15 @@
+Source: python3-srcf
+Maintainer: SRCF Sysadmins <sysadmins@srcf.net>
+Section: python
+Priority: optional
+Build-Depends: dh-python, python3-setuptools, python3-all, debhelper (>= 9)
+Standards-Version: 3.9.6
+Homepage: https://www.srcf.net
+
+Package: python3-srcf
+Architecture: all
+Depends: ${misc:Depends}, ${python3:Depends},
+ python3-argcomplete, python3-jinja2, python3-ldap3, python3-psycopg2, python3-pymysql, python3-six, python3-sqlalchemy
+Description: Database schemas and core functionality for the Student-Run Computing Facility.
+ A Python library covering database schemas and core functionality for the
+ Student-Run Computing Facility.
