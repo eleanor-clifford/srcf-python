@@ -7,6 +7,7 @@ README = os.path.join(os.path.abspath(os.path.dirname(__file__)), "README.rst")
 
 
 setup(name="srcflib",
+      version="0.0.1",
       description="Tools and helpers for the Student-Run Computing Facility.",
       long_description=open(README).read(),
       long_description_content_type="text/x-rst",
