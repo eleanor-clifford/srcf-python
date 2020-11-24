@@ -102,7 +102,7 @@ def subproc_call(job, desc, cmd, stdin=None):
 def make_public_dir(job, root, user, dirname, uid, gid):
     dir_path = os.path.join("/public", root, user, dirname)
     link_path = os.path.join("/", root, user, dirname)
-    job.log("Create and link " + name + " directory")
+    job.log("Create and link " + dirname + " directory")
     os.mkdir(dir_path)
     os.symlink(dir_path, link_path)
     # Only the first attempt to chown to a new user needs to be wrapped in
