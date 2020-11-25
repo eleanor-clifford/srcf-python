@@ -99,6 +99,18 @@ def subproc_call(job, desc, cmd, stdin=None):
             output = b"[Could not decode output as UTF-8]\n" + output
         job.log(desc, "output", raw=out)
 
+def make_public_dir(job, root, user, dirname, uid, gid):
+    dir_path = os.path.join("/public", root, user, dirname)
+    link_path = os.path.join("/", root, user, dirname)
+    job.log("Create and link " + dirname + " directory")
+    os.mkdir(dir_path)
+    os.symlink(dir_path, link_path)
+    # Only the first attempt to chown to a new user needs to be wrapped in
+    # utils.nfs_aware_chown, and we already chowned the home directory
+    os.chown(dir_path, uid, gid)
+    os.lchown(link_path, uid, gid)
+    os.chmod(dir_path, 0o2775)
+
 def update_nis(job, wait_netapp=False):
     subproc_call(job, "Update NIS maps", ["make", "-C", "/var/yp"])
     if wait_netapp:
@@ -353,6 +365,8 @@ class Signup(Job):
 
         self.log("Populate home directory from /etc/skel")
         utils.copytree_chown_chmod("/etc/skel", home_path, uid, gid)
+
+        make_public_dir(self, "home", crsid, "public_html", uid, gid)
 
         subproc_call(self, "Update quotas", ["/usr/local/sbin/srcf-update-quotas", crsid])
 
@@ -762,15 +776,7 @@ class CreateSociety(SocietyJob):
         subproc_call(self, "Set ACL on home directory", ["/usr/bin/nfs4_setfacl", "-a", "A::Debian-exim@srcf.net:RX", home_path])
 
         for name in ("public_html", "cgi-bin"):
-            dir_path = os.path.join("/public", "societies", self.society_society, name)
-            link_path = os.path.join("/societies", self.society_society, name)
-            self.log("Create " + name + " directories")
-            os.mkdir(dir_path)
-            os.symlink(dir_path, link_path)
-            self.log("Update " + name + " ownership")
-            os.chown(dir_path, uid, gid)
-            os.lchown(link_path, uid, gid)
-            os.chmod(dir_path, 0o2775)
+            make_public_dir(self, "societies", self.society_society, name, uid, gid)
 
         subproc_call(self, "Update quotas", ["/usr/local/sbin/srcf-update-quotas", self.society_society])
         subproc_call(self, "Generate sudoers", ["/usr/local/sbin/srcf-generate-society-sudoers"])

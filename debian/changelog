@@ -1,3 +1,9 @@
+python3-srcf (0.0.2) xenial; urgency=medium
+
+  * srcf.controllib.jobs.Signup: create public_html
+
+ -- Malcolm Scott <debianpkg@malc.org.uk>  Wed, 25 Nov 2020 00:15:45 +0000
+
 python3-srcf (0.0.1) xenial; urgency=low
 
   * Initial Debian-packaged build.
