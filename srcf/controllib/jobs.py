@@ -898,9 +898,6 @@ class ChangeSocietyAdmin(SocietyJob):
         if not self.target_member.user:
             raise JobFailed("{0.target_member.crsid} is not a SRCF user".format(self))
 
-        # Get the recipient lists before adding because we are sending the new admin a separate email.
-        recipients = [(x.name, x.crsid + "@srcf.net") for x in self.society.admins]
-
         self.society.admins.add(self.target_member)
 
         subproc_call(self, "Add user to group", ["adduser", self.target_member.crsid, self.society.society])
@@ -927,9 +924,6 @@ class ChangeSocietyAdmin(SocietyJob):
         if len(self.society.admins) == 1:
             raise JobFailed("Removing all admins not implemented")
 
-        # Get the recipient lists before removing because we want to notify the user removed
-        recipients = [(x.name, x.crsid + "@srcf.net") for x in self.society.admins]
-
         self.society.admins.remove(self.target_member)
         subproc_call(self, "Remove user from group", ["deluser", self.target_member.crsid, self.society.society])
 
@@ -945,6 +939,8 @@ class ChangeSocietyAdmin(SocietyJob):
         adminNames = sorted("{0.name} ({0.crsid})".format(m) for m in self.society.admins)
         mail_users(self.society, "Access removed for " + self.target_member.crsid, "remove-admin",
                    removed=self.target_member, requester=self.owner, admins="\n".join(adminNames))
+        self.log("Send confirmation to removed member")
+        mail_users(self.target_member, "Access removed from " + self.society_society, "remove-admin", society=self.society)
 
     def run(self, sess):
         if self.owner not in self.society.admins:
