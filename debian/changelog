@@ -1,0 +1,24 @@
+python3-srcf (0.0.5) xenial; urgency=medium
+
+  * Relax SQLAlchemy dependency so that the package works on newer
+    distributions (SQLAlchemy is stable enough, hopefully)
+
+ -- Malcolm Scott <debianpkg@malc.org.uk>  Mon, 21 Dec 2020 12:15:39 +0000
+
+python3-srcf (0.0.4) xenial; urgency=medium
+
+  * Fix PPA builds
+
+ -- Malcolm Scott <debianpkg@malc.org.uk>  Wed, 25 Nov 2020 00:53:31 +0000
+
+python3-srcf (0.0.2) xenial; urgency=medium
+
+  * srcf.controllib.jobs.Signup: create public_html
+
+ -- Malcolm Scott <debianpkg@malc.org.uk>  Wed, 25 Nov 2020 00:15:45 +0000
+
+python3-srcf (0.0.1) xenial; urgency=low
+
+  * Initial Debian-packaged build.
+
+ -- SRCF Sysadmins <sysadmins@srcf.net>  Fri, 13 Nov 2020 16:22:47 +0000
