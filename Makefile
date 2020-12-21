@@ -15,7 +15,7 @@ DEBPKG = FAKEROOTDONTTRYCHOWN=1 debuild -e FAKEROOTDONTTRYCHOWN
 DOCS = $(PDOC) --html --force --config show_type_annotations=True
 
 NAME = srcf
-MODULES = $(NAME) srcfmail srcfmailmanwrapper
+MODULES = $(NAME) srcflib srcfmail srcfmailmanwrapper
 
 install:
 	$(PIP) install --upgrade pip setuptools wheel
@@ -35,7 +35,7 @@ deb:
 	$(DEBPKG) -b $(DEBUILD_ARGS)
 
 deb-src: dist
-	cp $$(find dist/ -name $(NAME)-*.tar.gz -printf "%T@ %p\n" | sort -nr | cut -d' ' -f 2- | head -n1) ../python3-$(NAME)_$$(sed -nr 's/^python3-$(NAME) \(([0-9\.r]+?)(-.+?)?\).*$$/\1/p' debian/changelog).orig.tar.gz
+	cp $$(find dist/ -name $(NAME)-*.tar.gz -printf "%T@ %p\n" | sort -nr | cut -d' ' -f 2- | head -n1) ../python3-$(NAME)_$$(sed -nr 's/^python3-$(NAME) \(([0-9\.r]+?)(-.+?)?\).*$$/\1/p' debian/changelog | head -n1).orig.tar.gz
 	$(DEBPKG) -S $(DEBUILD_ARGS)
 
 docs:
