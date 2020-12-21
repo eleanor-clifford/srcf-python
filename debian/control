@@ -3,14 +3,14 @@ Maintainer: SRCF Sysadmins <sysadmins@srcf.net>
 Section: python
 Priority: optional
 Build-Depends: dh-python, python3-setuptools, python3-all, debhelper (>= 9),
- python3-psycopg2, python3-pylibacl,  python3-pymysql, python3-requests, python3-sqlalchemy
+ python3-psycopg2, python3-pylibacl, python3-pymysql, python3-requests, python3-sqlalchemy, python3-jinja2
 Standards-Version: 3.9.6
 Homepage: https://www.srcf.net
 
 Package: python3-srcflib
 Architecture: all
 Depends: ${misc:Depends}, ${python3:Depends},
- python3-psycopg2, python3-pylibacl,  python3-pymysql, python3-requests, python3-sqlalchemy
+ python3-psycopg2, python3-pylibacl, python3-pymysql, python3-requests, python3-sqlalchemy, python3-jinja2
 Description: Tools and helpers for the Student-Run Computing Facility.
  A one-stop shop Python library for provisioning and managing services for
  members.

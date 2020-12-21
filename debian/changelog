@@ -1,3 +1,9 @@
+python3-srcflib (0.0.5) xenial; urgency=medium
+
+  * Add missing python3-jinja2 dependency
+
+ -- Malcolm Scott <debianpkg@malc.org.uk>  Mon, 21 Dec 2020 12:53:58 +0000
+
 python3-srcflib (0.0.4) xenial; urgency=medium
 
   * Add all our Python dependencies as Build-Depends to sate pybuild
