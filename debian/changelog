@@ -1,3 +1,10 @@
+python3-srcflib (0.0.2) xenial; urgency=medium
+
+  * Relax SQLAlchemy dependency so that the package works on newer
+    distributions (SQLAlchemy is stable enough, hopefully)
+
+ -- Malcolm Scott <debianpkg@malc.org.uk>  Mon, 21 Dec 2020 12:19:45 +0000
+
 python3-srcflib (0.0.1) xenial; urgency=low
 
   * Initial Debian-packaged build.
