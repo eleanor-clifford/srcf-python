@@ -2,7 +2,8 @@ Source: python3-srcflib
 Maintainer: SRCF Sysadmins <sysadmins@srcf.net>
 Section: python
 Priority: optional
-Build-Depends: dh-python, python3-setuptools, python3-all, debhelper (>= 9)
+Build-Depends: dh-python, python3-setuptools, python3-all, debhelper (>= 9),
+ python3-psycopg2, python3-pylibacl,  python3-pymysql, python3-requests, python3-sqlalchemy
 Standards-Version: 3.9.6
 Homepage: https://www.srcf.net
 

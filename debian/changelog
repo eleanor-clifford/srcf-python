@@ -1,3 +1,9 @@
+python3-srcflib (0.0.4) xenial; urgency=medium
+
+  * Add all our Python dependencies as Build-Depends to sate pybuild
+
+ -- Malcolm Scott <debianpkg@malc.org.uk>  Mon, 21 Dec 2020 12:47:37 +0000
+
 python3-srcflib (0.0.3) xenial; urgency=medium
 
   * Make debian/copyright valid so PPA builds work
