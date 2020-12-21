@@ -15,10 +15,11 @@ Local setup commands
     # Generates HTML documentation (requires pdoc3):
     make docs
 
-    # Build bdist and wheel packages (requires stdeb):
+    # Build bdist and wheel packages:
     make dist           # automatic versioning (revision count + timestamp)
     make VERSION= dist  # override version suffix
                         # (blank for release builds with version set in setup.py)
 
     # Build a Debian package (requires debuild):
-    make deb
+    make deb      # binary package
+    make deb-src  # source tarball
