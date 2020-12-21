@@ -1,3 +1,9 @@
+python3-srcf (0.0.6) xenial; urgency=medium
+
+  * Merge changes from 'master' branch
+
+ -- Malcolm Scott <debianpkg@malc.org.uk>  Mon, 21 Dec 2020 12:44:19 +0000
+
 python3-srcf (0.0.5) xenial; urgency=medium
 
   * Relax SQLAlchemy dependency so that the package works on newer
