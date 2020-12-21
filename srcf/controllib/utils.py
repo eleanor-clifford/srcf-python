@@ -105,7 +105,7 @@ def copytree_chown_chmod(src, dst, uid, gid):
             os.symlink(linkto, dstname)
         elif os.path.isdir(srcname):
             os.mkdir(dstname)
-            copytree(srcname, dstname, symlinks)
+            copytree_chown_chmod(srcname, dstname, uid, gid)
         else:
             shutil.copy(srcname, dstname)
         # The rest is "inspired by" shutil.copystat...
