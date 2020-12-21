@@ -68,12 +68,11 @@ def list_users(session=None):
 
 
 def get_user(crsid, session=None):
-    with _sess(session) as sess:
-        m = get_member(crsid, session)
-        if not m.user:
-            raise KeyError(crsid)
-        else:
-            return m
+    m = get_member(crsid, session)
+    if not m.user:
+        raise KeyError(crsid)
+    else:
+        return m
 
 
 def list_societies(session=None):
