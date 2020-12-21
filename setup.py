@@ -20,5 +20,5 @@ setup(name="srcf",
                         "pylibacl", "PyMySQL", "requests", "six", "SQLAlchemy"],
       packages=find_packages(),
       py_modules=["srcfmail"],
-      package_data={"srcf.controllib": ["emails/*/*.txt"],
-                    "srcflib.email": ["**/*.j2"]})
+      package_data={"srcf.controllib": ["emails/**/*.txt"],
+                    "srcflib.email": ["templates/**/*.j2"]})
