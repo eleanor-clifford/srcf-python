@@ -6,7 +6,6 @@ import os
 import platform
 import select
 import signal
-import subprocess
 import sys
 import traceback
 
@@ -35,11 +34,15 @@ RUNNER_LOCK_NUM = 0x3666309f80b06
 
 pg_try_advisory_lock = sqlalchemy.sql.expression.func.pg_try_advisory_lock
 
-class DatabaseLocked(Exception): pass
+
+class DatabaseLocked(Exception):
+    pass
+
 
 def email_error(job_id, message):
     subject = "[Control Panel] Job #{0} failed".format(job_id)
     srcf.mail.mail_sysadmins(subject, message)
+
 
 class Listen(sqlalchemy.sql.expression.Executable,
              sqlalchemy.sql.expression.ClauseElement):
@@ -48,6 +51,7 @@ class Listen(sqlalchemy.sql.expression.Executable,
 
     def __repr__(self):
         return "<Listen {}>".format(self.channel)
+
 
 @sqlalchemy.ext.compiler.compiles(Listen, 'postgresql')
 def compile_listen(element, compiler, **kw):
@@ -58,6 +62,7 @@ def compile_listen(element, compiler, **kw):
 def exit_on_signal(logger):
     traps = {signal.SIGINT, signal.SIGTERM}
     trapped = None
+
     def handler(signum, frame):
         logger.info("Job in progress, deferring signal")
         nonlocal trapped
@@ -83,12 +88,14 @@ def connect(environment):
     with conn.begin():
         lock_num = RUNNER_LOCK_NUM + int.from_bytes(environment.encode("utf-8"), "little")
         row, = conn.execute(pg_try_advisory_lock(lock_num))
-        if not row[0]: raise DatabaseLocked
+        if not row[0]:
+            raise DatabaseLocked
 
         conn.execute(Listen("jobs_insert"))
 
     sess = sqlalchemy.orm.Session(bind=conn)
     return conn, sess
+
 
 def notifications(conn):
     # get the underlying psycopg2 conn
@@ -105,6 +112,7 @@ def notifications(conn):
         while conn.notifies:
             notify = conn.notifies.pop()
             yield int(notify.payload)
+
 
 def queued_jobs(environment):
     """
@@ -126,11 +134,12 @@ def queued_jobs(environment):
 
     # First, go through jobs added while the runner was offline
 
-    existing = \
-        sess.query(database.Job) \
+    existing = (
+        sess.query(database.Job)
         .filter(database.Job.state == "queued",
-                database.Job.environment == environment) \
+                database.Job.environment == environment)
         .all()
+    )
 
     existing_ids = [e.job_id for e in existing]
     del existing
@@ -147,6 +156,7 @@ def queued_jobs(environment):
 
     for n in notifications(conn):
         yield n
+
 
 def main(run_logger):
     sess = database.Session()
@@ -186,7 +196,7 @@ def main(run_logger):
 
                 email_error(i, "{0}\n\n{1}".format(run_message, raw) if raw else run_message)
 
-            except Exception as e:
+            except Exception:
                 job.log("Unhandled exception", "failed", logging.ERROR, traceback.format_exc(), exc_info=1)
 
                 # rollback

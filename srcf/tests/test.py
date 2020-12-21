@@ -7,6 +7,7 @@ import unittest
 
 import srcf
 
+
 class TestStrings(unittest.TestCase):
 
     def test_memberlist(self):

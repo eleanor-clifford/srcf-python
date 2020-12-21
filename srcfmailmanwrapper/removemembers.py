@@ -34,51 +34,54 @@ Options:
     addr1 ... are additional addresses to remove.
 """
 
-import sys, getopt, os
+import sys
+import getopt
+import os
 from srcfmailmanwrapper import util
+
 
 def main():
 
-	targetscript = "/usr/lib/mailman/bin/remove_members"
+    targetscript = "/usr/lib/mailman/bin/remove_members"
 
-	shortopts = "sanNh"
-	longopts = ["stdin", "all", "nouserack", "noadminack", "help"]
+    shortopts = "sanNh"
+    longopts = ["stdin", "all", "nouserack", "noadminack", "help"]
 
-	try:
-		opts, args = getopt.gnu_getopt(sys.argv[1:], shortopts, longopts)
-	except getopt.error as e:
-		raise util.GetoptError(e)
+    try:
+        opts, args = getopt.gnu_getopt(sys.argv[1:], shortopts, longopts)
+    except getopt.error as e:
+        raise util.GetoptError(e)
 
-	mailmanargs = [targetscript]
+    mailmanargs = [targetscript]
 
-	for opt, arg in opts:
-		if opt in ("-h", "--help"):
-			print(__doc__)
-			sys.exit(0)
-		elif opt in ("-s", "--stdin"):
-			mailmanargs += ["-f", "-"]
-		elif opt in ("-a", "--all"):
-			mailmanargs += ["-a"]
-		elif opt in ("-n", "--nouserack"):
-			mailmanargs += ["-n"]
-		elif opt in ("-N", "--noadminack"):
-			mailmanargs += ["-N"]
-		else:
-			# only reached if we missed something above
-			raise util.UnhandledArgumentError(opt)
+    for opt, arg in opts:
+        if opt in ("-h", "--help"):
+            print(__doc__)
+            sys.exit(0)
+        elif opt in ("-s", "--stdin"):
+            mailmanargs += ["-f", "-"]
+        elif opt in ("-a", "--all"):
+            mailmanargs += ["-a"]
+        elif opt in ("-n", "--nouserack"):
+            mailmanargs += ["-n"]
+        elif opt in ("-N", "--noadminack"):
+            mailmanargs += ["-N"]
+        else:
+            # only reached if we missed something above
+            raise util.UnhandledArgumentError(opt)
 
-	mailmanargs += [util.getlistname(args)]
-	if len(args) > 0:
-		mailmanargs += args
+    mailmanargs += [util.getlistname(args)]
+    if len(args) > 0:
+        mailmanargs += args
 
-	os.execv(targetscript, mailmanargs)
+    os.execv(targetscript, mailmanargs)
 
-if __name__=="__main__":
-	try:
-		main()
-	except util.Error as e:
-		print(e)
-		if e.printusage:
-			print("-----\n%s" % __doc__, file=sys.stderr)
-		sys.exit(1)
 
+if __name__ == "__main__":
+    try:
+        main()
+    except util.Error as e:
+        print(e)
+        if e.printusage:
+            print("-----\n%s" % __doc__, file=sys.stderr)
+        sys.exit(1)

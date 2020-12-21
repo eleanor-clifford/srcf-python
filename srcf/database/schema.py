@@ -1,7 +1,6 @@
 from __future__ import print_function, unicode_literals
 
 import os
-import warnings
 import pwd
 
 import six
@@ -9,9 +8,7 @@ import six
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, Enum, Numeric
 from sqlalchemy import event
 from sqlalchemy.dialects.postgresql import HSTORE
-#from .hstore import HSTORE
-from sqlalchemy.schema import Table, FetchedValue, CheckConstraint, \
-        ForeignKey, DDL, PrimaryKeyConstraint
+from sqlalchemy.schema import Table, FetchedValue, CheckConstraint, ForeignKey, DDL
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -97,8 +94,7 @@ class Member(Base, MemberCompat):
             m = ' member' if self.member else ' ex-member'
             u = ' user' if self.user else ''
             flags = m + u
-            r = '<Member {0} {1} {2}{3}>'\
-                .format(self.crsid, self.name, self.email, flags)
+            r = '<Member {0} {1} {2}{3}>'.format(self.crsid, self.name, self.email, flags)
         else:
             r = '<Member {0} {1}>'.format(self.crsid, self.name)
         if not six.PY3:
@@ -128,6 +124,7 @@ society_admins = Table(
            ForeignKey('societies.society'), primary_key=True),
 )
 
+
 class Society(Base, SocietyCompat):
     __tablename__ = "societies"
 
@@ -147,8 +144,8 @@ class Society(Base, SocietyCompat):
         notes = Column(Text, nullable=False, server_default='')
 
     admins = relationship("Member",
-            secondary=society_admins, collection_class=AdminsSetCompat,
-            backref=backref("societies", collection_class=set))
+                          secondary=society_admins, collection_class=AdminsSetCompat,
+                          backref=backref("societies", collection_class=set))
 
     if is_root or is_webapp:
         pending_admins = relationship("PendingAdmin", backref=backref("society"))
@@ -207,8 +204,7 @@ if is_root or is_webapp:
             return "{0} {1}".format(self.crsid, self.society.society)
 
         def __repr__(self):
-            return '<PendingAdmin {0} {1}>'\
-                        .format(self.crsid, self.society.society)
+            return '<PendingAdmin {0} {1}>'.format(self.crsid, self.society.society)
 
     class Domain(Base):
         __tablename__ = "domains"
@@ -319,6 +315,7 @@ def dump_schema():
         print(sql.compile(dialect=engine.dialect), ";")
     engine = create_engine('postgresql://', strategy='mock', executor=dump)
     Base.metadata.create_all(engine, checkfirst=False)
+
 
 if __name__ == "__main__":
     dump_schema()

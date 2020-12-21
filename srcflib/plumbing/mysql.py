@@ -35,7 +35,7 @@ def connect() -> Connection:
 
 
 @contextmanager
-def context(conn: Connection=None) -> Generator[Cursor, None, None]:
+def context(conn: Connection = None) -> Generator[Cursor, None, None]:
     """
     Run multiple MySQL commands in a single connection:
 
@@ -84,7 +84,7 @@ def get_user_grants(cursor: Cursor, user: str) -> List[str]:
     return databases
 
 
-def get_matched_databases(cursor: Cursor, like: str="%") -> List[str]:
+def get_matched_databases(cursor: Cursor, like: str = "%") -> List[str]:
     """
     Fetch names of all databases matching the given pattern.
     """

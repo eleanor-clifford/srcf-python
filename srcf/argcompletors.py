@@ -17,6 +17,7 @@ from argcomplete import warn as argcomplete_warn
 
 from srcf import MEMBERLIST, SOCLIST
 
+
 def complete_member(prefix, **kwargs):
     """
     Tabcomplete any member (has entry in the memberlist)
@@ -34,6 +35,7 @@ def complete_member(prefix, **kwargs):
     except StandardError as e:
         argcomplete_warn("Error: " + e)
         return []
+
 
 def complete_user(prefix, **kwargs):
     """
@@ -54,6 +56,7 @@ def complete_user(prefix, **kwargs):
         argcomplete_warn("Error: " + e)
         return []
 
+
 def complete_soc(prefix, **kwargs):
     """
     Tabcomplete any society (has entry in the soclist)
@@ -71,6 +74,7 @@ def complete_soc(prefix, **kwargs):
     except StandardError as e:
         argcomplete_warn("Error: " + e)
         return []
+
 
 def complete_activesoc(prefix, **kwargs):
     """
@@ -91,6 +95,7 @@ def complete_activesoc(prefix, **kwargs):
     except StandardError as e:
         argcomplete_warn("Error: " + e)
         return []
+
 
 def complete_socadmin(prefix, parsed_args, **kwargs):
     """

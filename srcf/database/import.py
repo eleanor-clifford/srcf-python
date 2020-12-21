@@ -1,6 +1,5 @@
 import sys
 from datetime import datetime
-from sqlalchemy import func
 
 from . import Member, Society, PendingAdmin, Session, assert_readwrite
 # direct access to this makes things a lot easier
@@ -16,6 +15,7 @@ MEMBERLIST_FIELDS = ("crsid", "surname", "firstname", "initials", "email",
                      "status", "joined")
 SOCLIST_FIELDS = ("name", "description", "admin_crsids", "joined")
 
+
 def try_decode(text):
     for encoding in ("ascii", "utf8", "iso8859"):
         try:
@@ -27,6 +27,7 @@ def try_decode(text):
                 print("Decoded", repr(text), "as", encoding, v.strip(), file=sys.stderr)
             return v
     raise UnicodeDecodeError(repr(text))
+
 
 def read_members():
     with open(MEMBERLIST, 'rb') as f:
@@ -49,6 +50,7 @@ def read_members():
             del user["initials"]
             yield user
 
+
 def read_societies(keep_admins=False):
     with open(SOCLIST, 'rb') as f:
         for line in f:
@@ -65,17 +67,20 @@ def read_societies(keep_admins=False):
                 del soc["admin_crsids"]
             yield soc
 
+
 def read_society_admins():
     for society in read_societies(keep_admins=True):
         if society["admin_crsids"] != "":
             for crsid in society["admin_crsids"].split(","):
                 yield {"society": society["society"], "crsid": crsid}
 
+
 def read_socqueue():
     with open(SOCQUEUE, 'r') as f:
         for line in f:
             crsid, soc = line.strip().split(":")
             yield crsid, soc
+
 
 def prune_socqueue(socqueue, session):
     pruned = 0
@@ -98,15 +103,18 @@ def prune_socqueue(socqueue, session):
 
     print("Pruned", pruned, "out of", total, "socqueue lines", file=sys.stderr)
 
+
 def triggers(session, action):
     assert action in ("ENABLE", "DISABLE")
     for table in ("members", "societies"):
         session.execute("ALTER TABLE {0} {1} TRIGGER {0}_set_joined_trigger"
-                            .format(table, action))
+                        .format(table, action))
+
 
 def assert_empty(session):
     assert session.query(Member).count() == 0
     assert session.query(Society).count() == 0
+
 
 def main():
     assert_readwrite()
@@ -128,6 +136,7 @@ def main():
 
     triggers(session, "ENABLE")
     session.commit()
+
 
 if __name__ == "__main__":
     main()

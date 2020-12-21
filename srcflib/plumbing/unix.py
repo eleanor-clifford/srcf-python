@@ -43,8 +43,8 @@ def get_group(username: str) -> Group:
 
 
 @require_host(hosts.USER)
-def add_user(username: str, uid: int=None, system: bool=False, active: bool=True,
-             home_dir: str=None, real_name: str="") -> Result[User]:
+def add_user(username: str, uid: int = None, system: bool = False, active: bool = True,
+             home_dir: str = None, real_name: str = "") -> Result[User]:
     """
     Create a new user account.  System users are created with an empty home directory, whereas
     regular users inherit from ``/etc/skel``.
@@ -81,7 +81,7 @@ def add_user(username: str, uid: int=None, system: bool=False, active: bool=True
 
 
 @require_host(hosts.USER)
-def enable_user(user: User, active: bool=True) -> Result:
+def enable_user(user: User, active: bool = True) -> Result:
     """
     Change the default shell for this user, using a no-login shell to disable, and bash to enable.
     """
@@ -97,7 +97,7 @@ def enable_user(user: User, active: bool=True) -> Result:
 
 
 @require_host(hosts.USER)
-def set_real_name(user: User, real_name: str="") -> Result:
+def set_real_name(user: User, real_name: str = "") -> Result:
     """
     Update a user's GECOS name field.
     """
@@ -119,7 +119,7 @@ def reset_password(user: User) -> Result[Password]:
     return Result(State.success, passwd)
 
 
-def create_home(user: User, path: str, world_read: bool=False) -> Result:
+def create_home(user: User, path: str, world_read: bool = False) -> Result:
     """
     Create an empty home directory owned by the given user.
     """
@@ -137,8 +137,8 @@ def create_home(user: User, path: str, world_read: bool=False) -> Result:
     return result
 
 
-def create_user(username: str, uid: int=None, system: bool=False, active: bool=True,
-                home_dir: str=None, real_name: str="") -> Result[User]:
+def create_user(username: str, uid: int = None, system: bool = False, active: bool = True,
+                home_dir: str = None, real_name: str = "") -> Result[User]:
     """
     Create a new user account, or enable/disable an existing one.
     """
@@ -159,7 +159,7 @@ def create_user(username: str, uid: int=None, system: bool=False, active: bool=T
 
 
 @require_host(hosts.USER)
-def add_group(username: str, gid: int=None, system: bool=False) -> Result[Group]:
+def add_group(username: str, gid: int = None, system: bool = False) -> Result[Group]:
     """
     Create a new group.
     """
@@ -207,7 +207,7 @@ def remove_from_group(user: User, group: Group) -> Result:
     return Result(State.success)
 
 
-def create_group(username: str, gid: int=None, system: bool=False) -> Result[Group]:
+def create_group(username: str, gid: int = None, system: bool = False) -> Result[Group]:
     """
     Create a new or retrieve an existing group.
     """

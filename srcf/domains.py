@@ -3,7 +3,6 @@ srcf.domains: Utilities for verifying domain ownership.
 """
 
 from binascii import hexlify
-from collections import defaultdict
 from contextlib import contextmanager
 from http.client import HTTPConnection
 import os

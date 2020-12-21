@@ -20,7 +20,7 @@ def _user_name_rev(name: str) -> str:
     return name.replace("_", "-")
 
 
-def _database_name(name: Union[str, Owner], suffix: str=None) -> str:
+def _database_name(name: Union[str, Owner], suffix: str = None) -> str:
     if not isinstance(name, str):
         name = _user_name(name)
     if suffix:
@@ -146,7 +146,7 @@ def drop_account(cursor: Cursor, owner: Owner) -> ResultSet:
     return results
 
 
-def create_database(cursor: Cursor, owner: Owner, suffix: str=None) -> Result[str]:
+def create_database(cursor: Cursor, owner: Owner, suffix: str = None) -> Result[str]:
     """
     Create a new MySQL database for the owner, either the primary name or a suffixed alternative.
     """
@@ -156,7 +156,7 @@ def create_database(cursor: Cursor, owner: Owner, suffix: str=None) -> Result[st
     return result
 
 
-def drop_database(cursor: Cursor, owner: Owner, suffix: str=None) -> Result[str]:
+def drop_database(cursor: Cursor, owner: Owner, suffix: str = None) -> Result[str]:
     """
     Drop either the primary or a suffixed secondary MySQL database belonging to the owner.
     """

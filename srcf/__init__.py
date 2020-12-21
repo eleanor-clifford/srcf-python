@@ -2,19 +2,24 @@
 
 """SRCF python library for common actions in maintenance scripts"""
 
+import warnings
+
 # Python 2 & 3 compatability
 import six as __six
 
+from srcf.passwords import pwgen
+
+from . import compat
+from .compat import *
+
+
 # Users of the SRCF library beware
-import warnings
 warnings.filterwarnings("once", category=DeprecationWarning)
 
 # Canonical locations of various things
 MEMBERLIST = "/societies/sysadmins/admin/memberlist"
 SOCLIST = "/societies/sysadmins/admin/soclist"
 SOCQUEUE = "/societies/srcf/admin/socqueue"
-
-from srcf.passwords import pwgen
 
 # No argcomplete for py3 yet
 if not __six.PY3:
@@ -31,7 +36,4 @@ __all__ = [
 ]
 
 # Compatibility magic until all callers are updated
-from .compat import *
-from . import compat
-
 __all__ += compat.__all__

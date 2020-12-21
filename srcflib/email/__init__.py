@@ -53,12 +53,12 @@ class EmailWrapper:
     Context manager for email sending, used to augment emails with additional metadata.
     """
 
-    def __init__(self, subject: str=None, body: str=None, context: dict=None):
+    def __init__(self, subject: str = None, body: str = None, context: dict = None):
         self._layouts = {Layout.SUBJECT: subject,
                          Layout.BODY: body}
         self._context = context
 
-    def render(self, template: str, layout: Layout, target: Owner, context: dict=None):
+    def render(self, template: str, layout: Layout, target: Owner, context: dict = None):
         """
         Render an email template with Jinja using the provided context.
         """
@@ -87,7 +87,7 @@ class EmailWrapper:
 DEFAULT_WRAPPER = EmailWrapper(subject="[SRCF] {}")
 
 
-def send(target: Owner, template: str, context: dict=None, session: SQLA_SESSION=None):
+def send(target: Owner, template: str, context: dict = None, session: SQLA_SESSION = None):
     """
     Render and send an email to the target member or society.
     """

@@ -9,15 +9,15 @@ from srcf.database import Member
 from ..plumbing import bespoke, mailman, Owner, owner_name, Password, ResultSet
 
 
-def _list_name_owner(owner: Owner, suffix: str=None) -> Tuple[str, str]:
+def _list_name_owner(owner: Owner, suffix: str = None) -> Tuple[str, str]:
     username = owner_name(owner)
     name = "{}-{}".format(username, suffix) if suffix else username
     admin = "{}@srcf.net".format(username) if isinstance(owner, Member) else owner.email
     return name, admin
 
 
-def create_list(owner: Owner, suffix: str=None) -> ResultSet[Tuple[mailman.MailList,
-                                                                   Optional[Password]]]:
+def create_list(owner: Owner, suffix: str = None) -> ResultSet[Tuple[mailman.MailList,
+                                                                     Optional[Password]]]:
     """
     Create a new mailing list for a user or society.
     """
@@ -32,7 +32,7 @@ def create_list(owner: Owner, suffix: str=None) -> ResultSet[Tuple[mailman.MailL
     return results
 
 
-def reset_owner_password(owner: Owner, suffix: str=None) -> ResultSet[Password]:
+def reset_owner_password(owner: Owner, suffix: str = None) -> ResultSet[Password]:
     """
     Reset a list's owner to match its name, and generate a new admin password.
     """
@@ -42,7 +42,7 @@ def reset_owner_password(owner: Owner, suffix: str=None) -> ResultSet[Password]:
     return results
 
 
-def remove_list(owner: Owner, suffix: str=None, remove_archive: bool=False) -> ResultSet:
+def remove_list(owner: Owner, suffix: str = None, remove_archive: bool = False) -> ResultSet:
     """
     Delete an existing mailing list, and optionally its message archives.
     """

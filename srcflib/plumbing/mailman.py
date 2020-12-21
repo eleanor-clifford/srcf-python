@@ -100,7 +100,7 @@ def create_list(name: str, owner: str) -> Result[Optional[Password]]:
 
 
 @require_host(hosts.LIST)
-def remove_list(mlist: MailList, remove_archive: bool=False) -> Result:
+def remove_list(mlist: MailList, remove_archive: bool = False) -> Result:
     """
     Delete an existing mailing list, and optionally its message archives.
     """

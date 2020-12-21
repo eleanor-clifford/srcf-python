@@ -3,7 +3,8 @@
 
 from __future__ import print_function
 
-import argcomplete, argparse
+import argcomplete
+import argparse
 from srcf import *
 
 # Somewhat manual - try swapping different complete_$FOO functions below

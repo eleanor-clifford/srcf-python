@@ -64,6 +64,7 @@ class MemberCompat(object):
             warnings.warn("the socs argument is ignored")
         return self.societies
 
+
 class SocietyCompat(object):
     @property
     def name(self):
@@ -83,6 +84,8 @@ class SocietyCompat(object):
         return self.joined.strftime("%Y/%m")
 
 # in the old API, admins was a method
+
+
 class AdminsSetCompat(set):
     def __call__(self, memberdict=None):
         if memberdict is not None:

@@ -1,12 +1,10 @@
 import os
 import re
-import pwd
 from ldap3 import Server, Connection, ALL, ALL_ATTRIBUTES
 import stat
 import shutil
 import configparser
 import pymysql
-import posix1e
 
 
 __all__ = ["email_re", "ldapsearch", "is_admin", "mysql_conn"]
@@ -20,7 +18,8 @@ email_re = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z][A-Za-z]+$")
 def ldapsearch(crsid):
     server = Server('ldap.lookup.cam.ac.uk', get_info=ALL)
     conn = Connection(server, auto_bind=True)
-    conn.search('ou=people, o=University of Cambridge,dc=cam,dc=ac,dc=uk', '(uid={0})'.format(crsid), attributes=ALL_ATTRIBUTES)
+    conn.search('ou=people, o=University of Cambridge,dc=cam,dc=ac,dc=uk',
+                '(uid={0})'.format(crsid), attributes=ALL_ATTRIBUTES)
     r = conn.entries
 
     if len(r) != 1:
@@ -36,6 +35,7 @@ def is_admin(member):
 
 
 mysql_passwd = None
+
 
 def mysql_conn():
     global mysql_passwd
@@ -67,7 +67,7 @@ def nfs_aware_chown(path, *args, **kwargs):
     try:
         os.chown(path, *args, **kwargs)
     except OSError as e:
-        if e.errno == 22: # EINVAL
+        if e.errno == 22:  # EINVAL
             dev = os.stat(path).st_dev
             dev_str = "%s:%s" % (os.major(dev), os.minor(dev))
             with open("/proc/net/nfsfs/volumes", "r") as f:
@@ -81,7 +81,11 @@ def nfs_aware_chown(path, *args, **kwargs):
                                 ffields = lline.split()
                                 if ffields[1] == server:
                                     hostname = ffields[4]
-                                    raise Exception("Got EINVAL when attempting to chown(%s) on %s via NFS%s.  That might mean that the user or group is unknown to the NFS server.  If this seems wrong, it may have cached nonexistence.  If it's a NetApp, try 'nfs nsdb flush' on %s, or just wait an hour or two then retry." % (path, hostname, ver, hostname))
+                                    raise Exception("Got EINVAL when attempting to chown(%s) on %s via NFS%s.  "
+                                                    "That might mean that the user or group is unknown to the NFS server.  "
+                                                    "If this seems wrong, it may have cached nonexistence.  "
+                                                    "If it's a NetApp, try 'nfs nsdb flush' on %s, or "
+                                                    "just wait an hour or two then retry." % (path, hostname, ver, hostname))
         raise
 
 
@@ -114,4 +118,3 @@ def copytree_chown_chmod(src, dst, uid, gid):
             # Copy user mode bits to group mode
             mode = (mode & 0o7707) | ((mode & 0o0700) >> 3)
             os.chmod(dstname, mode)
-

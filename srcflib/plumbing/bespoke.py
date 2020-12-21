@@ -32,7 +32,7 @@ LOG = logging.getLogger(__name__)
 
 
 @contextmanager
-def context(sess: SQLA_SESSION=None) -> Generator[SQLA_SESSION, None, None]:
+def context(sess: SQLA_SESSION = None) -> Generator[SQLA_SESSION, None, None]:
     """
     Run multiple database commands and commit at the end:
 
@@ -58,7 +58,7 @@ def get_crontab(owner: Owner) -> Optional[str]:
     return proc.stdout.decode("utf-8") if proc.stdout else None
 
 
-def get_mailman_lists(owner: Owner, sess: REQS_SESSION=session()) -> List[MailList]:
+def get_mailman_lists(owner: Owner, sess: REQS_SESSION = session()) -> List[MailList]:
     """
     Query mailing lists owned by the given member or society.
     """
@@ -68,8 +68,8 @@ def get_mailman_lists(owner: Owner, sess: REQS_SESSION=session()) -> List[MailLi
 
 
 def create_member(sess: SQLA_SESSION, crsid: str, preferred_name: str, surname: str, email: str,
-                  mail_handler: str="forward", is_member: bool=True,
-                  is_user: bool=True) -> Result[Member]:
+                  mail_handler: str = "forward", is_member: bool = True,
+                  is_user: bool = True) -> Result[Member]:
     """
     Register or update a member in the database.
     """
@@ -97,7 +97,7 @@ def create_member(sess: SQLA_SESSION, crsid: str, preferred_name: str, surname: 
 
 
 def create_society(sess: SQLA_SESSION, name: str, description: str, admins: Set[str],
-                   role_email: str=None) -> Result[Society]:
+                   role_email: str = None) -> Result[Society]:
     """
     Register or update a society in the database.
     """
@@ -261,7 +261,7 @@ def set_web_status(owner: Owner, status: str) -> Result:
 
 
 def add_custom_domain(sess: SQLA_SESSION, owner: Owner, name: str,
-                      root: str=None) -> Result[Domain]:
+                      root: str = None) -> Result[Domain]:
     """
     Assign a domain name to a member or society website.
     """
@@ -348,7 +348,7 @@ def export_members() -> Result:
 
 
 @require_host(hosts.USER)
-def update_nis(wait: bool=False) -> Result:
+def update_nis(wait: bool = False) -> Result:
     """
     Synchronise UNIX users and passwords over NIS.
 

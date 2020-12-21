@@ -4,12 +4,14 @@ import srcf.database
 
 SYSADMINEMAIL = srcf.mail.SYSADMINS[1]
 
+
 def mailtosysadmins(subject, body):
     """Send a mail to SYSADMINEMAIL with the given subject and body,
     which should both be strings."""
 
     srcf.mail.send_mail(srcf.mail.SYSADMINS, subject, body,
                         copy_sysadmins=False)
+
 
 def mailtouser(user, subject, body, cc_sysadmins=False):
     """Send a mail to a user's registered email address with the given
@@ -28,6 +30,7 @@ def mailtouser(user, subject, body, cc_sysadmins=False):
 
     recipient = (user.name, user.email)
     srcf.mail.send_mail(recipient, subject, body, copy_sysadmins=cc_sysadmins)
+
 
 def mailtosocadmins(society, subject, body, cc_sysadmins=False):
     """Send a mail to a ${SOC}-admins@srcf.net with the given subject

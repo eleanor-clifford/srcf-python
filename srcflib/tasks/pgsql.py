@@ -12,7 +12,7 @@ from srcf.database.queries import get_member, get_society
 from ..plumbing import Owner, owner_name, Password, pgsql, Result, ResultSet
 
 
-def connect(db: str=None) -> Connection:
+def connect(db: str = None) -> Connection:
     """
     Connect to the PostgreSQL server using ident authentication.
     """
@@ -112,7 +112,7 @@ def drop_account(cursor: Cursor, owner: Owner) -> Result:
     return pgsql.drop_user(cursor, owner_name(owner))
 
 
-def create_database(cursor: Cursor, owner: Owner, name: str=None) -> Result[str]:
+def create_database(cursor: Cursor, owner: Owner, name: str = None) -> Result[str]:
     """
     Create a new PostgreSQL database for the owner, defaulting to one matching their username.
     """

@@ -38,6 +38,7 @@ import codecs
 
 from ..database.summarise import summarise
 
+
 def from_stdin(keys):
     """Get an email template from stdin, and invoke `replace`"""
     stdin = sys.stdin
@@ -46,16 +47,18 @@ def from_stdin(keys):
     stdin = codecs.getreader("utf-8")(stdin)
     return replace(stdin.read(), keys)
 
+
 def replace(body, keys):
     """For each key and value, replace '%key%' with value"""
     for key, value in keys.items():
         body = body.replace("%" + key + "%", value)
     return body
 
+
 def substitutions(obj):
     """
     Return a dict of standard substitutions (see module documentation)
-    
+
     obj should be a srcf.database.Member or Society
     """
 

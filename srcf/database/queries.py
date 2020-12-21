@@ -1,4 +1,3 @@
-import warnings
 from contextlib import contextmanager
 
 from . import Member, Society, Session
@@ -20,6 +19,8 @@ _auto_create_global_session = True
 # Because we use autocommit, we REALLY OUGHT TO explicitly start transactions
 # for EVERY query (and yes, it's OK to do so even if we're already in a
 # transaction in an external session -- SQLAlchemy supports nested transactions).
+
+
 @contextmanager
 def _sess(session=None):
     global _global_session, _auto_create_global_session
@@ -36,6 +37,7 @@ def _sess(session=None):
     else:
         raise RuntimeError("Auto global session creation is disabled")
 
+
 def disable_automatic_session(and_use_this_one_instead=None):
     global _global_session, _auto_create_global_session
 
@@ -50,6 +52,7 @@ def list_members(session=None):
     with _sess(session) as sess:
         return sess.query(Member)
 
+
 def get_member(crsid, session=None):
     with _sess(session) as sess:
         m = sess.query(Member).get(crsid)
@@ -58,9 +61,11 @@ def get_member(crsid, session=None):
         else:
             raise KeyError(crsid)
 
+
 def list_users(session=None):
     with _sess(session) as sess:
-        return sess.query(Member).filter(Member.user==True)
+        return sess.query(Member).filter(Member.user == True)
+
 
 def get_user(crsid, session=None):
     with _sess(session) as sess:
@@ -70,9 +75,11 @@ def get_user(crsid, session=None):
         else:
             return m
 
+
 def list_societies(session=None):
     with _sess(session) as sess:
         return sess.query(Society)
+
 
 def get_society(name, session=None):
     with _sess(session) as sess:
@@ -82,19 +89,23 @@ def get_society(name, session=None):
         else:
             raise KeyError(name)
 
+
 def get_member_or_society(name, session=None):
     try:
         return get_member(name, session)
     except KeyError:
         return get_society(name, session)
 
-def dict_users(session = None):
+
+def dict_users(session=None):
     with _sess(session) as sess:
         return {m.crsid: m for m in sess.query(Member).filter(Member.user == True)}
+
 
 def dict_members(session=None):
     with _sess(session) as sess:
         return {m.crsid: m for m in sess.query(Member)}
+
 
 def dict_societies(session=None):
     with _sess(session) as sess:

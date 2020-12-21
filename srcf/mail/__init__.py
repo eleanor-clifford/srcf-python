@@ -18,6 +18,7 @@ def formataddr(pair):
         name = Header(name, 'utf-8').encode()
     return original_formataddr((name, email))
 
+
 def send_mail(recipient, subject, body,
               copy_sysadmins=True, reply_to_support=False, session=None):
     """
@@ -33,7 +34,7 @@ def send_mail(recipient, subject, body,
         sender = (user.name, '{}{}@srcf.net'.format(user.crsid, '-admin' if admin else ''))
 
     if isinstance(recipient, tuple):
-    	recipient = [recipient]
+        recipient = [recipient]
 
     message = email.mime.text.MIMEText(body, _charset='utf-8')
     message["Message-Id"] = make_msgid("srcf-mailto")
@@ -54,6 +55,7 @@ def send_mail(recipient, subject, body,
     s = smtplib.SMTP('localhost')
     s.sendmail(sender[1], all_emails, message.as_string())
     s.quit()
+
 
 def mail_sysadmins(subject, body, session=None):
     """Mail `body` to the sysadmins"""

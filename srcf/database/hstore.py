@@ -11,7 +11,6 @@ from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.dialects.postgresql.base import ischema_names, PGTypeCompiler
 from sqlalchemy import types as sqltypes
 from sqlalchemy.sql import functions as sqlfunc
-from sqlalchemy import util
 
 __all__ = ('HSTORE', 'hstore')
 
@@ -186,6 +185,7 @@ class HSTORE(sqltypes.Concatenable, sqltypes.TypeEngine):
     def bind_processor(self, dialect):
         if not six.PY3:
             encoding = dialect.encoding
+
             def process(value):
                 if isinstance(value, dict):
                     return _serialize_hstore(value).encode(encoding)
@@ -202,6 +202,7 @@ class HSTORE(sqltypes.Concatenable, sqltypes.TypeEngine):
     def result_processor(self, dialect, coltype):
         if not six.PY3:
             encoding = dialect.encoding
+
             def process(value):
                 if value is not None:
                     return _parse_hstore(value.decode(encoding))

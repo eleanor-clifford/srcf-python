@@ -3,6 +3,7 @@
 import srcf
 import unittest
 
+
 class TestAdmins(unittest.TestCase):
     def setUp(self):
         self.mems, self.socs = srcf.members_and_socs()
@@ -26,6 +27,7 @@ class TestAdmins(unittest.TestCase):
     def test_memlist_loc(self):
         self.assertEqual(srcf.MEMBERLIST, "/societies/sysadmins/admin/memberlist")
         self.assertEqual(srcf.SOCLIST, "/societies/sysadmins/admin/soclist")
+
 
 if __name__ == '__main__':
     unittest.main()

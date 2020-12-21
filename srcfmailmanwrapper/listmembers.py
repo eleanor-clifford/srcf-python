@@ -53,65 +53,69 @@ first, followed by digest members, but no indication is given as to address
 status.
 """
 
-import sys, getopt, os
+import sys
+import getopt
+import os
 from srcfmailmanwrapper import util
+
 
 def main():
 
-	targetscript = "/usr/lib/mailman/bin/list_members"
+    targetscript = "/usr/lib/mailman/bin/list_members"
 
-	shortopts = "rdD:nN:fpiuh"
-	longopts = ["regular", "digest", "digest-type=", "nomail", "nomail-reason=", "fullnames", "preserve", "invalid", "unicode", "help"]
+    shortopts = "rdD:nN:fpiuh"
+    longopts = ["regular", "digest", "digest-type=", "nomail",
+                "nomail-reason=", "fullnames", "preserve", "invalid", "unicode", "help"]
 
-	try:
-		opts, args = getopt.gnu_getopt(sys.argv[1:], shortopts, longopts)
-	except getopt.error as e:
-		raise util.GetoptError(e)
+    try:
+        opts, args = getopt.gnu_getopt(sys.argv[1:], shortopts, longopts)
+    except getopt.error as e:
+        raise util.GetoptError(e)
 
-	mailmanargs = [targetscript]
+    mailmanargs = [targetscript]
 
-	for opt, arg in opts:
-		if opt in ("-h", "--help"):
-			print(__doc__)
-			sys.exit(0)
-		elif opt in ("-r", "--regular"):
-			mailmanargs += ["-r"]
-		elif opt in ("-d", "--digest"):
-			mailmanargs += ["-d"]
-		elif opt in ("-D", "--digest-type"):
-			if arg not in ("mime", "plain"):
-				raise util.InvalidArgumentValueError(opt, arg)
-			mailmanargs += ["-d", arg]
-		elif opt in ("-n", "--nomail"):
-			mailmanargs += ["-n"]
-		elif opt in ("-N", "--nomail-reason"):
-			if arg not in ("byadmin", "byuser", "bybounce", "unknown", "enabled"):
-				raise util.InvalidArgumentValueError(opt, arg)
-			mailmanargs += ["-n", arg]
-		elif opt in ("-f", "--fullnames"):
-			mailmanargs += ["-f"]
-		elif opt in ("-p", "--preserve"):
-			mailmanargs += ["-p"]
-		elif opt in ("-i", "--invalid"):
-			mailmanargs += ["-i"]
-		elif opt in ("-u", "--unicode"):
-			mailmanargs += ["-u"]
-		else:
-			# only reached if we missed something above
-			raise util.UnhandledArgumentError(opt)
+    for opt, arg in opts:
+        if opt in ("-h", "--help"):
+            print(__doc__)
+            sys.exit(0)
+        elif opt in ("-r", "--regular"):
+            mailmanargs += ["-r"]
+        elif opt in ("-d", "--digest"):
+            mailmanargs += ["-d"]
+        elif opt in ("-D", "--digest-type"):
+            if arg not in ("mime", "plain"):
+                raise util.InvalidArgumentValueError(opt, arg)
+            mailmanargs += ["-d", arg]
+        elif opt in ("-n", "--nomail"):
+            mailmanargs += ["-n"]
+        elif opt in ("-N", "--nomail-reason"):
+            if arg not in ("byadmin", "byuser", "bybounce", "unknown", "enabled"):
+                raise util.InvalidArgumentValueError(opt, arg)
+            mailmanargs += ["-n", arg]
+        elif opt in ("-f", "--fullnames"):
+            mailmanargs += ["-f"]
+        elif opt in ("-p", "--preserve"):
+            mailmanargs += ["-p"]
+        elif opt in ("-i", "--invalid"):
+            mailmanargs += ["-i"]
+        elif opt in ("-u", "--unicode"):
+            mailmanargs += ["-u"]
+        else:
+            # only reached if we missed something above
+            raise util.UnhandledArgumentError(opt)
 
-	mailmanargs += [util.getlistname(args)]
-	if (len(args) > 0):
-		raise util.TooManyArgsError()
+    mailmanargs += [util.getlistname(args)]
+    if (len(args) > 0):
+        raise util.TooManyArgsError()
 
-	os.execv(targetscript, mailmanargs)
+    os.execv(targetscript, mailmanargs)
 
-if __name__=="__main__":
-	try:
-		main()
-	except util.Error as e:
-		print(e)
-		if e.printusage:
-			print("-----\n%s" % __doc__, file=sys.stderr)
-		sys.exit(1)
 
+if __name__ == "__main__":
+    try:
+        main()
+    except util.Error as e:
+        print(e)
+        if e.printusage:
+            print("-----\n%s" % __doc__, file=sys.stderr)
+        sys.exit(1)

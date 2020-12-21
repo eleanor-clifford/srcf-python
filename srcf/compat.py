@@ -1,6 +1,6 @@
 import warnings
 
-from .database import Member, Session, queries
+from .database import Member, queries
 
 __all__ = ["get_members", "get_member", "get_users", "get_user",
            "get_societies", "get_society", "members_and_socs",
@@ -10,8 +10,8 @@ __all__ = ["get_members", "get_member", "get_users", "get_user",
 
 def _dep(func_name):
     warnings.warn("{0} is deprecated (use srcf.database.queries.*)"
-                    .format(func_name),
-                  DeprecationWarning)
+                  .format(func_name), DeprecationWarning)
+
 
 def get_members(crsids=None):
     if crsids is None:
@@ -21,9 +21,11 @@ def get_members(crsids=None):
         warnings.warn("get_members(crsids) is deprecated", DeprecationWarning)
         return queries._sess().query(Member).filter(Member.crsid.in_(crsids))
 
+
 def get_member(crsid):
     _dep("get_member")
     return queries.get_member(crsid)
+
 
 def get_users(crsids=None):
     if crsids is None:
@@ -32,12 +34,15 @@ def get_users(crsids=None):
     else:
         warnings.warn("get_members(crsids...) is deprecated",
                       DeprecationWarning)
-        return queries._sess().query(Member).filter(Member.crsid.in_(crsids))\
-                .filter(Member.user==True)
+        return (queries._sess().query(Member)
+                       .filter(Member.crsid.in_(crsids))
+                       .filter(Member.user == True))
+
 
 def get_user(crsid):
     _dep("get_user")
     return queries.get_user(crsid)
+
 
 def get_societies(name=None, admin=None):
     if name is not None:
@@ -60,20 +65,25 @@ def get_societies(name=None, admin=None):
         _dep("get_societies")
         return queries.list_societies()
 
+
 def get_society(name):
     _dep("get_society")
     return queries.get_society(name)
+
 
 def members_and_socs():
     _dep("members_and_socs")
     return queries.dict_members(), queries.dict_societies()
 
+
 def members():
     _dep("members")
     return queries.dict_members()
 
+
 def societies():
     _dep("societies")
     return queries.dict_societies()
+
 
 MemberSet = SocietySet = set

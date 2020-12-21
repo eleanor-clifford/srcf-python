@@ -34,7 +34,7 @@ def owner_name(owner: Owner) -> str:
         raise TypeError(owner)
 
 
-def owner_desc(owner: Owner, admins: bool=False) -> str:
+def owner_desc(owner: Owner, admins: bool = False) -> str:
     """
     Return a `Member` full name, or a `Society` description optionally addressing its admins.
     """
@@ -99,7 +99,7 @@ class Result(Generic[V]):
     Mulitple results can be combined into a `ResultSet`.
     """
 
-    def __init__(self, state: Optional[State]=None, value: V=None, _frames=1):
+    def __init__(self, state: Optional[State] = None, value: V = None, _frames=1):
         self.state = state
         self.value = value
         # Inspection magic to log the calling method, e.g. `module.sub:Class.method`.
@@ -164,7 +164,7 @@ class ResultSet(Result[V]):
         """
         return tuple(result.value for result in self.results if result.value)
 
-    def add(self, result: Result[R], value: bool=False) -> Result[R]:
+    def add(self, result: Result[R], value: bool = False) -> Result[R]:
         """
         Include an additional result into the set, optionally using it as the overall value, and
         return that result for chaining.

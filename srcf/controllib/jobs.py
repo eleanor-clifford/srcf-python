@@ -2,8 +2,6 @@ import subprocess
 import re
 import logging
 import os
-import pwd
-import grp
 import time
 from datetime import datetime
 from contextlib import contextmanager
@@ -33,12 +31,14 @@ email_footer = emails.get_template("common/footer.txt").render()
 def make_pwd():
     return pwgen().decode("utf-8")
 
+
 def render_domain_text(domain):
     if any([x[:4] == "xn--" for x in domain.split(".")]):
         # punycode
         return "%s (%s)" % (domain, domain.encode("ascii").decode("idna"))
     else:
         return domain
+
 
 @contextmanager
 def mysql_context(job):
@@ -51,6 +51,7 @@ def mysql_context(job):
     finally:
         conn.close()
 
+
 @contextmanager
 def pgsql_context(job):
     job.log("Connect to PostgreSQL db")
@@ -62,6 +63,7 @@ def pgsql_context(job):
         conn.commit()
     finally:
         conn.close()
+
 
 def sql_exec(job, cur, desc, sql, *vals):
     job.log(desc)
@@ -77,14 +79,17 @@ def get_environment():
 
 # Borrowed from srcf-memberdb-cli
 def find_admins(admin_crsids, sess):
-    admins = sess.query(Member)\
-            .filter(Member.crsid.in_(admin_crsids))\
-            .all()
+    admins = (
+        sess.query(Member)
+        .filter(Member.crsid.in_(admin_crsids))
+        .all()
+    )
     found = {x.crsid for x in admins}
     missing = set(admin_crsids) - found
     if missing:
         raise KeyError(list(missing)[0])
     return set(admins)
+
 
 def subproc_call(job, desc, cmd, stdin=None):
     job.log(desc)
@@ -95,9 +100,10 @@ def subproc_call(job, desc, cmd, stdin=None):
     if out:
         try:
             out = out.decode("utf-8")
-        except UnicodeDecodeError as e:
+        except UnicodeDecodeError:
             output = b"[Could not decode output as UTF-8]\n" + output
         job.log(desc, "output", raw=out)
+
 
 def make_public_dir(job, root, user, dirname, uid, gid):
     dir_path = os.path.join("/public", root, user, dirname)
@@ -111,6 +117,7 @@ def make_public_dir(job, root, user, dirname, uid, gid):
     os.lchown(link_path, uid, gid)
     os.chmod(dir_path, 0o2775)
 
+
 def update_nis(job, wait_netapp=False):
     subproc_call(job, "Update NIS maps", ["make", "-C", "/var/yp"])
     if wait_netapp:
@@ -118,6 +125,7 @@ def update_nis(job, wait_netapp=False):
         # We only need to wait for it if we're creating a user/group and need to immediately use it on NFS.
         job.log("Waiting for NIS servers to process the map update")
         time.sleep(16)
+
 
 def render_email(target, template, **kwargs):
     target_type = "member" if isinstance(target, Member) else "society"
@@ -127,6 +135,7 @@ def render_email(target, template, **kwargs):
         email_footer])
     return content
 
+
 def mail_users(target, subject, template, **kwargs):
     target_type = "member" if isinstance(target, Member) else "society"
     to = (target.name if target_type == "member" else target.description, target.email)
@@ -134,11 +143,14 @@ def mail_users(target, subject, template, **kwargs):
     content = render_email(target, template, **kwargs)
     send_mail(to, subject, content, copy_sysadmins=False)
 
+
 all_jobs = {}
+
 
 def add_job(cls):
     all_jobs[cls.JOB_TYPE] = cls
     return cls
+
 
 class JobFailed(Exception):
     def __init__(self, message=None, raw=None):
@@ -161,19 +173,23 @@ class Job(object):
     @classmethod
     def find_by_user(cls, sess, crsid):
         job_row = db_Job
-        jobs = sess.query(job_row) \
-                    .filter(job_row.owner_crsid == crsid,
-                            ~job_row.args.defined("society")) \
-                    .order_by(job_row.job_id.desc())
+        jobs = (
+            sess.query(job_row)
+            .filter(job_row.owner_crsid == crsid,
+                    ~job_row.args.defined("society"))
+            .order_by(job_row.job_id.desc())
+        )
         return [Job.of_row(r) for r in jobs]
 
     @classmethod
     def find_by_society(cls, sess, name):
         job_row = db_Job
-        d = { "society": name } 
-        jobs = sess.query(job_row) \
-                    .filter(job_row.args.contains(d)) \
-                    .order_by(job_row.job_id.desc())
+        d = {"society": name}
+        jobs = (
+            sess.query(job_row)
+            .filter(job_row.args.contains(d))
+            .order_by(job_row.job_id.desc())
+        )
         return [Job.of_row(r) for r in jobs]
 
     @classmethod
@@ -241,6 +257,7 @@ class Job(object):
     def __repr__(self): return "<Unknown {0.type}>".format(self)
     def __str__(self): return "Unknown job type: {0.type}".format(self)
 
+
 class SocietyJob(Job):
     society_society = property(lambda s: s.row.args["society"])
 
@@ -253,8 +270,8 @@ class SocietyJob(Job):
             self.society = None
 
     def visible_to(self, crsid):
-        return super(SocietyJob, self).visible_to(crsid) or \
-                self.society and crsid in self.society
+        return super(SocietyJob, self).visible_to(crsid) or self.society and crsid in self.society
+
 
 # Test job - takes a long time to test for concurrency issues
 @add_job
@@ -281,6 +298,7 @@ class Test(Job):
 
     def __repr__(self): return "<Test {0.owner.crsid}>".format(self)
     def __str__(self): return "Test: {0.owner.crsid} {0.sleep_time}".format(self)
+
 
 @add_job
 class Signup(Job):
@@ -310,12 +328,12 @@ class Signup(Job):
             require_approval = False
         return cls.create(None, args, require_approval)
 
-    crsid          = property(lambda s: s.row.args["crsid"])
+    crsid = property(lambda s: s.row.args["crsid"])
     preferred_name = property(lambda s: s.row.args["preferred_name"])
-    surname        = property(lambda s: s.row.args["surname"])
-    email          = property(lambda s: s.row.args["email"])
-    mail_handler   = property(lambda s: s.row.args["mail_handler"] if "mail_handler" in s.row.args else DEFAULT_MAIL_HANDLER)
-    social         = property(lambda s: s.row.args["social"] == "y")
+    surname = property(lambda s: s.row.args["surname"])
+    email = property(lambda s: s.row.args["email"])
+    mail_handler = property(lambda s: s.row.args.get("mail_handler", DEFAULT_MAIL_HANDLER))
+    social = property(lambda s: s.row.args["social"] == "y")
 
     def run(self, sess):
         crsid = self.crsid
@@ -397,6 +415,7 @@ class Signup(Job):
     def __repr__(self): return "<Signup {0.crsid}>".format(self)
     def __str__(self): return "Signup: {0.crsid} ({0.preferred_name} {0.surname}, {0.email}, {0.mail_handler} mail)".format(self)
 
+
 @add_job
 class Reactivate(Job):
     JOB_TYPE = 'reactivate'
@@ -445,6 +464,7 @@ class Reactivate(Job):
         self.log("Send confirmation")
         mail_users(self.owner, "Account reactivated", "reactivate", new_email=self.email, password=password)
 
+
 @add_job
 class ResetUserPassword(Job):
     JOB_TYPE = 'reset_user_password'
@@ -469,6 +489,7 @@ class ResetUserPassword(Job):
 
     def __repr__(self): return "<ResetUserPassword {0.owner_crsid}>".format(self)
     def __str__(self): return "Reset user password: {0.owner.crsid} ({0.owner.name})".format(self)
+
 
 @add_job
 class UpdateEmailAddress(Job):
@@ -509,6 +530,7 @@ class UpdateEmailAddress(Job):
         self.log("Send confirmation")
         mail_users(self.owner, "Email address updated", "email", old_email=old_email, new_email=self.email)
 
+
 @add_job
 class UpdateMailHandler(Job):
     JOB_TYPE = 'update_mail_handler'
@@ -533,6 +555,7 @@ class UpdateMailHandler(Job):
         self.log("Update email handler")
         self.owner.mail_handler = self.mail_handler
 
+
 @add_job
 class CreateUserMailingList(Job):
     JOB_TYPE = 'create_user_mailing_list'
@@ -553,9 +576,9 @@ class CreateUserMailingList(Job):
 
     def run(self, sess):
         self.log("Sanity check list name")
-        if not re.match(r"^[A-Za-z0-9\-]+$", self.listname) \
-        or self.listname.split("-")[-1] in ("admins", "admin", "bounces", "confirm", "join", "leave",
-                                            "owner", "request", "subscribe", "unsubscribe"):
+        if (not re.match(r"^[A-Za-z0-9\-]+$", self.listname)
+            or self.listname.split("-")[-1] in ("admins", "admin", "bounces", "confirm", "join", "leave",
+                                                "owner", "request", "subscribe", "unsubscribe")):
             raise JobFailed("Invalid list suffix {}".format(self.listname))
 
         self.log("Create list")
@@ -564,6 +587,7 @@ class CreateUserMailingList(Job):
         self.log("Send password")
         full_listname, password = result.value
         mail_users(self.owner, "Mailing list created", "list-create", listname=full_listname, password=password)
+
 
 @add_job
 class ResetUserMailingListPassword(Job):
@@ -597,6 +621,7 @@ class ResetUserMailingListPassword(Job):
 
         self.log("Send new password")
         mail_users(self.owner, "Mailing list password reset", "list-password", listname=self.listname, password=result.value)
+
 
 @add_job
 class AddUserVhost(Job):
@@ -672,6 +697,7 @@ class ChangeUserVhostDocroot(Job):
         self.log("Send confirmation")
         mail_users(self.owner, "Custom domain document root changed", "change-vhost-docroot", domain=self.domain_text, root=self.root)
 
+
 @add_job
 class RemoveUserVhost(Job):
     JOB_TYPE = 'remove_user_vhost'
@@ -706,6 +732,7 @@ class RemoveUserVhost(Job):
         self.log("Send confirmation")
         mail_users(self.owner, "Custom domain removed", "remove-vhost", domain=self.domain_text)
 
+
 @add_job
 class CreateSociety(SocietyJob):
     JOB_TYPE = 'create_society'
@@ -715,10 +742,11 @@ class CreateSociety(SocietyJob):
 
     def resolve_references(self, sess):
         super(CreateSociety, self).resolve_references(sess)
-        self.admins = \
-                sess.query(database.Member) \
-                .filter(database.Member.crsid.in_(self.admin_crsids)) \
-                .all()
+        self.admins = (
+            sess.query(database.Member)
+            .filter(database.Member.crsid.in_(self.admin_crsids))
+            .all()
+        )
         if len(self.admins) != len(self.admin_crsids):
             raise KeyError("CreateSociety references admins")
 
@@ -731,14 +759,14 @@ class CreateSociety(SocietyJob):
         }
         return cls.create(member, args, True)
 
-    description  = property(lambda s: s.row.args["description"])
+    description = property(lambda s: s.row.args["description"])
     admin_crsids = property(lambda s: s.row.args["admins"].split(","))
 
     def run(self, sess):
         self.log("Create memberdb entry")
         soc = Society(society=self.society_society,
-                         description=self.description,
-                         admins=find_admins(self.admin_crsids, sess))
+                      description=self.description,
+                      admins=find_admins(self.admin_crsids, sess))
         sess.add(soc)
         sess.commit()
 
@@ -746,7 +774,7 @@ class CreateSociety(SocietyJob):
         gid = soc.gid
 
         subproc_call(self, "Add group (gid %d)" % gid, ["/usr/sbin/addgroup", "--gid", str(gid),
-                "--force-badname", self.society_society])
+                                                        "--force-badname", self.society_society])
 
         home_path = os.path.join("/societies", self.society_society)
         public_path = os.path.join("/public", "societies", self.society_society)
@@ -757,12 +785,12 @@ class CreateSociety(SocietyJob):
             self.log("Create society home symlink for {0}".format(admin))
             try:
                 os.symlink(home_path, os.path.join("/home", admin, self.society_society))
-            except:
+            except Exception:
                 pass
 
         subproc_call(self, "Add society user (uid %d)" % uid, ["/usr/sbin/adduser", "--force-badname", "--no-create-home",
-                                                "--uid", str(uid), "--gid", str(gid), "--gecos", self.description,
-                                                "--disabled-password", "--system", self.society_society])
+                                                               "--uid", str(uid), "--gid", str(gid), "--gecos", self.description,
+                                                               "--disabled-password", "--system", self.society_society])
         subproc_call(self, "Set home directory", ["/usr/sbin/usermod", "-d", home_path, self.society_society])
 
         update_nis(self, wait_netapp=True)
@@ -788,6 +816,7 @@ class CreateSociety(SocietyJob):
 
     def __repr__(self): return "<CreateSociety {0.society_society}>".format(self)
     def __str__(self): return "Create society: {0.society_society} ({0.description})".format(self)
+
 
 @add_job
 class UpdateSocietyRoleEmail(SocietyJob):
@@ -819,6 +848,7 @@ class UpdateSocietyRoleEmail(SocietyJob):
         self.log("Send confirmation")
         mail_users(self.society, "Role email updated", "role-email", old_email=old_email, new_email=self.email)
 
+
 @add_job
 class ChangeSocietyAdmin(SocietyJob):
     JOB_TYPE = 'change_society_admin'
@@ -840,26 +870,24 @@ class ChangeSocietyAdmin(SocietyJob):
             "action": action
         }
         require_approval = (
-                society.danger
-             or target_member.danger
-             or requesting_member.danger
-             or (    action == "remove"
-                 and len(society.admin_crsids) == 1
-                 and society.role_email))
+            society.danger
+            or target_member.danger
+            or requesting_member.danger
+            or (action == "remove"
+                and len(society.admin_crsids) == 1
+                and society.role_email))
         return cls.create(requesting_member, args, require_approval)
 
     target_member_crsid = property(lambda s: s.row.args["target_member"])
-    action              = property(lambda s: s.row.args["action"])
+    action = property(lambda s: s.row.args["action"])
 
     def __repr__(self):
-        return "<ChangeSocietyAdmin {0.action} {0.society_society} " \
-               "{0.target_member_crsid}>".format(self)
+        return "<ChangeSocietyAdmin {0.action} {0.society_society} {0.target_member_crsid}>".format(self)
 
     def __str__(self):
         verb = self.action.title()
         prep = "to" if self.action == "add" else "from"
-        fmt = "{verb} society admin: {0.target_member.crsid} ({0.target_member.name}) "\
-                "{prep} {0.society_society}"
+        fmt = "{verb} society admin: {0.target_member.crsid} ({0.target_member.name}) {prep} {0.society_society}"
         return fmt.format(self, verb=verb, prep=prep)
 
     def add_admin(self, sess):
@@ -890,8 +918,7 @@ class ChangeSocietyAdmin(SocietyJob):
         self.log("Send confirmation to the rest")
         adminNames = sorted("{0.name} ({0.crsid})".format(m) for m in self.society.admins)
         mail_users(self.society, "Access granted for " + self.target_member.crsid, "add-admin",
-                added=self.target_member, requester=self.owner, admins="\n".join(adminNames))
-
+                   added=self.target_member, requester=self.owner, admins="\n".join(adminNames))
 
     def rm_admin(self, sess):
         if self.target_member not in self.society.admins:
@@ -917,7 +944,7 @@ class ChangeSocietyAdmin(SocietyJob):
         self.log("Send confirmation to remaining admins")
         adminNames = sorted("{0.name} ({0.crsid})".format(m) for m in self.society.admins)
         mail_users(self.society, "Access removed for " + self.target_member.crsid, "remove-admin",
-                removed=self.target_member, requester=self.owner, admins="\n".join(adminNames))
+                   removed=self.target_member, requester=self.owner, admins="\n".join(adminNames))
 
     def run(self, sess):
         if self.owner not in self.society.admins:
@@ -927,6 +954,7 @@ class ChangeSocietyAdmin(SocietyJob):
             self.add_admin(sess)
         else:
             self.rm_admin(sess)
+
 
 @add_job
 class CreateSocietyMailingList(SocietyJob):
@@ -951,9 +979,9 @@ class CreateSocietyMailingList(SocietyJob):
 
     def run(self, sess):
         self.log("Sanity check list name")
-        if not re.match(r"^[A-Za-z0-9\-]+$", self.listname) \
-        or self.listname.split("-")[-1] in ("admins", "admin", "bounces", "confirm", "join", "leave",
-                                            "owner", "request", "subscribe", "unsubscribe"):
+        if (not re.match(r"^[A-Za-z0-9\-]+$", self.listname)
+            or self.listname.split("-")[-1] in ("admins", "admin", "bounces", "confirm", "join", "leave",
+                                                "owner", "request", "subscribe", "unsubscribe")):
             raise JobFailed("Invalid list suffix {}".format(self.listname))
 
         self.log("Create list")
@@ -962,6 +990,7 @@ class CreateSocietyMailingList(SocietyJob):
         self.log("Send password")
         full_listname, password = result.value
         mail_users(self.society, "Mailing list created", "list-create", listname=full_listname, password=password, requester=self.owner)
+
 
 @add_job
 class ResetSocietyMailingListPassword(SocietyJob):
@@ -1002,6 +1031,7 @@ class ResetSocietyMailingListPassword(SocietyJob):
 # Here be dragons: we trust the value of crsid a *lot* (such that it appears unescaped in SQL queries).
 # Quote with backticks and ensure only valid characters (alnum for crsid, alnum + [_-] for society).
 
+
 @add_job
 class CreateMySQLUserDatabase(Job):
     JOB_TYPE = 'create_mysql_user_database'
@@ -1031,6 +1061,7 @@ class CreateMySQLUserDatabase(Job):
 
     def __repr__(self): return "<CreateMySQLUserDatabase {0.owner_crsid}>".format(self)
     def __str__(self): return "Create user MySQL database: {0.owner.crsid} ({0.owner.name})".format(self)
+
 
 @add_job
 class ResetMySQLUserPassword(Job):
@@ -1063,6 +1094,7 @@ class ResetMySQLUserPassword(Job):
     def __repr__(self): return "<ResetMySQLUserPassword {0.owner_crsid}>".format(self)
     def __str__(self): return "Reset user MySQL password: {0.owner.crsid} ({0.owner.name})".format(self)
 
+
 @add_job
 class CreateMySQLSocietyDatabase(SocietyJob):
     JOB_TYPE = 'create_mysql_society_database'
@@ -1092,10 +1124,10 @@ class CreateMySQLSocietyDatabase(SocietyJob):
             if cursor.fetchone()[0] == 0:
                 usrpassword = make_pwd()
 
-            sql_exec(self, cursor, "Grant privileges (society, base)", "GRANT ALL PRIVILEGES ON `" +  socname + "`.*   TO '" + socname + "'@'%%'")
-            sql_exec(self, cursor, "Grant privileges (society, wild)", "GRANT ALL PRIVILEGES ON `" +  socname + "/%%`.* TO '" + socname + "'@'%%'")
-            sql_exec(self, cursor, "Grant privileges (user, base)",    "GRANT ALL PRIVILEGES ON `" +  socname + "`.*   TO '" + self.owner.crsid + "'@'%%'")
-            sql_exec(self, cursor, "Grant privileges (user, wild)",    "GRANT ALL PRIVILEGES ON `" +  socname + "/%%`.* TO '" + self.owner.crsid + "'@'%%'")
+            sql_exec(self, cursor, "Grant privileges (society, base)", "GRANT ALL PRIVILEGES ON `" + socname + "`.*   TO '" + socname + "'@'%%'")
+            sql_exec(self, cursor, "Grant privileges (society, wild)", "GRANT ALL PRIVILEGES ON `" + socname + "/%%`.* TO '" + socname + "'@'%%'")
+            sql_exec(self, cursor, "Grant privileges (user, base)",    "GRANT ALL PRIVILEGES ON `" + socname + "`.*   TO '" + self.owner.crsid + "'@'%%'")
+            sql_exec(self, cursor, "Grant privileges (user, wild)",    "GRANT ALL PRIVILEGES ON `" + socname + "/%%`.* TO '" + self.owner.crsid + "'@'%%'")
             sql_exec(self, cursor, "Set society user password",        "SET PASSWORD FOR '" + socname + "'@'%%' = %s", password)
 
             if usrpassword is not None:
@@ -1109,6 +1141,7 @@ class CreateMySQLSocietyDatabase(SocietyJob):
 
     def __repr__(self): return "<CreateMySQLSocietyDatabase {0.society_society}>".format(self)
     def __str__(self): return "Create society MySQL database: {0.society_society}".format(self)
+
 
 @add_job
 class ResetMySQLSocietyPassword(SocietyJob):
@@ -1143,6 +1176,7 @@ class ResetMySQLSocietyPassword(SocietyJob):
 
     def __repr__(self): return "<ResetMySQLSocietyPassword {0.society_society}>".format(self)
     def __str__(self): return "Reset society MySQL password: {0.society_society}".format(self)
+
 
 @add_job
 class CreatePostgresUserDatabase(Job):
@@ -1192,6 +1226,7 @@ class CreatePostgresUserDatabase(Job):
 
     def __repr__(self): return "<CreatePostgresUserDatabase {0.owner_crsid}>".format(self)
     def __str__(self): return "Create user PostgreSQL database: {0.owner.crsid} ({0.owner.name})".format(self)
+
 
 @add_job
 class ResetPostgresUserPassword(Job):
@@ -1299,6 +1334,7 @@ class CreatePostgresSocietyDatabase(SocietyJob):
     def __repr__(self): return "<CreatePostgresSocietyDatabase {0.society_society}>".format(self)
     def __str__(self): return "Create society PostgreSQL database: {0.society_society}".format(self)
 
+
 @add_job
 class ResetPostgresSocietyPassword(SocietyJob):
     JOB_TYPE = 'reset_postgres_society_password'
@@ -1335,6 +1371,7 @@ class ResetPostgresSocietyPassword(SocietyJob):
     def __repr__(self): return "<ResetPostgresSocietyPassword {0.society_society}>".format(self)
     def __str__(self): return "Reset society PostgreSQL password: {0.society_society}".format(self)
 
+
 @add_job
 class AddSocietyVhost(SocietyJob):
     JOB_TYPE = 'add_society_vhost'
@@ -1368,6 +1405,7 @@ class AddSocietyVhost(SocietyJob):
 
         self.log("Send confirmation")
         mail_users(self.society, "Custom domain added", "add-vhost", domain=self.domain_text, root=self.root)
+
 
 @add_job
 class ChangeSocietyVhostDocroot(SocietyJob):
@@ -1407,6 +1445,7 @@ class ChangeSocietyVhostDocroot(SocietyJob):
 
         self.log("Send confirmation")
         mail_users(self.society, "Custom domain document root changed", "change-vhost-docroot", domain=self.domain_text, root=self.root)
+
 
 @add_job
 class RemoveSocietyVhost(SocietyJob):

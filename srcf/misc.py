@@ -1,4 +1,3 @@
-import sys
 import os
 import pwd
 
@@ -28,7 +27,7 @@ def get_current_context(session=None):
         raise EnvironmentError("Unable to detect CRSID")
     elif len(attempts) != 1:
         raise EnvironmentError("Multiple CRSIDS? {0}"
-                .format(', '.join(attempts)))
+                               .format(', '.join(attempts)))
 
     crsid = list(attempts)[0]
     admin = False

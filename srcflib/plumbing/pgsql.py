@@ -31,7 +31,7 @@ def connect(host, db="template1") -> Connection:
 
 
 @contextmanager
-def context(conn: Connection=None, db: str=None) -> Generator[Cursor, None, None]:
+def context(conn: Connection = None, db: str = None) -> Generator[Cursor, None, None]:
     """
     Run multiple MySQL commands in a single connection:
 

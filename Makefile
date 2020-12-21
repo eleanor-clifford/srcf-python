@@ -1,5 +1,6 @@
 PYTHON = python3
 PIP = pip3
+FLAKE8 = flake8
 PDOC = pdoc3
 
 INSTALL_ARGS = -e
@@ -16,6 +17,9 @@ DOCS = $(PDOC) --html --force --config show_type_annotations=True
 
 NAME = srcf
 MODULES = $(NAME) srcflib srcfmail srcfmailmanwrapper
+
+check:
+	$(FLAKE8) $(MODULES)
 
 install:
 	$(PIP) install --upgrade pip setuptools wheel

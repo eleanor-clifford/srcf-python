@@ -14,8 +14,8 @@ from . import mysql, pgsql
 
 
 def create_member(crsid: str, preferred_name: str, surname: str, email: str,
-                  mail_handler: str, is_member: bool=True, is_user: bool=True,
-                  social: bool=False) -> ResultSet[Member]:
+                  mail_handler: str, is_member: bool = True, is_user: bool = True,
+                  social: bool = False) -> ResultSet[Member]:
     """
     Register and provision a new member of the SRCF.
     """
@@ -88,7 +88,7 @@ def update_member_name(member: Member, preferred_name: str, surname: str) -> Res
 
 
 def create_society(name: str, description: str, admins: Set[str],
-                   role_email: str=None) -> ResultSet[Society]:
+                   role_email: str = None) -> ResultSet[Society]:
     """
     Register a new SRCF society account.
     """

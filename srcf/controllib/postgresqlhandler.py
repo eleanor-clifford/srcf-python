@@ -4,6 +4,7 @@ import logging
 import traceback
 import psycopg2
 
+
 class PostgreSQLHandler(logging.Handler):
     """
     A :class:`logging.Handler` that logs to the `log` PostgreSQL table.
@@ -24,10 +25,10 @@ class PostgreSQLHandler(logging.Handler):
     (``connect(**db_settings)``).
     """
 
-    _query = "INSERT INTO job_log " \
-                "(job_id, type, level, message, raw) " \
-             "VALUES " \
-                "(%(job_id)s, %(type)s, %(level)s, %(message)s, %(raw)s)"
+    _query = ("INSERT INTO job_log "
+              "(job_id, type, level, message, raw) "
+              "VALUES "
+              "(%(job_id)s, %(type)s, %(level)s, %(message)s, %(raw)s)")
 
     # see TYPE log_level
     _levels = ('debug', 'info', 'warning', 'error', 'critical')
