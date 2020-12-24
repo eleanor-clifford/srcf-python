@@ -10,7 +10,7 @@ import platform
 import subprocess
 from typing import Generic, List, Optional, Set, Tuple, TypeVar, Union
 
-from sqlalchemy.orm import Session as SQLA_SESSION
+from sqlalchemy.orm import Session as SQLASession
 
 from srcf import pwgen
 from srcf.database import Member, Society
@@ -62,7 +62,7 @@ def owner_website(owner: Owner):
     return "https://{}.{}.srcf.net".format(owner_name(owner), key)
 
 
-def get_members(sess: SQLA_SESSION, *crsids: str) -> Set[str]:
+def get_members(sess: SQLASession, *crsids: str) -> Set[str]:
     """
     Fetch multiple `Member` objects by their CRSids.
     """

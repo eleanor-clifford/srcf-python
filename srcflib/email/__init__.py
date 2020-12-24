@@ -12,7 +12,7 @@ import os.path
 
 from jinja2 import Environment, FileSystemLoader
 
-from sqlalchemy.orm import Session as SQLA_SESSION
+from sqlalchemy.orm import Session as SQLASession
 
 from srcf.database import Member, Society
 from srcf.mail import send_mail
@@ -87,7 +87,7 @@ class EmailWrapper:
 DEFAULT_WRAPPER = EmailWrapper(subject="[SRCF] {}")
 
 
-def send(target: Owner, template: str, context: dict = None, session: SQLA_SESSION = None):
+def send(target: Owner, template: str, context: dict = None, session: SQLASession = None):
     """
     Render and send an email to the target member or society.
     """

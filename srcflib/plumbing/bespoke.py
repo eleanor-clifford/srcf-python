@@ -13,9 +13,9 @@ import shutil
 import time
 from typing import Generator, List, Optional, Set
 
-from requests import session, Session as REQS_SESSION
+from requests import session, Session as RequestsSession
 
-from sqlalchemy.orm import Session as SQLA_SESSION
+from sqlalchemy.orm import Session as SQLASession
 from sqlalchemy.orm.exc import NoResultFound
 
 from srcf.database import Domain, HTTPSCert, Member, Session, Society
@@ -32,7 +32,7 @@ LOG = logging.getLogger(__name__)
 
 
 @contextmanager
-def context(sess: SQLA_SESSION = None) -> Generator[SQLA_SESSION, None, None]:
+def context(sess: SQLASession = None) -> Generator[SQLASession, None, None]:
     """
     Run multiple database commands and commit at the end:
 
@@ -58,7 +58,7 @@ def get_crontab(owner: Owner) -> Optional[str]:
     return proc.stdout.decode("utf-8") if proc.stdout else None
 
 
-def get_mailman_lists(owner: Owner, sess: REQS_SESSION = session()) -> List[MailList]:
+def get_mailman_lists(owner: Owner, sess: RequestsSession = session()) -> List[MailList]:
     """
     Query mailing lists owned by the given member or society.
     """
@@ -67,7 +67,7 @@ def get_mailman_lists(owner: Owner, sess: REQS_SESSION = session()) -> List[Mail
     return resp.text.splitlines()
 
 
-def create_member(sess: SQLA_SESSION, crsid: str, preferred_name: str, surname: str, email: str,
+def create_member(sess: SQLASession, crsid: str, preferred_name: str, surname: str, email: str,
                   mail_handler: str = "forward", is_member: bool = True,
                   is_user: bool = True) -> Result[Member]:
     """
@@ -96,7 +96,7 @@ def create_member(sess: SQLA_SESSION, crsid: str, preferred_name: str, surname: 
     return Result(state, mem)
 
 
-def create_society(sess: SQLA_SESSION, name: str, description: str, admins: Set[str],
+def create_society(sess: SQLASession, name: str, description: str, admins: Set[str],
                    role_email: str = None) -> Result[Society]:
     """
     Register or update a society in the database.
@@ -120,7 +120,7 @@ def create_society(sess: SQLA_SESSION, name: str, description: str, admins: Set[
     return Result(state, soc)
 
 
-def add_to_society(sess: SQLA_SESSION, member: Member, society: Society) -> Result:
+def add_to_society(sess: SQLASession, member: Member, society: Society) -> Result:
     """
     Add a new admin to a society account.
     """
@@ -131,7 +131,7 @@ def add_to_society(sess: SQLA_SESSION, member: Member, society: Society) -> Resu
     return Result(State.success)
 
 
-def remove_from_society(sess: SQLA_SESSION, member: Member, society: Society) -> Result:
+def remove_from_society(sess: SQLASession, member: Member, society: Society) -> Result:
     """
     Remove an existing admin from a society account.
     """
@@ -142,7 +142,7 @@ def remove_from_society(sess: SQLA_SESSION, member: Member, society: Society) ->
     return Result(State.success)
 
 
-def delete_society(sess: SQLA_SESSION, society: Society) -> Result:
+def delete_society(sess: SQLASession, society: Society) -> Result:
     """
     Drop a society record from the database.
     """
@@ -260,7 +260,7 @@ def set_web_status(owner: Owner, status: str) -> Result:
     return Result(State.success)
 
 
-def add_custom_domain(sess: SQLA_SESSION, owner: Owner, name: str,
+def add_custom_domain(sess: SQLASession, owner: Owner, name: str,
                       root: str = None) -> Result[Domain]:
     """
     Assign a domain name to a member or society website.
@@ -288,7 +288,7 @@ def add_custom_domain(sess: SQLA_SESSION, owner: Owner, name: str,
     return Result(state, domain)
 
 
-def queue_https_cert(sess: SQLA_SESSION, domain: str) -> Result[HTTPSCert]:
+def queue_https_cert(sess: SQLASession, domain: str) -> Result[HTTPSCert]:
     """
     Add an existing domain to the queue for requesting an HTTPS certificate.
     """

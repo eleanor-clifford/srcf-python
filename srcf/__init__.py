@@ -5,7 +5,7 @@
 import warnings
 
 # Python 2 & 3 compatability
-import six as __six
+import six
 
 from srcf.passwords import pwgen
 
@@ -22,7 +22,7 @@ SOCLIST = "/societies/sysadmins/admin/soclist"
 SOCQUEUE = "/societies/srcf/admin/socqueue"
 
 # No argcomplete for py3 yet
-if not __six.PY3:
+if not six.PY3:
     from srcf.argcompletors import complete_member, complete_user
     from srcf.argcompletors import complete_soc, complete_activesoc
     from srcf.argcompletors import complete_socadmin

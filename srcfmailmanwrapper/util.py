@@ -24,7 +24,7 @@ def getlistname(args):
     try:
         username = pwd.getpwuid(os.getuid()).pw_name
     except KeyError:
-        raise NonexistantUidError(os.getuid())
+        raise NonexistentUidError(os.getuid())
 
     # root controls all
     if username == "root":
@@ -37,7 +37,7 @@ def getlistname(args):
     try:
         group = grp.getgrnam(socname)
     except KeyError:
-        raise NonexistantSocietyError(socname)
+        raise NonexistentSocietyError(socname)
 
     if username not in group.gr_mem:
         raise PermissionDeniedError(socname)
@@ -84,13 +84,13 @@ class InvalidArgumentValueError(ArgumentError):
         self.message = "'%s' is not a valid value for %s" % (val, arg)
 
 
-class NonexistantUidError(Error):
+class NonexistentUidError(Error):
     def __init__(self, uid):
         self.message = "you (uid %d) appear not to exist!\nPlease ask %s for help finding yourself." % (
             uid, SYSADMINEMAIL)
 
 
-class NonexistantSocietyError(Error):
+class NonexistentSocietyError(Error):
     def __init__(self, socname):
         self.message = "society '%s' appears not to exist!  Please check your typing." % socname
 

@@ -62,7 +62,7 @@ def nfs_aware_chown(path, *args, **kwargs):
     # We *try* not to do anything that will cause nonexistence to be cached
     # (we update NIS and wait a good while for the server before we chown)
     # but actions elsewhere (e.g. someone trying to manually chown to a
-    # not-yet-existant user) might have already triggered the problem.  We
+    # not-yet-existent user) might have already triggered the problem.  We
     # can't do anything about that except give the poor sysadmin a hint.
     try:
         os.chown(path, *args, **kwargs)
