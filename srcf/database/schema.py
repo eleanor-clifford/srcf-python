@@ -1,5 +1,6 @@
 from __future__ import print_function, unicode_literals
 
+from binascii import unhexlify
 import os
 import pwd
 
@@ -42,6 +43,19 @@ RESTRICTED = not is_root
 
 
 VALID_MAIL_HANDLERS = ('forward', 'pip', 'hades')
+
+
+def _hexdump(raw):
+    rendered = "".join(chr(x) if len(repr(chr(x))) == 3 else "." for x in range(256))
+    safe = []
+    for pos in range(0, len(raw), 16):
+        line = raw[pos:pos + 16]
+        hex_ = " ".join("{:02x}".format(c) for c in line)
+        if len(line) > 8:
+            hex_ = "{} {}".format(hex_[:24], hex_[24:])
+        chars = "".join(rendered[c] if c < len(rendered) else "." for c in line)
+        safe.append("{:08x}  {:48s}  |{}|".format(pos, hex_, chars))
+    return "\n".join(safe)
 
 
 CRSID_TYPE = String(7)
@@ -274,6 +288,16 @@ if is_root or is_webapp:
         level = Column(LogLevel)
         message = Column(Text)
         raw = Column(Text)
+
+        @property
+        def raw_safe(self):
+            if not self.raw.startswith("\\x"):
+                return self.raw
+            raw = unhexlify(self.raw[2:])
+            try:
+                return raw.decode("utf-8")
+            except UnicodeDecodeError:
+                return "[Could not decode output as UTF-8]\n{}".format(_hexdump(raw))
 
 else:
 

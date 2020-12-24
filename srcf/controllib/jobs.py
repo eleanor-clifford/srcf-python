@@ -101,7 +101,7 @@ def subproc_call(job, desc, cmd, stdin=None):
         try:
             out = out.decode("utf-8")
         except UnicodeDecodeError:
-            out = b"[Could not decode output as UTF-8]\n" + out
+            pass
         job.log(desc, "output", raw=out)
 
 
