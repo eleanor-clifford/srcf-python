@@ -7,7 +7,7 @@ README = os.path.join(os.path.abspath(os.path.dirname(__file__)), "README.rst")
 
 
 setup(name="srcf",
-      version="0.0.7",
+      version="0.0.8",
       description="Database schemas and core functionality for the Student-Run Computing Facility.",
       long_description=open(README).read(),
       long_description_content_type="text/x-rst",

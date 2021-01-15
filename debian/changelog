@@ -1,3 +1,24 @@
+python3-srcf (0.0.8) UNRELEASED; urgency=medium
+
+  [ Richard Allitt ]
+  * Bulk whitespace and syntax cleanup
+  * Fix recursive call in copytree
+  * Drop unused session query transaction
+  * Actually use non-decoded subproc output
+  * Notify users being removed from group accounts
+  * Tighten email template package inclusion
+  * Fixes to whitespace, typos, session type case
+  * Add safe log renderer for potentially raw bytes
+
+  [ Charlie Jonas ]
+  * Bump copyright year in license file (#3)
+
+  [ Malcolm Scott ]
+  * Don't require someone to exist in ldap.lookup in order to sign up (i.e. allow alumni)
+  * Drop unused LDAP helper
+
+ -- Malcolm Scott <debianpkg@malc.org.uk>  Fri, 15 Jan 2021 13:45:29 +0000
+
 python3-srcf (0.0.7) xenial; urgency=medium
 
   * Incorporate SRCFLib into unified deb package
