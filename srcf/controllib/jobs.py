@@ -320,13 +320,7 @@ class Signup(Job):
             "mail_handler": mail_handler,
             "social": "y" if social else "n"
         }
-        try:
-            utils.ldapsearch(crsid)
-        except KeyError:
-            require_approval = True
-        else:
-            require_approval = False
-        return cls.create(None, args, require_approval)
+        return cls.create(None, args, require_approval=False)
 
     crsid = property(lambda s: s.row.args["crsid"])
     preferred_name = property(lambda s: s.row.args["preferred_name"])
