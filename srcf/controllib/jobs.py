@@ -176,7 +176,7 @@ class Job(object):
         jobs = (
             sess.query(job_row)
             .filter(job_row.owner_crsid == crsid,
-                    ~job_row.args.defined("society"))
+                    ~job_row.args.defined("society") | (job_row.type == CreateSociety.JOB_TYPE))
             .order_by(job_row.job_id.desc())
         )
         return [Job.of_row(r) for r in jobs]
