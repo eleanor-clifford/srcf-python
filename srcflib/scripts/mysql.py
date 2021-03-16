@@ -1,4 +1,4 @@
-from . import entrypoint, with_owner
+from .utils import entrypoint, with_owner
 from ..tasks import mysql
 
 

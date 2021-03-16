@@ -12,13 +12,18 @@ from docopt import docopt
 from srcf.database.queries import get_member, get_society
 
 
+ENTRYPOINTS = []
+
+
 def entrypoint(fn):
     """
     Decorator to make an entrypoint out of a generic function.
 
-    Uses `docopt` to parse arguments according to the method docstring, and will be formatted with
-    `{script}` set to the script name.  Should accept one argument, a `dict` of console parameters,
-    unless using the `with_*` helpers to add additional arguments.
+    This uses `docopt` to parse arguments according to the method docstring, and will be formatted
+    with `{script}` set to the script name.  At minimum, it should contain `Usage: {script}`.
+
+    The function itself should accept one argument, a `dict` of console parameters, unless using
+    the `with_*` helpers to add additional arguments.
     """
     @wraps(fn)
     def wrap(opts=None):
@@ -28,6 +33,11 @@ def entrypoint(fn):
             opts = docopt(doc)
         return fn(opts)
     wrap.__doc__ = wrap.__doc__.format(script=fn.__name__)
+    # Create a console script line for setup.
+    label = "srcflib-{}-{}".format(fn.__module__.rsplit(".", 1)[-1],
+                                   fn.__qualname__).replace("_", "-")
+    target = "{}:{}".format(fn.__module__, fn.__qualname__)
+    ENTRYPOINTS.append("{}={}".format(label, target))
     return wrap
 
 

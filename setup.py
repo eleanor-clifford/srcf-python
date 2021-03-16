@@ -3,14 +3,12 @@ import os.path
 
 from setuptools import find_packages, setup
 
+# Import all script providers so that ENTRYPOINTS gets populated.
+from srcflib.scripts import mailman, mysql  # noqa: F401
+from srcflib.scripts.utils import ENTRYPOINTS
+
 
 README = os.path.join(os.path.abspath(os.path.dirname(__file__)), "README.rst")
-
-
-def _entrypoints(mapping):
-    return {"console_scripts": ["srcflib-{0}-{1}=srcflib.scripts.{0}:{2}"
-                                .format(module, method.replace("_", "-"), method)
-                                for module, methods in mapping.items() for method in methods]}
 
 
 setup(name="srcf",
@@ -30,4 +28,4 @@ setup(name="srcf",
       package_data={"srcf.controllib": ["emails/**/*.txt"],
                     "srcflib.email": ["templates/**/*.j2"]},
       scripts=glob("bin/*"),
-      entry_points=_entrypoints({"mysql": ["create"]}))
+      entry_points={"console_scripts": ENTRYPOINTS})
