@@ -7,6 +7,7 @@ import logging
 from typing import Generator, List, Optional, Tuple, Union
 
 from psycopg2 import connect as psycopg2_connect
+from psycopg2.errors import DuplicateDatabase, InvalidCatalogName
 from psycopg2.extensions import connection as Connection, cursor as Cursor
 from psycopg2.extras import NamedTupleCursor
 
@@ -20,6 +21,14 @@ Role = Tuple[str, bool]
 _ROLE_SELECT = "SELECT rolname, rolcanlogin FROM pg_roles"
 
 
+def _format(sql: str, *literals: str) -> str:
+    # Psycopg2 won't format values normally enclosed in double quotes, so handle these ourselves.
+    if any('"' in lit for lit in literals):
+        raise ValueError("Double quotes forbidden in identifiers")
+    params = ('"{}"'.format(lit) for lit in literals)
+    return sql.format(*params)
+
+
 LOG = logging.getLogger(__name__)
 
 
@@ -27,7 +36,9 @@ def connect(host, db="template1") -> Connection:
     """
     Create a PostgreSQL connection using Psycopg2 and namedtuple cursors.
     """
-    return psycopg2_connect(host=host, database=db, cursor_factory=NamedTupleCursor)
+    conn = psycopg2_connect(host=host, database=db, cursor_factory=NamedTupleCursor)
+    conn.autocommit = True
+    return conn
 
 
 @contextmanager
@@ -94,7 +105,7 @@ def get_role_databases(cursor: Cursor, owner: Role) -> List[str]:
     """
     Check if the given user has their own database.
     """
-    query(cursor, "SELECT datname FROM pg_database d, pg_user u"
+    query(cursor, "SELECT datname FROM pg_database d, pg_user u "
                   "WHERE d.datdba = u.usesysid AND u.usename = %s", owner[0])
     return [row[0] for row in cursor]
 
@@ -104,20 +115,9 @@ def create_user(cursor: Cursor, name: str) -> Result[Password]:
     Create a PostgreSQL user with a random password, if a user with that name doesn't already exist.
     """
     passwd = Password.new()
-    query(cursor, "CREATE USER %s ENCRYPTED PASSWORD %s NOCREATEDB NOCREATEUSER", name, passwd)
+    query(cursor, _format("CREATE USER {} ENCRYPTED PASSWORD %s "
+                          "NOCREATEDB NOCREATEUSER", name), passwd)
     return Result(State.success, passwd)
-
-
-def add_user(cursor: Cursor, name: str) -> Result[Optional[Password]]:
-    """
-    Create a new PostgreSQL user if it doesn't yet exist, or enable a currently disabled role.
-    """
-    try:
-        role = get_role(cursor, name)
-    except KeyError:
-        return create_user(cursor, name)
-    else:
-        return enable_role(cursor, role)
 
 
 def reset_password(cursor: Cursor, name: str) -> Result[Password]:
@@ -125,7 +125,7 @@ def reset_password(cursor: Cursor, name: str) -> Result[Password]:
     Reset the password of the given PostgreSQL user.
     """
     passwd = Password.new()
-    query(cursor, "ALTER USER %s PASSWORD %s", name, passwd)
+    query(cursor, _format("ALTER USER {} PASSWORD %s", name), passwd)
     return Result(State.success, passwd)
 
 
@@ -133,28 +133,28 @@ def drop_user(cursor: Cursor, name: str) -> Result:
     """
     Drop a PostgreSQL user and all of its grants.
     """
-    query(cursor, "DROP USER IF EXISTS %s", name)
+    query(cursor, _format("DROP USER IF EXISTS {}", name))
     return Result(State.success)
 
 
-def enable_role(cursor: Cursor, role: Role) -> Result:
+def enable_role(cursor: Cursor, role: Role) -> Result[Role]:
     """
     Add the LOGIN privilege to a role.
     """
     if role[1]:
         return Result(State.unchanged)
-    query(cursor, "ALTER ROLE %s LOGIN", role[0])
-    return Result(State.success)
+    query(cursor, _format("ALTER ROLE {} LOGIN", role[0]))
+    return Result(State.success, (role[0], True))
 
 
-def disable_role(cursor: Cursor, role: Role) -> Result:
+def disable_role(cursor: Cursor, role: Role) -> Result[Role]:
     """
     Remove the LOGIN privilege from a role.
     """
     if not role[1]:
         return Result(State.unchanged)
-    query(cursor, "ALTER ROLE %s NOLOGIN", role[0])
-    return Result(State.success)
+    query(cursor, _format("ALTER ROLE {} NOLOGIN", role[0]))
+    return Result(State.success, (role[0], False))
 
 
 def grant_role(cursor: Cursor, name: str, role: Role) -> Result:
@@ -163,7 +163,7 @@ def grant_role(cursor: Cursor, name: str, role: Role) -> Result:
     """
     if role[0] in {owned[0] for owned in get_user_roles(cursor, name)}:
         return Result(State.unchanged)
-    query(cursor, "GRANT %s TO %s", role[0], name)
+    query(cursor, _format("GRANT {} TO {}", role[0], name))
     return Result(State.success)
 
 
@@ -173,18 +173,37 @@ def revoke_role(cursor: Cursor, name: str, role: Role) -> Result:
     """
     if role[0] not in {owned[0] for owned in get_user_roles(cursor, name)}:
         return Result(State.unchanged)
-    query(cursor, "REVOKE %s FROM %s", role[0], name)
+    query(cursor, _format("REVOKE {} FROM {}", role[0], name))
     return Result(State.success)
 
 
-def create_database(cursor: Cursor, name: str, owner: Role) -> Result:
+@Result.collect
+def add_user(cursor: Cursor, name: str):
     """
+    Create a new PostgreSQL user if it doesn't yet exist, or enable a currently disabled role.
+    """
+    try:
+        role = get_role(cursor, name)
+    except KeyError:
+        passwd = yield create_user(cursor, name)  # type: Password
+        return passwd
+    else:
+        yield enable_role(cursor, role)
+        return None
+
+
+def create_database(cursor: Cursor, name: str, owner: Role) -> Result:
+    """ 
     Create a new database owned by the given role.
 
     Note: this must be run outside of a transaction.
     """
-    query(cursor, "CREATE DATABASE IF NOT EXISTS %s OWNER %s", name, owner[0])
-    return Result(State.success)
+    try:
+        query(cursor, _format("CREATE DATABASE {} OWNER {}", name, owner[0]))
+    except DuplicateDatabase:
+        return Result(State.unchanged)
+    else:
+        return Result(State.success)
 
 
 def drop_database(cursor: Cursor, name: str) -> Result:
@@ -193,5 +212,11 @@ def drop_database(cursor: Cursor, name: str) -> Result:
 
     Note: this must be run outside of a transaction.
     """
-    query(cursor, "DROP DATABASE IF EXISTS %s", name)
-    return Result(State.success)
+    if '"' in name:
+        raise ValueError("Double quotes forbidden in identifiers")
+    try:
+        query(cursor, _format("DROP DATABASE {}", name))
+    except InvalidCatalogName:
+        return Result(State.unchanged)
+    else:
+        return Result(State.success)

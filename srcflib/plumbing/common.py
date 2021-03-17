@@ -246,8 +246,8 @@ def require_host(*hosts: str):
     """
     Only allow a function to be called on the given hosts, identified by hostname:
 
-        >>> @require_hosts(Hosts.USER)
-        ... def create_user(username): ...
+        @require_hosts(Hosts.USER)
+        def create_user(username): ...
     """
     def outer(fn: Callable[..., R]) -> Callable[..., R]:
         @wraps(fn)

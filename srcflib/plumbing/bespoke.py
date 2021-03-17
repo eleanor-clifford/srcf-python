@@ -36,9 +36,9 @@ def context(sess: SQLASession = None) -> Generator[SQLASession, None, None]:
     """
     Run multiple database commands and commit at the end:
 
-        >>> with context() as sess:
-        ...     for ... in data:
-        ...         create_member(sess, ...)
+        with context() as sess:
+            for ... in data:
+                create_member(sess, ...)
     """
     sess = sess or Session()
     try:
