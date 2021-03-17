@@ -8,7 +8,8 @@ from typing import Set
 from srcf.database import Member, Society
 from srcf.database.queries import get_member, get_society
 
-from ..plumbing import bespoke, Password, pgsql as pgsql_p, Result, unix
+from ..plumbing import bespoke, pgsql as pgsql_p, unix
+from ..plumbing.common import Password, Result
 from . import mailman, mysql, pgsql
 
 

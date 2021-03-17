@@ -10,7 +10,8 @@ from psycopg2.extensions import connection as Connection, cursor as Cursor
 from srcf.database import Member, Society
 from srcf.database.queries import get_member, get_society
 
-from ..plumbing import Owner, owner_name, Password, pgsql, Result
+from ..plumbing import pgsql
+from ..plumbing.common import Owner, owner_name, Password, Result
 
 
 def connect(db: str = None) -> Connection:

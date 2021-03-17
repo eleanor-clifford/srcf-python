@@ -9,7 +9,8 @@ from pymysql.cursors import Cursor
 from srcf.database import Member, Society
 from srcf.database.queries import get_member, get_society
 
-from ..plumbing import mysql, Owner, owner_name, Password, Result
+from ..plumbing import mysql
+from ..plumbing.common import Owner, owner_name, Password, Result
 
 # Re-export connection plumbing to avoid unnecessary imports elsewhere.
 connect = mysql.connect

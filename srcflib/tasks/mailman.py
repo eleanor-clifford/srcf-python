@@ -6,7 +6,8 @@ from typing import List, Optional, Tuple
 
 from srcf.database import Member
 
-from ..plumbing import bespoke, mailman, Owner, owner_name, Password, Result
+from ..plumbing import bespoke, mailman
+from ..plumbing.common import Owner, owner_name, Password, Result
 
 
 def _list_name_owner(owner: Owner, suffix: str = None) -> Tuple[str, str]:

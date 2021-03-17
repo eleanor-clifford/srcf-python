@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session as SQLASession
 from srcf.database import Member, Society
 from srcf.mail import send_mail
 
-from ..plumbing import Owner, owner_desc, owner_name, owner_website
+from ..plumbing.common import Owner, owner_desc, owner_name, owner_website
 
 
 ENV = Environment(loader=FileSystemLoader(os.path.join(os.path.dirname(__file__), "templates")),
