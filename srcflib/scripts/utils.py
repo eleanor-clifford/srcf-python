@@ -41,6 +41,15 @@ def entrypoint(fn):
     return wrap
 
 
+def confirm(msg="Are you sure?"):
+    """
+    Prompt for confirmation before destructive actions.
+    """
+    yn = input("{} [yN] ".format(msg))
+    if yn.lower() not in ("y", "yes"):
+        error("Aborted!")
+
+
 def error(msg=None, code=1):
     """
     Print an error message and exit.
