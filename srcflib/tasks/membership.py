@@ -81,8 +81,10 @@ def update_member_name(member: Member, preferred_name: str, surname: str):
                                              is_member=member.member,
                                              is_user=member.user)
     user = unix.get_user(member.crsid)
-    yield unix.set_real_name(user, member.name)
-    yield bespoke.update_nis()
+    rename = unix.set_real_name(user, member.name)
+    yield rename
+    if rename:
+        yield bespoke.update_nis()
     return member
 
 
@@ -185,6 +187,8 @@ def update_society_description(society: Society, description: str):
                                                admins=society.admin_crsids,
                                                role_email=society.role_email)
     user = unix.get_user(society.society)
-    yield unix.set_real_name(user, description)
-    yield bespoke.update_nis()
+    rename = unix.set_real_name(user, society.description)
+    yield rename
+    if rename:
+        yield bespoke.update_nis()
     return society

@@ -35,8 +35,9 @@ def create_list(owner: Owner, suffix: str = None):
                       "-request", "-subscribe", "-unsubscribe")):
         raise ValueError("List name {!r} ends with reserved suffix".format(name))
     passwd = yield mailman.create_list(name, admin)  # type: Optional[Password]
-    yield bespoke.configure_mailing_list(name)
-    yield bespoke.generate_mailman_aliases()
+    if passwd:
+        yield bespoke.configure_mailing_list(name)
+        yield bespoke.generate_mailman_aliases()
     return (name, passwd)
 
 
@@ -57,5 +58,7 @@ def remove_list(owner: Owner, suffix: str = None, remove_archive: bool = False):
     Delete an existing mailing list, and optionally its message archives.
     """
     name, _ = _list_name_owner(owner, suffix)
-    yield mailman.remove_list(name, remove_archive)
-    yield bespoke.generate_mailman_aliases()
+    remove = mailman.remove_list(name, remove_archive)
+    yield remove
+    if remove:
+        yield bespoke.generate_mailman_aliases()
