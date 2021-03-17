@@ -86,9 +86,10 @@ def sync_member_roles(cursor: Cursor, member: Member):
             continue
         else:
             current.add((username, role))
-    roles = pgsql.get_roles(cursor, *(soc.society for soc in member.societies))
-    needed = set((username, role) for role in roles)
-    yield from _sync_roles(cursor, current, needed)
+    if member.societies:
+        roles = pgsql.get_roles(cursor, *(soc.society for soc in member.societies))
+        needed = set((username, role) for role in roles)
+        yield from _sync_roles(cursor, current, needed)
 
 
 @Result.collect

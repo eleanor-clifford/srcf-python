@@ -55,8 +55,8 @@ def query(cursor: Cursor, sql: str, *args: Union[str, Tuple[str, ...], Password]
     Run a SQL query against a database cursor, and return whether rows were affected.
     """
     LOG.debug("Query: %r %% %r", sql, args)
-    return bool(cursor.execute(sql, [str(arg) if isinstance(arg, Password) else arg
-                                     for arg in args]))
+    cursor.execute(sql, [str(arg) if isinstance(arg, Password) else arg for arg in args])
+    return bool(cursor.rowcount)
 
 
 def get_users(cursor: Cursor, *names: str) -> List[str]:
@@ -65,6 +65,14 @@ def get_users(cursor: Cursor, *names: str) -> List[str]:
     """
     query(cursor, "SELECT User FROM mysql.user WHERE User IN %s", names)
     return [user[0] for user in cursor]
+
+
+def validate_user(cursor: Cursor, name: str, passwd: Password) -> bool:
+    """
+    Test if a user exists matching the given username/password combination.
+    """
+    return bool(query(cursor, "SELECT User FROM mysql.user WHERE User = %s "
+                              "AND authentication_string = PASSWORD(%s)", name, passwd))
 
 
 def get_user_grants(cursor: Cursor, user: str) -> List[str]:
@@ -113,9 +121,13 @@ def create_user(cursor: Cursor, name: str) -> Result[Optional[Password]]:
     """
     Create a MySQL user with a random password, if a user with that name doesn't already exist.
     """
+    if get_users(cursor, name):
+        return Result(State.unchanged)
     passwd = Password.new()
-    new = query(cursor, "CREATE USER IF NOT EXISTS %s@'%%' IDENTIFIED BY %s", name, passwd)
-    return Result(State.success, passwd) if new else Result(State.unchanged)
+    query(cursor, "CREATE USER IF NOT EXISTS %s@'%%' IDENTIFIED BY %s", name, passwd)
+    # Possible race condition -- paranoia check by confirming the new password works.
+    match = validate_user(cursor, name, passwd)
+    return Result(State.success, passwd) if match else Result(State.unchanged)
 
 
 def reset_password(cursor: Cursor, name: str) -> Result[Password]:
@@ -134,7 +146,11 @@ def drop_user(cursor: Cursor, name: str) -> Result:
     """
     Drop a MySQL user and all of its grants.
     """
-    return Result(_truthy(query(cursor, "DROP USER IF EXISTS %s@'%%'", name)))
+    if not get_users(cursor, name):
+        return Result(State.unchanged)
+    # Always returns zero rows; emits a warning if the database doesn't exist.
+    query(cursor, "DROP USER IF EXISTS %s@'%%'", name)
+    return Result(State.success)
 
 
 def grant_database(cursor: Cursor, user: str, db: str) -> Result:

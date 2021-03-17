@@ -94,10 +94,11 @@ def sync_member_roles(cursor: Cursor, member: Member):
         if name in seen:
             current.add((user, database))
     needed = set()
-    for role in mysql.get_users(cursor, *(_user_name(soc) for soc in member.societies)):
-        databases = (_database_name(role), _database_name(role, "%"))
-        needed.update({(user, database) for database in databases})
-    yield from _sync_roles(cursor, current, needed)
+    if member.societies:
+        for role in mysql.get_users(cursor, *(_user_name(soc) for soc in member.societies)):
+            databases = (_database_name(role), _database_name(role, "%"))
+            needed.update({(user, database) for database in databases})
+        yield from _sync_roles(cursor, current, needed)
 
 
 @Result.collect

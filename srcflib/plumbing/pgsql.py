@@ -4,7 +4,7 @@ PostgreSQL user and database management.
 
 from contextlib import contextmanager
 import logging
-from typing import Generator, List, Optional, Tuple, Union
+from typing import Generator, List, Tuple, Union
 
 from psycopg2 import connect as psycopg2_connect
 from psycopg2.errors import DuplicateDatabase, InvalidCatalogName
