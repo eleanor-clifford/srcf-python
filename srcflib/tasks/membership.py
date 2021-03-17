@@ -8,9 +8,8 @@ from typing import Set, Tuple
 from srcf.database import Member, Society
 from srcf.database.queries import get_member, get_society
 
-from ..plumbing import bespoke, mailman, Password, pgsql as pgsql_p, ResultSet, unix
-from ..plumbing.mysql import context as mysql_context
-from . import mysql, pgsql
+from ..plumbing import bespoke, Password, pgsql as pgsql_p, ResultSet, unix
+from . import mailman, mysql, pgsql
 
 
 def create_member(crsid: str, preferred_name: str, surname: str, email: str,
@@ -62,7 +61,7 @@ def create_sysadmin(member: Member) -> ResultSet:
     # TODO: sed -i~ -re "/^sysadmin/ s/$/ (,$admuser,)/" /etc/netgroup
     for soc in ("executive", "srcf-admin", "srcf-web"):
         results.extend(add_society_admin(member, get_society(soc)))
-    with pgsql_p.context() as cursor:
+    with pgsql.context() as cursor:
         results.extend(pgsql_p.create_user(cursor, username),
                        pgsql_p.grant_role(cursor, username, pgsql_p.get_role(cursor, "sysadmins")))
     return results
@@ -127,9 +126,9 @@ def add_society_admin(member: Member, society: Society) -> ResultSet:
         results = ResultSet(bespoke.add_to_society(sess, member, society))
     results.extend(unix.add_to_group(unix.get_user(member.crsid), unix.get_group(society.society)),
                    bespoke.link_soc_home_dir(member, society))
-    with mysql_context() as cursor:
+    with mysql.context() as cursor:
         results.extend(mysql.sync_society_roles(cursor, member))
-    with pgsql_p.context() as cursor:
+    with pgsql.context() as cursor:
         results.extend(pgsql.sync_society_roles(cursor, member))
     return results
 
@@ -145,9 +144,9 @@ def remove_society_admin(member: Member, society: Society) -> ResultSet:
     results.extend(unix.remove_from_group(unix.get_user(member.crsid),
                                           unix.get_group(society.society)),
                    bespoke.link_soc_home_dir(member, society))
-    with mysql_context() as cursor:
+    with mysql.context() as cursor:
         results.extend(mysql.sync_society_roles(cursor, member))
-    with pgsql_p.context() as cursor:
+    with pgsql.context() as cursor:
         results.extend(pgsql.sync_society_roles(cursor, member))
     return results
 
@@ -163,10 +162,10 @@ def delete_society(society: Society) -> ResultSet:
                    # TODO: for server in {"cavein", "sinkhole"}: bespoke.slay_user(society)
                    bespoke.archive_society_files(society),
                    bespoke.delete_society_files(society))
-    with mysql_context() as cursor:
+    with mysql.context() as cursor:
         mysql.drop_all_databases(cursor, society)
         mysql.drop_account(cursor, society)
-    with pgsql_p.context() as cursor:
+    with pgsql.context() as cursor:
         pgsql.drop_all_databases(cursor, society)
         pgsql.drop_account(cursor, society)
     for mlist in bespoke.get_mailman_lists(society):

@@ -2,6 +2,7 @@
 PostgreSQL accounts and databases for members and societies.
 """
 
+from functools import wraps
 from typing import Optional, List, Set, Tuple, Union
 
 from psycopg2.extensions import connection as Connection, cursor as Cursor
@@ -9,7 +10,7 @@ from psycopg2.extensions import connection as Connection, cursor as Cursor
 from srcf.database import Member, Society
 from srcf.database.queries import get_member, get_society
 
-from ..plumbing import Owner, owner_name, Password, pgsql, Result, ResultSet
+from ..plumbing import Owner, owner_name, Password, pgsql, Result
 
 
 def connect(db: str = None) -> Connection:
@@ -17,6 +18,18 @@ def connect(db: str = None) -> Connection:
     Connect to the PostgreSQL server using ident authentication.
     """
     return pgsql.connect("postgres.internal", db or "sysadmins")
+
+
+@wraps(pgsql.context)
+def context(db: str = None):
+    """
+    Run multiple PostgreSQL commands in a single connection:
+
+        >>> with context() as cursor:
+        ...     create_account(cursor, owner)
+        ...     create_database(cursor, owner)
+    """
+    return pgsql.context(connect(db))
 
 
 def get_owned_databases(cursor: Cursor, owner: Owner) -> List[str]:

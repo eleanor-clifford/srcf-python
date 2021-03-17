@@ -33,9 +33,9 @@ def connect(host, db="template1") -> Connection:
 @contextmanager
 def context(conn: Connection = None, db: str = None) -> Generator[Cursor, None, None]:
     """
-    Run multiple MySQL commands in a single connection:
+    Run multiple PostgreSQL commands in a single connection:
 
-        >>> with context() as conn, cursor:
+        >>> with context() as cursor:
         ...     create_account(cursor, owner)
         ...     create_database(cursor, owner)
     """
@@ -94,8 +94,8 @@ def get_role_databases(cursor: Cursor, owner: Role) -> List[str]:
     """
     Check if the given user has their own database.
     """
-    query("SELECT datname FROM pg_database d, pg_user u"
-          "WHERE d.datdba = u.usesysid AND u.usename = %s", owner[0])
+    query(cursor, "SELECT datname FROM pg_database d, pg_user u"
+                  "WHERE d.datdba = u.usesysid AND u.usename = %s", owner[0])
     return [row[0] for row in cursor]
 
 
@@ -143,7 +143,7 @@ def enable_role(cursor: Cursor, role: Role) -> Result:
     """
     if role[1]:
         return Result(State.unchanged)
-    query("ALTER ROLE %s LOGIN", role[0])
+    query(cursor, "ALTER ROLE %s LOGIN", role[0])
     return Result(State.success)
 
 
@@ -153,7 +153,7 @@ def disable_role(cursor: Cursor, role: Role) -> Result:
     """
     if not role[1]:
         return Result(State.unchanged)
-    query("ALTER ROLE %s NOLOGIN", role[0])
+    query(cursor, "ALTER ROLE %s NOLOGIN", role[0])
     return Result(State.success)
 
 
@@ -163,7 +163,7 @@ def grant_role(cursor: Cursor, name: str, role: Role) -> Result:
     """
     if role[0] in {owned[0] for owned in get_user_roles(cursor, name)}:
         return Result(State.unchanged)
-    query("GRANT %s TO %s", role[0], name)
+    query(cursor, "GRANT %s TO %s", role[0], name)
     return Result(State.success)
 
 
@@ -173,7 +173,7 @@ def revoke_role(cursor: Cursor, name: str, role: Role) -> Result:
     """
     if role[0] not in {owned[0] for owned in get_user_roles(cursor, name)}:
         return Result(State.unchanged)
-    query("REVOKE %s FROM %s", role[0], name)
+    query(cursor, "REVOKE %s FROM %s", role[0], name)
     return Result(State.success)
 
 
@@ -183,7 +183,7 @@ def create_database(cursor: Cursor, name: str, owner: Role) -> Result:
 
     Note: this must be run outside of a transaction.
     """
-    query("CREATE DATABASE IF NOT EXISTS %s OWNER %s", name, owner[0])
+    query(cursor, "CREATE DATABASE IF NOT EXISTS %s OWNER %s", name, owner[0])
     return Result(State.success)
 
 
@@ -193,5 +193,5 @@ def drop_database(cursor: Cursor, name: str) -> Result:
 
     Note: this must be run outside of a transaction.
     """
-    query("DROP DATABASE IF EXISTS %s", name)
+    query(cursor, "DROP DATABASE IF EXISTS %s", name)
     return Result(State.success)

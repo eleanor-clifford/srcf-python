@@ -39,7 +39,7 @@ def context(conn: Connection = None) -> Generator[Cursor, None, None]:
     """
     Run multiple MySQL commands in a single connection:
 
-        >>> with context() as conn, cursor:
+        >>> with context() as cursor:
         ...     create_account(cursor, owner)
         ...     create_database(cursor, owner)
     """

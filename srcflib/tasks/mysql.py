@@ -11,6 +11,10 @@ from srcf.database.queries import get_member, get_society
 
 from ..plumbing import mysql, Owner, owner_name, Password, Result, ResultSet
 
+# Re-export connection plumbing to avoid unnecessary imports elsewhere.
+connect = mysql.connect
+context = mysql.context
+
 
 def _user_name(owner: Owner) -> str:
     return owner_name(owner).replace("-", "_")
