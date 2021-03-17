@@ -1,3 +1,3 @@
 """
-Entrypoints for `bin/*` scripts that call into tasks.
+Entrypoints for `sbin/*` scripts that call into tasks.
 """

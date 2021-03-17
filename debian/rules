@@ -1,6 +1,7 @@
 #!/usr/bin/make -f
 
 export PYBUILD_NAME=srcf
+export PYBUILD_INSTALL_ARGS=--install-scripts=/usr/sbin/
 
 %:
 	dh $@ --with python3 --buildsystem=pybuild
