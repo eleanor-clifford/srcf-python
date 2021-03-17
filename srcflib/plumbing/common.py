@@ -8,7 +8,7 @@ import inspect
 import logging
 import platform
 import subprocess
-from typing import Generic, List, Optional, Set, Tuple, TypeVar, Union
+from typing import Any, Callable, Generator, Generic, List, Optional, Set, TypeVar, Union
 
 from sqlalchemy.orm import Session as SQLASession
 
@@ -20,6 +20,9 @@ LOG = logging.getLogger(__name__)
 
 
 Owner = Union[Member, Society]
+
+V = TypeVar("V")
+R = TypeVar("R")
 
 
 def owner_name(owner: Owner) -> str:
@@ -89,66 +92,71 @@ class State(Enum):
     """
 
 
-V = TypeVar("V")
-
-
 class Result(Generic[V]):
     """
-    State and optional accompanying object from a unit of work.
-
-    Mulitple results can be combined into a `ResultSet`.
-    """
-
-    def __init__(self, state: Optional[State] = None, value: V = None, _frames=1):
-        self.state = state
-        self.value = value
-        # Inspection magic to log the calling method, e.g. `module.sub:Class.method`.
-        frame = inspect.currentframe()
-        for _ in range(_frames):
-            frame = getattr(frame, "f_back", None)
-        if not frame:
-            return
-        name = frame.f_code.co_name
-        func = frame.f_globals.get(name)
-        self.caller = "{}:{}".format(func.__module__, func.__qualname__) if func else name
-
-    def __bool__(self) -> bool:
-        return self.state is State.success
-
-    def __repr__(self) -> str:
-        return "{}({}{})".format(self.__class__.__name__, self.state,
-                                 ", {!r}".format(self.value) if self.value else "")
-
-
-R = TypeVar("R")
-
-
-class ResultSet(Result[V]):
-    """
-    `Result` instance combining multiple results into one.  `state` and `value` are derived from
-    the inner results unless set manually.
+    State and optional accompanying value from a unit of work.
     """
 
     @classmethod
-    def flatten(cls, *results: Result) -> List[Result]:
-        flat = []
-        for result in results:
-            if isinstance(result, ResultSet):
-                flat.extend(result.results)
-            else:
-                flat.append(result)
-        return flat
+    def collect(cls, fn: Callable[..., Generator["Result", Any, R]]) -> Callable[..., "Result[R]"]:
+        """
+        Decorator: build a `Result` from `yield`ed parts, in order to capture or log in real time:
 
-    def __init__(self, *results: Result):
-        self._state = None  # type: Optional[State]
-        super().__init__(_frames=2)
-        self.results = self.flatten(*results)
+            @Result.collect
+            def task():
+                value = yield plumb_a()
+                yield plumb_b()
+                return value
+
+        If a `Result` includes a value, it will be available via `yield` assignment to re-capture
+        it.  The return value of the function will become the outermost `Result`'s value.
+        """
+        @wraps(fn)
+        def inner(*args, **kwargs) -> Result[R]:
+            state = None
+            value = None
+            parts = []
+            gen = fn(*args, **kwargs)
+            while True:
+                try:
+                    try:
+                        prev = parts[-1].value
+                    except (IndexError, ValueError):
+                        result = next(gen)
+                    else:
+                        result = gen.send(prev)
+                except StopIteration as ex:
+                    value = ex.value
+                    break
+                parts.append(result)
+            return cls(state, value, parts, fn)
+        return inner
+
+    def __init__(self, state: Optional[State] = None, value: Optional[V] = None,
+                 parts: Optional[List["Result"]] = None, caller: Callable = None):
+        self._state = state
+        self._value = value
+        self.parts = list(parts) if parts else []
+        self.caller = "<unknown>"
+        # Inspection magic to log the calling method, e.g. `module.sub:Class.method`.
+        name = None
+        if not caller:
+            frame = inspect.currentframe()
+            try:
+                name = frame.f_back.f_code.co_name
+                caller = frame.f_back.f_globals[name]
+            except (AttributeError, KeyError):
+                pass
+        if caller:
+            self.caller = "{}:{}".format(caller.__module__, caller.__qualname__)
+        elif name:
+            self.caller = name
 
     @property
     def state(self) -> State:
         if self._state:
             return self._state
-        elif any(result.state is State.success for result in self.results):
+        elif self.parts and any(result.state is State.success for result in self.parts):
             return State.success
         else:
             return State.unchanged
@@ -158,27 +166,44 @@ class ResultSet(Result[V]):
         self._state = state
 
     @property
-    def values(self) -> Tuple:
-        """
-        Filtered set of non-``None`` result values.
-        """
-        return tuple(result.value for result in self.results if result.value)
+    def value(self) -> V:
+        if self._value is None:
+            raise ValueError("No value set")
+        return self._value
 
-    def add(self, result: Result[R], value: bool = False) -> Result[R]:
+    @value.setter
+    def value(self, value: V) -> None:
+        self._value = value
+
+    def append(self, result: "Result[R]") -> "Result[R]":
         """
         Include an additional result into the set, optionally using it as the overall value, and
         return that result for chaining.
         """
-        self.results.append(result)
-        if value:
-            self.value = result.value
+        self.parts.append(result)
         return result
 
-    def extend(self, *results: Result) -> None:
+    def extend(self, results: List["Result"]) -> None:
         """
         Include additional results into the set.
         """
-        self.results.extend(results)
+        self.parts.extend(results)
+
+    def __bool__(self) -> bool:
+        return self.state is State.success
+
+    def __repr__(self) -> str:
+        return "{}({}{}{})".format(self.__class__.__name__, self.state,
+                                   ", {!r}".format(self._value) if self._value else "",
+                                   ", <{} parts>".format(len(self.parts)) if self.parts else "")
+
+    def __str__(self) -> str:
+        tree = "{}: {}{}".format(self.caller, self.state,
+                                 " {!r}".format(self._value) if self._value else "")
+        if self.parts:
+            for result in self.parts:
+                tree += "\n    {}".format(str(result).replace("\n", "\n    "))
+        return tree
 
 
 class Password:
@@ -224,7 +249,7 @@ def require_host(*hosts: str):
         >>> @require_hosts(Hosts.USER)
         ... def create_user(username): ...
     """
-    def outer(fn):
+    def outer(fn: Callable[..., R]) -> Callable[..., R]:
         @wraps(fn)
         def inner(*args, **kwargs):
             host = platform.node()

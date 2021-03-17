@@ -11,9 +11,9 @@ import pwd
 
 # Expose these here for now, so that other parts of SRCFLib can reference them locally, but keep a
 # single implementation in case it needs revising.  TODO: Move here as part of control migration.
-from srcf.controllib.utils import copytree_chown_chmod, nfs_aware_chown
+from srcf.controllib.utils import copytree_chown_chmod, nfs_aware_chown  # noqa: F401
 
-from .common import command, Password, require_host, Result, ResultSet, State
+from .common import command, Password, require_host, Result, State
 from . import hosts
 
 
@@ -136,25 +136,25 @@ def create_home(user: User, path: str, world_read: bool = False) -> Result:
     return result
 
 
+@Result.collect
 def create_user(username: str, uid: int = None, system: bool = False, active: bool = True,
-                home_dir: str = None, real_name: str = "") -> Result[User]:
+                home_dir: str = None, real_name: str = ""):
     """
     Create a new user account, or enable/disable an existing one.
     """
     try:
         user = get_user(username)
     except KeyError:
-        return add_user(username, uid, system, active, home_dir, real_name)
+        user = yield add_user(username, uid, system, active, home_dir, real_name)
     else:
         if user.pw_uid != uid:
             raise ValueError("User {!r} has UID {}, expected {}".format(username, user.pw_uid, uid))
         if user.pw_dir != home_dir:
             raise ValueError("User {!r} has home directory {!r}, expected {!r}"
                              .format(username, user.pw_dir, home_dir))
-        result = ResultSet[User](set_real_name(user, real_name),
-                                 enable_user(user, active))
-        result.value = user
-        return result
+        yield set_real_name(user, real_name)
+        yield enable_user(user, active)
+    return user
 
 
 @require_host(hosts.USER)

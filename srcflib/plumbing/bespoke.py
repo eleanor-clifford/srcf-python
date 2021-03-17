@@ -22,7 +22,7 @@ from srcf.database import Domain, HTTPSCert, Member, Session, Society
 from srcf.database.queries import get_member, get_society
 from srcf.database.summarise import summarise_society
 
-from .common import command, get_members, Owner, owner_name, require_host, Result, ResultSet, State
+from .common import command, get_members, Owner, owner_name, require_host, Result, State
 from .mailman import MailList
 from .unix import copytree_chown_chmod
 from . import hosts
@@ -402,20 +402,19 @@ def archive_society_files(society: Society) -> Result[str]:
     return Result(State.success, tar)
 
 
-def delete_society_files(society: Society) -> ResultSet:
+@Result.collect
+def delete_society_files(society: Society):
     """
     Remove all public and private files of a society in /home.
     """
     home = os.path.join("/societies", society.society)
     public = os.path.join("/public/societies", society.society)
-    results = ResultSet()
     for path in (home, public):
         if os.path.exists(path):
             shutil.rmtree(home)
-            results.extend(Result(State.success))
+            yield Result(State.success)
         else:
-            results.extend(Result(State.unchanged))
-    return results
+            yield Result(State.unchanged)
 
 
 def slay_user(owner: Owner) -> Result:

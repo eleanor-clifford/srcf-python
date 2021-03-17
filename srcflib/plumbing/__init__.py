@@ -13,6 +13,6 @@ Each function also falls into one of two groups:
 """
 
 from .common import (command, get_members, Owner, owner_desc, owner_name, owner_website, Password,
-                     require_host, Result, ResultSet, State)
+                     require_host, Result, State)
 
 from . import bespoke, mailman, mysql, pgsql, unix

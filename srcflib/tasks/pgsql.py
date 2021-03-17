@@ -44,33 +44,32 @@ def get_owned_databases(cursor: Cursor, owner: Owner) -> List[str]:
         return pgsql.get_role_databases(cursor, role)
 
 
-def new_account(cursor: Cursor, owner: Owner) -> ResultSet[Optional[Password]]:
+@Result.collect
+def new_account(cursor: Cursor, owner: Owner):
     """
     Create a PostgreSQL user account for a given member or society.
 
     For members, grants are added to all society roles for which they are a member.
     """
     username = owner_name(owner)
-    results = ResultSet[Optional[Password]]()
-    results.add(pgsql.add_user(cursor, username), True)
+    passwd = yield pgsql.add_user(cursor, username)  # type: Optional[Password]
     if isinstance(owner, Member):
-        results.extend(sync_member_roles(cursor, owner))
+        yield sync_member_roles(cursor, owner)
     elif isinstance(owner, Society):
-        results.extend(sync_society_roles(cursor, owner))
-    return results
+        yield sync_society_roles(cursor, owner)
+    return passwd
 
 
 def _sync_roles(cursor: Cursor, current: Set[Tuple[str, pgsql.Role]],
-                needed: Set[Tuple[str, pgsql.Role]]) -> ResultSet:
-    results = ResultSet()
+                needed: Set[Tuple[str, pgsql.Role]]):
     for username, role in needed - current:
-        results.extend(pgsql.grant_role(cursor, username, role))
+        yield pgsql.grant_role(cursor, username, role)
     for username, role in current - needed:
-        results.extend(pgsql.revoke_role(cursor, username, role))
-    return results
+        yield pgsql.revoke_role(cursor, username, role)
 
 
-def sync_member_roles(cursor: Cursor, member: Member) -> ResultSet:
+@Result.collect
+def sync_member_roles(cursor: Cursor, member: Member):
     """
     Adjust grants for society roles to match the given member's memberships.
     """
@@ -88,10 +87,11 @@ def sync_member_roles(cursor: Cursor, member: Member) -> ResultSet:
             current.add((username, role))
     roles = pgsql.get_roles(cursor, *(soc.society for soc in member.societies))
     needed = set((username, role) for role in roles)
-    return _sync_roles(cursor, current, needed)
+    yield from _sync_roles(cursor, current, needed)
 
 
-def sync_society_roles(cursor: Cursor, society: Society) -> ResultSet:
+@Result.collect
+def sync_society_roles(cursor: Cursor, society: Society):
     """
     Adjust grants for member roles to match the given society's admins.
     """
@@ -106,10 +106,10 @@ def sync_society_roles(cursor: Cursor, society: Society) -> ResultSet:
         else:
             current.add((username, role))
     needed = set((user[0], role) for user in pgsql.get_roles(cursor, *society.admin_crsids))
-    return _sync_roles(cursor, current, needed)
+    yield from _sync_roles(cursor, current, needed)
 
 
-def reset_password(cursor: Cursor, owner: Owner) -> Result:
+def reset_password(cursor: Cursor, owner: Owner) -> Result[Password]:
     """
     Reset the password of a member's or society's PostgreSQL user account.
     """
@@ -146,21 +146,20 @@ def drop_database(cursor: Cursor, target: Union[Owner, str]) -> Result[str]:
     return result
 
 
-def drop_all_databases(cursor: Cursor, owner: Owner) -> ResultSet:
+@Result.collect
+def drop_all_databases(cursor: Cursor, owner: Owner):
     """
     Drop all databases belonging to the owner.
     """
-    results = ResultSet()
     for database in get_owned_databases(cursor, owner):
-        results.extend(pgsql.drop_database(cursor, database))
-    return results
+        yield pgsql.drop_database(cursor, database)
 
 
-def create_account(cursor: Cursor, owner: Owner) -> ResultSet[Tuple[Optional[Password], str]]:
+@Result.collect
+def create_account(cursor: Cursor, owner: Owner):
     """
     Create a PostgreSQL user account and initial database for a member or society.
     """
-    results = ResultSet(new_account(cursor, owner),
-                        create_database(cursor, owner))
-    results.value = tuple(inner.value if inner else None for inner in results.results)
-    return results
+    passwd = yield new_account(cursor, owner)  # type: Optional[Password]
+    db = yield create_database(cursor, owner)  # type: str
+    return (passwd, db)
