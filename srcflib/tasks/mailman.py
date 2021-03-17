@@ -2,7 +2,7 @@
 Mailman mailing lists for members and societies.
 """
 
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 from srcf.database import Member
 
@@ -14,6 +14,14 @@ def _list_name_owner(owner: Owner, suffix: str = None) -> Tuple[str, str]:
     name = "{}-{}".format(username, suffix) if suffix else username
     admin = "{}@srcf.net".format(username) if isinstance(owner, Member) else owner.email
     return name, admin
+
+
+def get_list_suffixes(owner: Owner) -> List[str]:
+    """
+    Find the suffixes of all lists belonging to a given owner.
+    """
+    lists = bespoke.get_mailman_lists(owner)
+    return [name.split("-", 1)[1] if "-" in name else None for name in lists]
 
 
 def create_list(owner: Owner, suffix: str = None) -> ResultSet[Tuple[mailman.MailList,

@@ -168,8 +168,8 @@ def delete_society(society: Society) -> ResultSet:
     with pgsql.context() as cursor:
         pgsql.drop_all_databases(cursor, society)
         pgsql.drop_account(cursor, society)
-    for mlist in bespoke.get_mailman_lists(society):
-        mailman.remove_list(mlist)
+    for mlist in mailman.get_list_suffixes(society):
+        mailman.remove_list(society, mlist)
     # TODO: Unix user/group
     with bespoke.context() as sess:
         results.extend(bespoke.delete_society(sess, society))
