@@ -105,6 +105,13 @@ def subproc_call(job, desc, cmd, stdin=None):
         job.log(desc, "output", raw=out)
 
 
+def srcflib_call(job, desc, meth, *args, **kwargs):
+    job.log(desc)
+    result = meth(*args, **kwargs)
+    job.log(desc, "output", raw=str(result))
+    return result.value
+
+
 def make_public_dir(job, root, user, dirname, uid, gid):
     dir_path = os.path.join("/public", root, user, dirname)
     link_path = os.path.join("/", root, user, dirname)
@@ -514,8 +521,7 @@ class UpdateName(Job):
 
     def run(self, sess):
         old_name = self.owner.name
-        self.log("Update name")
-        member = membership.update_member_name(self.owner, self.preferred_name, self.surname).value
+        member = srcflib_call(self, "Update name", membership.update_member_name, self.owner, self.preferred_name, self.surname)
 
         self.log("Send confirmation")
         mail_users(member, "Name updated", "name", old_name=old_name, new_name=self.name)
@@ -611,11 +617,9 @@ class CreateUserMailingList(Job):
                                                 "owner", "request", "subscribe", "unsubscribe")):
             raise JobFailed("Invalid list suffix {}".format(self.listname))
 
-        self.log("Create list")
-        result = mailman.create_list(self.owner, self.listname)
+        full_listname, password = srcflib_call(self, "Create list", mailman.create_list, self.owner, self.listname)
 
         self.log("Send password")
-        full_listname, password = result.value
         mail_users(self.owner, "Mailing list created", "list-create", listname=full_listname, password=password)
 
 
@@ -646,11 +650,10 @@ class ResetUserMailingListPassword(Job):
             mlist = None
         assert owner == self.owner.crsid
 
-        self.log("Reset owner and password")
-        result = mailman.reset_owner_password(self.owner, mlist)
+        password = srcflib_call(self, "Reset owner and password", mailman.reset_owner_password, self.owner, mlist)
 
         self.log("Send new password")
-        mail_users(self.owner, "Mailing list password reset", "list-password", listname=self.listname, password=result.value)
+        mail_users(self.owner, "Mailing list password reset", "list-password", listname=self.listname, password=password)
 
 
 @add_job
@@ -871,8 +874,7 @@ class UpdateSocietyDescription(SocietyJob):
 
     def run(self, sess):
         old_description = self.society.description
-        self.log("Update description")
-        society = membership.update_society_description(self.society, self.description).value
+        society = srcflib_call(self, "Update description", membership.update_society_description, self.society, self.description)
 
         self.log("Send confirmation")
         mail_users(society, "Description updated", "description",
@@ -1041,11 +1043,9 @@ class CreateSocietyMailingList(SocietyJob):
                                                 "owner", "request", "subscribe", "unsubscribe")):
             raise JobFailed("Invalid list suffix {}".format(self.listname))
 
-        self.log("Create list")
-        result = mailman.create_list(self.society, self.listname)
+        full_listname, password = srcflib_call(self, "Create list", mailman.create_list, self.society, self.listname)
 
         self.log("Send password")
-        full_listname, password = result.value
         mail_users(self.society, "Mailing list created", "list-create", listname=full_listname, password=password, requester=self.owner)
 
 
@@ -1079,11 +1079,10 @@ class ResetSocietyMailingListPassword(SocietyJob):
             mlist = None
         assert owner == self.society.society
 
-        self.log("Reset owner and password")
-        result = mailman.reset_owner_password(self.society, mlist)
+        password = srcflib_call(self, "Reset owner and password", mailman.reset_owner_password, self.society, mlist)
 
         self.log("Send new password")
-        mail_users(self.society, "Mailing list password reset", "list-password", listname=self.listname, password=result.value, requester=self.owner)
+        mail_users(self.society, "Mailing list password reset", "list-password", listname=self.listname, password=password, requester=self.owner)
 
 # Here be dragons: we trust the value of crsid a *lot* (such that it appears unescaped in SQL queries).
 # Quote with backticks and ensure only valid characters (alnum for crsid, alnum + [_-] for society).
