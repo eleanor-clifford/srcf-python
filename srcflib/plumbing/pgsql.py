@@ -46,9 +46,9 @@ def context(conn: Connection = None, db: str = None) -> Generator[Cursor, None, 
     """
     Run multiple PostgreSQL commands in a single connection:
 
-        >>> with context() as cursor:
-        ...     create_account(cursor, owner)
-        ...     create_database(cursor, owner)
+        with context() as cursor:
+            create_account(cursor, owner)
+            create_database(cursor, owner)
     """
     conn = conn or connect(db)
     try:

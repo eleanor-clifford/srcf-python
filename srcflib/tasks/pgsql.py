@@ -26,9 +26,9 @@ def context(db: str = None):
     """
     Run multiple PostgreSQL commands in a single connection:
 
-        >>> with context() as cursor:
-        ...     create_account(cursor, owner)
-        ...     create_database(cursor, owner)
+        with context() as cursor:
+            create_account(cursor, owner)
+            create_database(cursor, owner)
     """
     return pgsql.context(connect(db))
 
