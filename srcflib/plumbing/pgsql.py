@@ -6,8 +6,7 @@ from contextlib import contextmanager
 import logging
 from typing import Generator, List, Tuple, Union
 
-from psycopg2 import connect as psycopg2_connect
-from psycopg2.errors import DuplicateDatabase, InvalidCatalogName
+from psycopg2 import connect as psycopg2_connect, errorcodes, ProgrammingError
 from psycopg2.extensions import connection as Connection, cursor as Cursor
 from psycopg2.extras import NamedTupleCursor
 
@@ -193,15 +192,18 @@ def add_user(cursor: Cursor, name: str):
 
 
 def create_database(cursor: Cursor, name: str, owner: Role) -> Result:
-    """ 
+    """
     Create a new database owned by the given role.
 
     Note: this must be run outside of a transaction.
     """
     try:
         query(cursor, _format("CREATE DATABASE {} OWNER {}", name, owner[0]))
-    except DuplicateDatabase:
-        return Result(State.unchanged)
+    except ProgrammingError as ex:
+        if ex.pgcode == errorcodes.DUPLICATE_DATABASE:
+            return Result(State.unchanged)
+        else:
+            raise
     else:
         return Result(State.success)
 
@@ -216,7 +218,10 @@ def drop_database(cursor: Cursor, name: str) -> Result:
         raise ValueError("Double quotes forbidden in identifiers")
     try:
         query(cursor, _format("DROP DATABASE {}", name))
-    except InvalidCatalogName:
-        return Result(State.unchanged)
+    except ProgrammingError as ex:
+        if ex.pgcode == errorcodes.INVALID_CATALOG_NAME:
+            return Result(State.unchanged)
+        else:
+            raise
     else:
         return Result(State.success)
