@@ -145,7 +145,7 @@ def create_user(username: str, uid: int = None, system: bool = False, active: bo
     try:
         user = get_user(username)
     except KeyError:
-        user = yield add_user(username, uid, system, active, home_dir, real_name)
+        user = yield from add_user(username, uid, system, active, home_dir, real_name)
     else:
         if user.pw_uid != uid:
             raise ValueError("User {!r} has UID {}, expected {}".format(username, user.pw_uid, uid))

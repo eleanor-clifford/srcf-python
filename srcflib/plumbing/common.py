@@ -8,7 +8,7 @@ import inspect
 import logging
 import platform
 import subprocess
-from typing import Any, Callable, Generator, Generic, List, Optional, Set, TypeVar, Union
+from typing import Callable, Generator, Generic, Iterable, Optional, Set, TypeVar, Union
 
 from sqlalchemy.orm import Session as SQLASession
 
@@ -23,6 +23,8 @@ Owner = Union[Member, Society]
 
 V = TypeVar("V")
 R = TypeVar("R")
+
+Collect = Generator["Result", None, V]
 
 
 def owner_name(owner: Owner) -> str:
@@ -95,48 +97,67 @@ class State(Enum):
 class Result(Generic[V]):
     """
     State and optional accompanying value from a unit of work.
+
+    For a simple plumbing action, just create a new result directly with the resulting `State` and
+    a value if relevant:
+
+        def unit():
+            # Create a database record, call an external command etc.
+            return Result(State.success, True)
+
+    For a task that combines multiple results, see `Result.collect`.  The state of such a result is
+    based on all of its parts -- if any changes were made, the outer result also reports a change.
+
+    A result can be checked for truthiness, which is `False` if no changes were made.
+
+    A result can also be converted to a string, which produces a tree-like summary of changes:
+
+        module:task State.success True
+            module:unit1 State.unchanged
+            module:unit2 State.success
     """
 
     @classmethod
-    def collect(cls, fn: Callable[..., Generator["Result", Any, R]]) -> Callable[..., "Result[R]"]:
+    def collect(cls, fn: Callable[..., Collect[V]]) -> Callable[..., "Result[V]"]:
         """
-        Decorator: build a `Result` from `yield`ed parts, in order to capture or log in real time:
+        Decorator: build a `Result` from multiple sub-tasks:
+
+            def plumb_a() -> Result[str]: ...
 
             @Result.collect
-            def task():
-                value = yield plumb_a()
-                yield plumb_b()
-                return value
+            def task() -> Collect[str]:
+                yield plumb_a()
+                result = yield from plumb_b()
+                if result:
+                    yield plumb_c()
+                return result.value
 
-        If a `Result` includes a value, it will be available via `yield` assignment to re-capture
-        it.  The return value of the function will become the outermost `Result`'s value.
+        The inner function this decorator wraps should be a generator of `Result` objects.
+
+        The return value of the wrapper function will be a new `Result` object, whose `parts` will
+        be those collected sub-task results, and whose `value` will be set to the return value of
+        the inner function.
         """
         @wraps(fn)
-        def inner(*args, **kwargs) -> Result[R]:
+        def inner(*args, **kwargs) -> Result[V]:
             state = None
             value = None
             parts = []
             gen = fn(*args, **kwargs)
-            while True:
-                try:
-                    try:
-                        prev = parts[-1].value
-                    except (IndexError, ValueError):
-                        result = next(gen)
-                    else:
-                        result = gen.send(prev)
-                except StopIteration as ex:
-                    value = ex.value
-                    break
-                parts.append(result)
+            try:
+                while True:
+                    result = next(gen)
+                    parts.append(result)
+            except StopIteration as ex:
+                value = ex.value
             return cls(state, value, parts, fn)
         return inner
 
     def __init__(self, state: Optional[State] = None, value: Optional[V] = None,
-                 parts: Optional[List["Result"]] = None, caller: Callable = None):
+                 parts: Iterable["Result"] = (), caller: Callable = None):
         self._state = state
         self._value = value
-        self.parts = list(parts) if parts else []
+        self.parts = tuple(parts)
         self.caller = "<unknown>"
         # Inspection magic to log the calling method, e.g. `module.sub:Class.method`.
         name = None
@@ -175,22 +196,13 @@ class Result(Generic[V]):
     def value(self, value: V) -> None:
         self._value = value
 
-    def append(self, result: "Result[R]") -> "Result[R]":
-        """
-        Include an additional result into the set, optionally using it as the overall value, and
-        return that result for chaining.
-        """
-        self.parts.append(result)
-        return result
-
-    def extend(self, results: List["Result"]) -> None:
-        """
-        Include additional results into the set.
-        """
-        self.parts.extend(results)
-
     def __bool__(self) -> bool:
         return self.state is State.success
+
+    def __iter__(self) -> Generator["Result[V]", None, "Result[V]"]:
+        # Syntactic sugar used by `yield from` expressions in `Result.collect()`.
+        yield self
+        return self
 
     def __repr__(self) -> str:
         return "{}({}{}{})".format(self.__class__.__name__, self.state,

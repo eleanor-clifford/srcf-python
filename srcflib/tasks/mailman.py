@@ -7,7 +7,7 @@ from typing import List, Optional, Tuple
 from srcf.database import Member
 
 from ..plumbing import bespoke, mailman
-from ..plumbing.common import Owner, owner_name, Password, Result
+from ..plumbing.common import Collect, Owner, owner_name, Password, Result
 
 
 def _list_name_owner(owner: Owner, suffix: str = None) -> Tuple[str, str]:
@@ -26,7 +26,7 @@ def get_list_suffixes(owner: Owner) -> List[Optional[str]]:
 
 
 @Result.collect
-def create_list(owner: Owner, suffix: str = None):
+def create_list(owner: Owner, suffix: str = None) -> Collect[Tuple[str, Optional[Password]]]:
     """
     Create a new mailing list for a user or society.
     """
@@ -34,31 +34,30 @@ def create_list(owner: Owner, suffix: str = None):
     if name.endswith(("-post", "-admin", "-bounces", "-confirm", "-join", "-leave", "-owner",
                       "-request", "-subscribe", "-unsubscribe")):
         raise ValueError("List name {!r} ends with reserved suffix".format(name))
-    passwd = yield mailman.create_list(name, admin)  # type: Optional[Password]
-    if passwd:
+    res_create = yield from mailman.create_list(name, admin)
+    if res_create:
         yield bespoke.configure_mailing_list(name)
         yield bespoke.generate_mailman_aliases()
-    return (name, passwd)
+    return (name, res_create.value)
 
 
 @Result.collect
-def reset_owner_password(owner: Owner, suffix: str = None):
+def reset_owner_password(owner: Owner, suffix: str = None) -> Collect[Password]:
     """
     Reset a list's owner to match its name, and generate a new admin password.
     """
     name, admin = _list_name_owner(owner, suffix)
     yield mailman.set_owner(name, admin)
-    passwd = yield mailman.reset_password(name)  # type: Password
-    return passwd
+    res_passwd = yield from mailman.reset_password(name)
+    return res_passwd.value
 
 
 @Result.collect
-def remove_list(owner: Owner, suffix: str = None, remove_archive: bool = False):
+def remove_list(owner: Owner, suffix: str = None, remove_archive: bool = False) -> Collect[None]:
     """
     Delete an existing mailing list, and optionally its message archives.
     """
     name, _ = _list_name_owner(owner, suffix)
-    remove = mailman.remove_list(name, remove_archive)
-    yield remove
-    if remove:
+    res_remove = yield from mailman.remove_list(name, remove_archive)
+    if res_remove:
         yield bespoke.generate_mailman_aliases()

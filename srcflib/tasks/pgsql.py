@@ -11,7 +11,7 @@ from srcf.database import Member, Society
 from srcf.database.queries import get_member, get_society
 
 from ..plumbing import pgsql
-from ..plumbing.common import Owner, owner_name, Password, Result
+from ..plumbing.common import Collect, Owner, owner_name, Password, Result
 
 
 def connect(db: str = None) -> Connection:
@@ -46,19 +46,19 @@ def get_owned_databases(cursor: Cursor, owner: Owner) -> List[str]:
 
 
 @Result.collect
-def new_account(cursor: Cursor, owner: Owner):
+def new_account(cursor: Cursor, owner: Owner) -> Collect[Optional[Password]]:
     """
     Create a PostgreSQL user account for a given member or society.
 
     For members, grants are added to all society roles for which they are a member.
     """
     username = owner_name(owner)
-    passwd = yield pgsql.add_user(cursor, username)  # type: Optional[Password]
+    res_passwd = yield from pgsql.add_user(cursor, username)
     if isinstance(owner, Member):
         yield sync_member_roles(cursor, owner)
     elif isinstance(owner, Society):
         yield sync_society_roles(cursor, owner)
-    return passwd
+    return res_passwd.value
 
 
 def _sync_roles(cursor: Cursor, current: Set[Tuple[str, pgsql.Role]],
@@ -70,7 +70,7 @@ def _sync_roles(cursor: Cursor, current: Set[Tuple[str, pgsql.Role]],
 
 
 @Result.collect
-def sync_member_roles(cursor: Cursor, member: Member):
+def sync_member_roles(cursor: Cursor, member: Member) -> Collect[None]:
     """
     Adjust grants for society roles to match the given member's memberships.
     """
@@ -93,7 +93,7 @@ def sync_member_roles(cursor: Cursor, member: Member):
 
 
 @Result.collect
-def sync_society_roles(cursor: Cursor, society: Society):
+def sync_society_roles(cursor: Cursor, society: Society) -> Collect[None]:
     """
     Adjust grants for member roles to match the given society's admins.
     """
@@ -118,7 +118,7 @@ def reset_password(cursor: Cursor, owner: Owner) -> Result[Password]:
     return pgsql.reset_password(cursor, owner_name(owner))
 
 
-def drop_account(cursor: Cursor, owner: Owner) -> Result:
+def drop_account(cursor: Cursor, owner: Owner) -> Result[None]:
     """
     Drop a PostgreSQL user account for a given member or society.
     """
@@ -127,29 +127,29 @@ def drop_account(cursor: Cursor, owner: Owner) -> Result:
     return pgsql.drop_user(cursor, owner_name(owner))
 
 
-def create_database(cursor: Cursor, owner: Owner, name: str = None) -> Result[str]:
+@Result.collect
+def create_database(cursor: Cursor, owner: Owner, name: str = None) -> Collect[str]:
     """
     Create a new PostgreSQL database for the owner, defaulting to one matching their username.
     """
     role = pgsql.get_role(cursor, owner_name(owner))
     name = name or role[0]
-    result = pgsql.create_database(cursor, name, role)
-    result.value = name
-    return result
+    yield pgsql.create_database(cursor, name, role)
+    return name
 
 
-def drop_database(cursor: Cursor, target: Union[Owner, str]) -> Result[str]:
+@Result.collect
+def drop_database(cursor: Cursor, target: Union[Owner, str]) -> Collect[str]:
     """
     Drop the named, or owner-named, PostgreSQL database.
     """
     name = target if isinstance(target, str) else owner_name(target)
-    result = pgsql.drop_database(cursor, name)
-    result.value = name
-    return result
+    yield pgsql.drop_database(cursor, name)
+    return name
 
 
 @Result.collect
-def drop_all_databases(cursor: Cursor, owner: Owner):
+def drop_all_databases(cursor: Cursor, owner: Owner) -> Collect[None]:
     """
     Drop all databases belonging to the owner.
     """
@@ -158,10 +158,10 @@ def drop_all_databases(cursor: Cursor, owner: Owner):
 
 
 @Result.collect
-def create_account(cursor: Cursor, owner: Owner):
+def create_account(cursor: Cursor, owner: Owner) -> Collect[Tuple[Optional[Password], str]]:
     """
     Create a PostgreSQL user account and initial database for a member or society.
     """
-    passwd = yield new_account(cursor, owner)  # type: Optional[Password]
-    db = yield create_database(cursor, owner)  # type: str
-    return (passwd, db)
+    res_passwd = yield from new_account(cursor, owner)
+    res_db = yield from create_database(cursor, owner)
+    return (res_passwd.value, res_db.value)

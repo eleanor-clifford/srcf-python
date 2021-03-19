@@ -4,13 +4,13 @@ PostgreSQL user and database management.
 
 from contextlib import contextmanager
 import logging
-from typing import Generator, List, Tuple, Union
+from typing import Generator, List, Optional, Tuple, Union
 
 from psycopg2 import connect as psycopg2_connect, errorcodes, ProgrammingError
 from psycopg2.extensions import connection as Connection, cursor as Cursor
 from psycopg2.extras import NamedTupleCursor
 
-from .common import Password, Result, State
+from .common import Collect, Password, Result, State
 
 
 # Type alias for external callers, who need not be aware of the internal structure when chaining
@@ -177,15 +177,15 @@ def revoke_role(cursor: Cursor, name: str, role: Role) -> Result[None]:
 
 
 @Result.collect
-def add_user(cursor: Cursor, name: str):
+def add_user(cursor: Cursor, name: str) -> Collect[Optional[Password]]:
     """
     Create a new PostgreSQL user if it doesn't yet exist, or enable a currently disabled role.
     """
     try:
         role = get_role(cursor, name)
     except KeyError:
-        passwd = yield create_user(cursor, name)  # type: Password
-        return passwd
+        res_create = yield from create_user(cursor, name)
+        return res_create.value
     else:
         yield enable_role(cursor, role)
         return None

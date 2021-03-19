@@ -10,7 +10,8 @@ from srcf.database import Member, Society
 from srcf.database.queries import get_member, get_society
 
 from ..plumbing import mysql
-from ..plumbing.common import Owner, owner_name, Password, Result
+from ..plumbing.common import Collect, Owner, owner_name, Password, Result
+
 
 # Re-export connection plumbing to avoid unnecessary imports elsewhere.
 connect = mysql.connect
@@ -46,21 +47,21 @@ def get_owned_databases(cursor: Cursor, owner: Owner) -> List[str]:
 
 
 @Result.collect
-def new_account(cursor: Cursor, owner: Owner):
+def new_account(cursor: Cursor, owner: Owner) -> Collect[Optional[Password]]:
     """
     Create a MySQL user account for a given member or society.
 
     For members, grants are added to all society databases for which they are a member.
     """
     user = _user_name(owner)
-    passwd = yield mysql.create_user(cursor, user)  # type: Optional[Password]
+    res_passwd = yield from mysql.create_user(cursor, user)
     yield mysql.grant_database(cursor, user, _database_name(owner))
     yield mysql.grant_database(cursor, user, _database_name(owner, "%"))
     if isinstance(owner, Member):
         yield sync_member_roles(cursor, owner)
     elif isinstance(owner, Society):
         yield sync_society_roles(cursor, owner)
-    return passwd
+    return res_passwd.value
 
 
 def _sync_roles(cursor: Cursor, current: Set[Tuple[str, str]],
@@ -72,7 +73,7 @@ def _sync_roles(cursor: Cursor, current: Set[Tuple[str, str]],
 
 
 @Result.collect
-def sync_member_roles(cursor: Cursor, member: Member):
+def sync_member_roles(cursor: Cursor, member: Member) -> Collect[None]:
     """
     Adjust grants for society roles to match the given member's memberships.
     """
@@ -102,7 +103,7 @@ def sync_member_roles(cursor: Cursor, member: Member):
 
 
 @Result.collect
-def sync_society_roles(cursor: Cursor, society: Society):
+def sync_society_roles(cursor: Cursor, society: Society) -> Collect[None]:
     """
     Adjust grants for member roles to match the given society's admins.
     """
@@ -134,7 +135,7 @@ def reset_password(cursor: Cursor, owner: Owner) -> Result[Password]:
 
 
 @Result.collect
-def drop_account(cursor: Cursor, owner: Owner):
+def drop_account(cursor: Cursor, owner: Owner) -> Collect[None]:
     """
     Drop a MySQL user account for a given member or society.
 
@@ -152,28 +153,28 @@ def drop_account(cursor: Cursor, owner: Owner):
     yield mysql.drop_user(cursor, user)
 
 
-def create_database(cursor: Cursor, owner: Owner, suffix: str = None) -> Result[str]:
+@Result.collect
+def create_database(cursor: Cursor, owner: Owner, suffix: str = None) -> Collect[str]:
     """
     Create a new MySQL database for the owner, either the primary name or a suffixed alternative.
     """
     name = _database_name(owner, suffix)
-    result = mysql.create_database(cursor, name)
-    result.value = name
-    return result
+    yield mysql.create_database(cursor, name)
+    return name
 
 
-def drop_database(cursor: Cursor, owner: Owner, suffix: str = None) -> Result[str]:
+@Result.collect
+def drop_database(cursor: Cursor, owner: Owner, suffix: str = None) -> Collect[str]:
     """
     Drop either the primary or a suffixed secondary MySQL database belonging to the owner.
     """
     name = _database_name(owner, suffix)
-    result = mysql.drop_database(cursor, name)
-    result.value = name
-    return result
+    yield mysql.drop_database(cursor, name)
+    return name
 
 
 @Result.collect
-def drop_all_databases(cursor: Cursor, owner: Owner):
+def drop_all_databases(cursor: Cursor, owner: Owner) -> Collect[None]:
     """
     Drop all databases belonging to the owner.
     """
@@ -182,10 +183,10 @@ def drop_all_databases(cursor: Cursor, owner: Owner):
 
 
 @Result.collect
-def create_account(cursor: Cursor, owner: Owner):
+def create_account(cursor: Cursor, owner: Owner) -> Collect[Tuple[Optional[Password], str]]:
     """
     Create a MySQL user account and initial database for a member or society.
     """
-    passwd = yield new_account(cursor, owner)  # type: Optional[Password]
-    db = yield create_database(cursor, owner)  # type: str
-    return (passwd, db)
+    res_passwd = yield from new_account(cursor, owner)
+    res_db = yield from create_database(cursor, owner)
+    return (res_passwd.value, res_db.value)
