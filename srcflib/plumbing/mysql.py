@@ -142,7 +142,7 @@ def reset_password(cursor: Cursor, name: str) -> Result[Password]:
         raise LookupError("No MySQL user {!r} to reset password".format(name))
 
 
-def drop_user(cursor: Cursor, name: str) -> Result:
+def drop_user(cursor: Cursor, name: str) -> Result[None]:
     """
     Drop a MySQL user and all of its grants.
     """
@@ -153,7 +153,7 @@ def drop_user(cursor: Cursor, name: str) -> Result:
     return Result(State.success)
 
 
-def grant_database(cursor: Cursor, user: str, db: str) -> Result:
+def grant_database(cursor: Cursor, user: str, db: str) -> Result[None]:
     """
     Grant all permissions for the user to create, manage and delete this database.
     """
@@ -161,7 +161,7 @@ def grant_database(cursor: Cursor, user: str, db: str) -> Result:
     return Result(_truthy(query(cursor, _format("GRANT ALL ON {}.* TO %s@'%%'", db), user)))
 
 
-def revoke_database(cursor: Cursor, user: str, db: str) -> Result:
+def revoke_database(cursor: Cursor, user: str, db: str) -> Result[None]:
     """
     Remove any permissions for the user to create, manage and delete this database.
     """
@@ -169,7 +169,7 @@ def revoke_database(cursor: Cursor, user: str, db: str) -> Result:
     return Result(_truthy(query(cursor, _format("REVOKE ALL ON {}.* FROM %s@'%%'", db), user)))
 
 
-def create_database(cursor: Cursor, name: str) -> Result:
+def create_database(cursor: Cursor, name: str) -> Result[None]:
     """
     Create a MySQL database.  No permissions are granted.
     """
@@ -180,7 +180,7 @@ def create_database(cursor: Cursor, name: str) -> Result:
     return Result(State.success)
 
 
-def drop_database(cursor: Cursor, name: str) -> Result:
+def drop_database(cursor: Cursor, name: str) -> Result[None]:
     """
     Drop a MySQL database and all of its tables.
     """

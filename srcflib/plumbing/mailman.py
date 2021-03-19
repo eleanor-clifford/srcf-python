@@ -61,7 +61,7 @@ def new_list(name: str, owner: str) -> Result[Password]:
 
 
 @require_host(hosts.LIST)
-def set_owner(mlist: MailList, *owners: str) -> Result:
+def set_owner(mlist: MailList, *owners: str) -> Result[None]:
     """
     Overwrite the owners of a list.
     """
@@ -100,7 +100,7 @@ def create_list(name: str, owner: str) -> Result[Optional[Password]]:
 
 
 @require_host(hosts.LIST)
-def remove_list(mlist: MailList, remove_archive: bool = False) -> Result:
+def remove_list(mlist: MailList, remove_archive: bool = False) -> Result[None]:
     """
     Delete an existing mailing list, and optionally its message archives.
     """

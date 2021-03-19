@@ -81,7 +81,7 @@ def add_user(username: str, uid: int = None, system: bool = False, active: bool 
 
 
 @require_host(hosts.USER)
-def enable_user(user: User, active: bool = True) -> Result:
+def enable_user(user: User, active: bool = True) -> Result[None]:
     """
     Change the default shell for this user, using a no-login shell to disable, and bash to enable.
     """
@@ -97,7 +97,7 @@ def enable_user(user: User, active: bool = True) -> Result:
 
 
 @require_host(hosts.USER)
-def set_real_name(user: User, real_name: str = "") -> Result:
+def set_real_name(user: User, real_name: str = "") -> Result[None]:
     """
     Update a user's GECOS name field.
     """
@@ -118,7 +118,7 @@ def reset_password(user: User) -> Result[Password]:
     return Result(State.success, passwd)
 
 
-def create_home(user: User, path: str, world_read: bool = False) -> Result:
+def create_home(user: User, path: str, world_read: bool = False) -> Result[None]:
     """
     Create an empty home directory owned by the given user.
     """
@@ -183,7 +183,7 @@ def add_group(username: str, gid: int = None, system: bool = False) -> Result[Gr
 
 
 @require_host(hosts.USER)
-def add_to_group(user: User, group: Group) -> Result:
+def add_to_group(user: User, group: Group) -> Result[None]:
     """
     Add a user to a secondary group.
     """
@@ -195,7 +195,7 @@ def add_to_group(user: User, group: Group) -> Result:
 
 
 @require_host(hosts.USER)
-def remove_from_group(user: User, group: Group) -> Result:
+def remove_from_group(user: User, group: Group) -> Result[None]:
     """
     Remove a user from a secondary group.
     """

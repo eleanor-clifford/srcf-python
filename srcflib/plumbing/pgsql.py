@@ -128,7 +128,7 @@ def reset_password(cursor: Cursor, name: str) -> Result[Password]:
     return Result(State.success, passwd)
 
 
-def drop_user(cursor: Cursor, name: str) -> Result:
+def drop_user(cursor: Cursor, name: str) -> Result[None]:
     """
     Drop a PostgreSQL user and all of its grants.
     """
@@ -156,7 +156,7 @@ def disable_role(cursor: Cursor, role: Role) -> Result[Role]:
     return Result(State.success, (role[0], False))
 
 
-def grant_role(cursor: Cursor, name: str, role: Role) -> Result:
+def grant_role(cursor: Cursor, name: str, role: Role) -> Result[None]:
     """
     Add the user to a secondary role.
     """
@@ -166,7 +166,7 @@ def grant_role(cursor: Cursor, name: str, role: Role) -> Result:
     return Result(State.success)
 
 
-def revoke_role(cursor: Cursor, name: str, role: Role) -> Result:
+def revoke_role(cursor: Cursor, name: str, role: Role) -> Result[None]:
     """
     Remove the user from a secondary role.
     """
@@ -191,7 +191,7 @@ def add_user(cursor: Cursor, name: str):
         return None
 
 
-def create_database(cursor: Cursor, name: str, owner: Role) -> Result:
+def create_database(cursor: Cursor, name: str, owner: Role) -> Result[None]:
     """
     Create a new database owned by the given role.
 
@@ -208,7 +208,7 @@ def create_database(cursor: Cursor, name: str, owner: Role) -> Result:
         return Result(State.success)
 
 
-def drop_database(cursor: Cursor, name: str) -> Result:
+def drop_database(cursor: Cursor, name: str) -> Result[None]:
     """
     Create a new database owned by the given role.
 
