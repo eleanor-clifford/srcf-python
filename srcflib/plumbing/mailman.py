@@ -57,7 +57,7 @@ def new_list(name: str, owner: str) -> Result[Password]:
         raise ValueError("List name {!r} suffixed with reserved keyword".format(name))
     passwd = Password.new()
     command(["/usr/bin/sshpass", "/usr/sbin/newlist", "--quiet", name, owner], passwd)
-    return Result(State.success, passwd)
+    return Result(State.created, passwd)
 
 
 @require_host(hosts.LIST)

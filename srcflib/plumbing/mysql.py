@@ -127,7 +127,7 @@ def create_user(cursor: Cursor, name: str) -> Result[Optional[Password]]:
     query(cursor, "CREATE USER IF NOT EXISTS %s@'%%' IDENTIFIED BY %s", name, passwd)
     # Possible race condition -- paranoia check by confirming the new password works.
     match = validate_user(cursor, name, passwd)
-    return Result(State.success, passwd) if match else Result(State.unchanged)
+    return Result(State.created, passwd) if match else Result(State.unchanged)
 
 
 def reset_password(cursor: Cursor, name: str) -> Result[Password]:
@@ -177,7 +177,7 @@ def create_database(cursor: Cursor, name: str) -> Result[None]:
         return Result(State.unchanged)
     # Always returns one row; emits a warning if the database already exist.
     query(cursor, _format("CREATE DATABASE IF NOT EXISTS {}", name))
-    return Result(State.success)
+    return Result(State.created)
 
 
 def drop_database(cursor: Cursor, name: str) -> Result[None]:

@@ -84,7 +84,7 @@ def create_member(sess: SQLASession, crsid: str, preferred_name: str, surname: s
                      member=is_member,
                      user=is_user)
         sess.add(mem)
-        state = State.success
+        state = State.created
     else:
         mem.preferred_name = preferred_name
         mem.surname = surname
@@ -109,7 +109,7 @@ def create_society(sess: SQLASession, name: str, description: str, admins: Set[s
                       admins=get_members(sess, *admins),
                       role_email=role_email)
         sess.add(soc)
-        state = State.success
+        state = State.created
     else:
         if admins != soc.admin_crsids:
             raise ValueError("Admins for {!r} are {}, expecting {}"

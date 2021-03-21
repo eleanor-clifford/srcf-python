@@ -8,7 +8,7 @@ import inspect
 import logging
 import platform
 import subprocess
-from typing import Callable, Generator, Generic, Iterable, Optional, Set, TypeVar, Union
+from typing import Callable, Generator, Generic, Iterable, Optional, Set, Tuple, TypeVar, Union
 
 from sqlalchemy.orm import Session as SQLASession
 
@@ -92,6 +92,13 @@ class State(Enum):
     """
     The action was completed without issues.
     """
+    created = 2
+    """
+    The action resulted in the creation of a new object or record.
+    """
+
+    def __bool__(self):
+        return bool(self.value)
 
 
 class Result(Generic[V]):
@@ -177,8 +184,11 @@ class Result(Generic[V]):
     def state(self) -> State:
         if self._state:
             return self._state
-        elif self.parts and any(result.state is State.success for result in self.parts):
-            return State.success
+        elif any(self.parts):
+            if State.created in self.parts:
+                return State.created
+            else:
+                return State.success
         else:
             return State.unchanged
 
@@ -197,7 +207,7 @@ class Result(Generic[V]):
         self._value = value
 
     def __bool__(self) -> bool:
-        return self.state is State.success
+        return bool(self.state)
 
     def __iter__(self) -> Generator["Result[V]", None, "Result[V]"]:
         # Syntactic sugar used by `yield from` expressions in `Result.collect()`.

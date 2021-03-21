@@ -13,7 +13,7 @@ import pwd
 # single implementation in case it needs revising.  TODO: Move here as part of control migration.
 from srcf.controllib.utils import copytree_chown_chmod, nfs_aware_chown  # noqa: F401
 
-from .common import command, Password, require_host, Result, State
+from .common import Collect, command, Password, require_host, Result, State
 from . import hosts
 
 
@@ -77,7 +77,7 @@ def add_user(username: str, uid: int = None, system: bool = False, active: bool 
     user = get_user(username)
     if system and home_dir:
         create_home(user, home_dir)
-    return Result(State.success, user)
+    return Result(State.created, user)
 
 
 @require_host(hosts.USER)
@@ -122,30 +122,31 @@ def create_home(user: User, path: str, world_read: bool = False) -> Result[None]
     """
     Create an empty home directory owned by the given user.
     """
-    result = Result(State.unchanged)
+    state = State.unchanged
     try:
         os.mkdir(path, 0o2775 if world_read else 0o2770)
     except FileExistsError:
         pass
     else:
-        result.state = State.success
+        state = State.created
     stat = os.stat(path)
     if stat.st_uid != user.pw_uid or stat.st_gid != user.pw_gid:
         nfs_aware_chown(path, user.pw_uid, user.pw_gid)
-        result.state = State.success
-    return result
+        state = state or State.success
+    return Result(state)
 
 
 @Result.collect
 def create_user(username: str, uid: int = None, system: bool = False, active: bool = True,
-                home_dir: str = None, real_name: str = ""):
+                home_dir: str = None, real_name: str = "") -> Collect[User]:
     """
     Create a new user account, or enable/disable an existing one.
     """
     try:
         user = get_user(username)
     except KeyError:
-        user = yield from add_user(username, uid, system, active, home_dir, real_name)
+        res_user = yield from add_user(username, uid, system, active, home_dir, real_name)
+        return res_user.value
     else:
         if user.pw_uid != uid:
             raise ValueError("User {!r} has UID {}, expected {}".format(username, user.pw_uid, uid))
@@ -179,7 +180,7 @@ def add_group(username: str, gid: int = None, system: bool = False) -> Result[Gr
     if system:
         args[-1:-1] = ["--system"]
     command(args)
-    return Result(State.success, get_group(username))
+    return Result(State.created, get_group(username))
 
 
 @require_host(hosts.USER)
@@ -206,16 +207,18 @@ def remove_from_group(user: User, group: Group) -> Result[None]:
     return Result(State.success)
 
 
-def create_group(username: str, gid: int = None, system: bool = False) -> Result[Group]:
+@Result.collect
+def create_group(username: str, gid: int = None, system: bool = False) -> Collect[Group]:
     """
     Create a new or retrieve an existing group.
     """
     try:
         group = get_group(username)
     except KeyError:
-        return add_group(username, gid, system)
+        res_group = yield from add_group(username, gid, system)
+        return State.created, res_group.value
     else:
         if group.gr_gid != gid:
             raise ValueError("Group {!r} has GID {}, expected {}"
                              .format(username, group.gr_gid, gid))
-        return Result(State.unchanged, group)
+        return group

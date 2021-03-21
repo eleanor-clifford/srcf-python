@@ -116,7 +116,7 @@ def create_user(cursor: Cursor, name: str) -> Result[Password]:
     passwd = Password.new()
     query(cursor, _format("CREATE USER {} ENCRYPTED PASSWORD %s "
                           "NOCREATEDB NOCREATEUSER", name), passwd)
-    return Result(State.success, passwd)
+    return Result(State.created, passwd)
 
 
 def reset_password(cursor: Cursor, name: str) -> Result[Password]:
@@ -205,7 +205,7 @@ def create_database(cursor: Cursor, name: str, owner: Role) -> Result[None]:
         else:
             raise
     else:
-        return Result(State.success)
+        return Result(State.created)
 
 
 def drop_database(cursor: Cursor, name: str) -> Result[None]:
