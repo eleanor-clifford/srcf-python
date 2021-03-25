@@ -78,7 +78,7 @@ def create_sysadmin(member: Member, new_passwd: bool = False) -> Collect[Optiona
         passwd = None
     yield unix.add_to_group(user, unix.get_group("sysadmins"))
     yield unix.add_to_group(user, unix.get_group("adm"))
-    # TODO: sed -i~ -re "/^sysadmin/ s/$/ (,$admuser,)/" /etc/netgroup
+    yield unix.grant_netgroup(user, "sysadmins")
     yield bespoke.update_nis(new_user)
     for soc in ("executive", "srcf-admin", "srcf-web"):
         yield add_society_admin(member, get_society(soc))
@@ -210,6 +210,26 @@ def remove_society_admin(member: Member, society: Society) -> Collect[None]:
         yield pgsql.sync_society_roles(cursor, society)
 
 
+def _scrub_society_user(society: Society) -> Result[None]:
+    try:
+        user = unix.get_user(society.society)
+    except KeyError:
+        return Result(State.unchanged)
+    else:
+        unix.rename_user(user, "exsoc{}".format(society.uid))
+        return Result(State.success)
+
+
+def _scrub_society_group(society: Society) -> Result[None]:
+    try:
+        group = unix.get_group(society.society)
+    except KeyError:
+        return Result(State.unchanged)
+    else:
+        unix.rename_group(group, "exsoc{}".format(society.gid))
+        return Result(State.success)
+
+
 @Result.collect
 def delete_society(society: Society) -> Collect[None]:
     """
@@ -229,7 +249,8 @@ def delete_society(society: Society) -> Collect[None]:
         yield pgsql.drop_account(cursor, society)
     for mlist in mailman.get_list_suffixes(society):
         yield mailman.remove_list(society, mlist)
-    # TODO: Unix user/group
+    yield _scrub_society_user(society)
+    yield _scrub_society_group(society)
     with bespoke.context() as sess:
         yield bespoke.delete_society(sess, society)
     yield bespoke.export_members()

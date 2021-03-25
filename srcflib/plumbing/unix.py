@@ -117,6 +117,16 @@ def reset_password(user: User) -> Result[Password]:
     return Result(State.success, passwd)
 
 
+def rename_user(user: User, username: str) -> Result[None]:
+    """
+    Update the login name of an existing user.
+    """
+    if user.pw_name == username:
+        return Result(State.unchanged)
+    command(["/usr/bin/usermod", "--login", username, user.pw_name])
+    return Result(State.success)
+
+
 @require_host(hosts.USER)
 def set_home_dir(user: User, home: str) -> Result[None]:
     if user.pw_dir == home:
@@ -212,6 +222,16 @@ def remove_from_group(user: User, group: Group) -> Result[None]:
     return Result(State.success)
 
 
+def rename_group(group: Group, username: str) -> Result[None]:
+    """
+    Update the name of an existing group.
+    """
+    if group.gr_name == username:
+        return Result(State.unchanged)
+    command(["/usr/bin/groupmod", "--new-name", username, group.gr_name])
+    return Result(State.success)
+
+
 @Result.collect
 def ensure_group(username: str, gid: int = None, system: bool = False) -> Collect[Group]:
     """
@@ -261,4 +281,28 @@ def set_nfs_acl(path: str, user: str, perms: str) -> Result[None]:
     if set(acl) >= set(perms):
         return Result(State.unchanged)
     command(["/usr/bin/nfs4_setfacl", "-a", "A::{}:{}".format(user, perms), path])
+    return Result(State.success)
+
+
+def grant_netgroup(user: User, group: str) -> Result[None]:
+    """
+    Grant netgroup privileges for a user account. 
+    """
+    entry = "(,{},)".format(user.pw_name)
+    path = "/etc/netgroup"
+    with open(path, "r") as f:
+        data = f.read().splitlines()
+    for i, line in enumerate(data):
+        if not line.startswith("{} ".format(group)):
+            continue
+        elif entry in line:
+            return Result(State.unchanged)
+        else:
+            data[i] = "{} {}".format(line, entry)
+            break
+    else:
+        raise KeyError("No such group: {!r}".format(group))
+    with open(path, "w") as f:
+        for line in data:
+            f.write("{}\n".format(line))
     return Result(State.success)
