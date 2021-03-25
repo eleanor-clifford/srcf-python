@@ -18,7 +18,6 @@ from .common import Password, Result, State
 
 LOG = logging.getLogger(__name__)
 
-
 HOST = "%"
 
 
@@ -120,7 +119,7 @@ def get_database_users(cursor: Cursor, database: str) -> List[str]:
     return [db[0] for db in cursor]
 
 
-def create_user(cursor: Cursor, name: str) -> Result[Optional[Password]]:
+def ensure_user(cursor: Cursor, name: str) -> Result[Optional[Password]]:
     """
     Create a MySQL user with a random password, if a user with that name doesn't already exist.
     """

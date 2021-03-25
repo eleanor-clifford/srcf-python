@@ -8,7 +8,7 @@ import inspect
 import logging
 import platform
 import subprocess
-from typing import Callable, Generator, Generic, Iterable, Optional, Set, Tuple, TypeVar, Union
+from typing import Callable, Generator, Generic, Iterable, Optional, Set, TypeVar, Union
 
 from sqlalchemy.orm import Session as SQLASession
 
@@ -18,13 +18,11 @@ from srcf.database import Member, Society
 
 LOG = logging.getLogger(__name__)
 
+T = TypeVar("T")
 
 Owner = Union[Member, Society]
 
-V = TypeVar("V")
-R = TypeVar("R")
-
-Collect = Generator["Result", None, V]
+Collect = Generator["Result", None, T]
 
 
 def owner_name(owner: Owner) -> str:
@@ -101,7 +99,7 @@ class State(Enum):
         return bool(self.value)
 
 
-class Result(Generic[V]):
+class Result(Generic[T]):
     """
     State and optional accompanying value from a unit of work.
 
@@ -125,7 +123,7 @@ class Result(Generic[V]):
     """
 
     @classmethod
-    def collect(cls, fn: Callable[..., Collect[V]]) -> Callable[..., "Result[V]"]:
+    def collect(cls, fn: Callable[..., Collect[T]]) -> Callable[..., "Result[T]"]:
         """
         Decorator: build a `Result` from multiple sub-tasks:
 
@@ -146,7 +144,7 @@ class Result(Generic[V]):
         the inner function.
         """
         @wraps(fn)
-        def inner(*args, **kwargs) -> Result[V]:
+        def inner(*args, **kwargs) -> Result[T]:
             state = None
             value = None
             parts = []
@@ -160,7 +158,7 @@ class Result(Generic[V]):
             return cls(state, value, parts, fn)
         return inner
 
-    def __init__(self, state: Optional[State] = None, value: Optional[V] = None,
+    def __init__(self, state: Optional[State] = None, value: Optional[T] = None,
                  parts: Iterable["Result"] = (), caller: Callable = None):
         self._state = state
         self._value = value
@@ -197,19 +195,19 @@ class Result(Generic[V]):
         self._state = state
 
     @property
-    def value(self) -> V:
+    def value(self) -> T:
         if self._value is None:
             raise ValueError("No value set")
         return self._value
 
     @value.setter
-    def value(self, value: V) -> None:
+    def value(self, value: T) -> None:
         self._value = value
 
     def __bool__(self) -> bool:
         return bool(self.state)
 
-    def __iter__(self) -> Generator["Result[V]", None, "Result[V]"]:
+    def __iter__(self) -> Generator["Result[T]", None, "Result[T]"]:
         # Syntactic sugar used by `yield from` expressions in `Result.collect()`.
         yield self
         return self
@@ -220,7 +218,7 @@ class Result(Generic[V]):
                                    ", <{} parts>".format(len(self.parts)) if self.parts else "")
 
     def __str__(self) -> str:
-        tree = "{}: {}{}".format(self.caller, self.state,
+        tree = "{}: {}{}".format(self.caller, self.state.name,
                                  " {!r}".format(self._value) if self._value else "")
         if self.parts:
             for result in self.parts:
@@ -230,7 +228,7 @@ class Result(Generic[V]):
 
 class Password:
     """
-    Container of randomly generated passwords.  Use ``str(passwd)`` to get the actual value.
+    Container of randomly generated passwords.  Use `str(passwd)` to get the actual value.
     """
 
     def __init__(self, value, template="{}"):
@@ -271,7 +269,7 @@ def require_host(*hosts: str):
         @require_hosts(Hosts.USER)
         def create_user(username): ...
     """
-    def outer(fn: Callable[..., R]) -> Callable[..., R]:
+    def outer(fn: Callable[..., T]) -> Callable[..., T]:
         @wraps(fn)
         def inner(*args, **kwargs):
             host = platform.node()
@@ -283,7 +281,8 @@ def require_host(*hosts: str):
     return outer
 
 
-def command(args, input_=None, output=False) -> subprocess.CompletedProcess:
+def command(args, input_: Optional[Union[str, Password]] = None,
+            output: bool = False) -> subprocess.CompletedProcess:
     """
     Create a subprocess to execute an external command.
     """

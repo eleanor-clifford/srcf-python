@@ -53,7 +53,7 @@ def new_account(cursor: Cursor, owner: Owner) -> Collect[Optional[Password]]:
     For members, grants are added to all society roles for which they are a member.
     """
     username = owner_name(owner)
-    res_passwd = yield from pgsql.add_user(cursor, username)
+    res_passwd = yield from pgsql.ensure_user(cursor, username)
     if isinstance(owner, Member):
         yield sync_member_roles(cursor, owner)
     elif isinstance(owner, Society):

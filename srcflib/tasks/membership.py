@@ -3,52 +3,64 @@ Creation and management of member and society accounts.
 """
 
 import os
-from typing import Set, Tuple
+from typing import Optional, Set, Tuple
+
+from sqlalchemy.orm import Session as SQLASession
 
 from srcf.database import Member, Society
 from srcf.database.queries import get_member, get_society
 
 from ..plumbing import bespoke, pgsql as pgsql_p, unix
-from ..plumbing.common import Collect, Password, Result
+from ..plumbing.common import Collect, Password, Result, State
 from . import mailman, mysql, pgsql
 
 
 @Result.collect
-def create_member(crsid: str, preferred_name: str, surname: str, email: str,
-                  mail_handler: str, is_member: bool = True, is_user: bool = True,
-                  social: bool = False) -> Collect[Tuple[Member, Password]]:
+def create_member(crsid: str, preferred_name: str, surname: str, email: str, mail_handler: str,
+                  is_member: bool = True, is_user: bool = True, social: bool = False,
+                  new_passwd: bool = False) -> Collect[Tuple[Member, Optional[Password]]]:
     """
     Register and provision a new member of the SRCF.
     """
     with bespoke.context() as sess:
-        res_record = yield from bespoke.create_member(sess, crsid, preferred_name, surname, email,
+        res_record = yield from bespoke.ensure_member(sess, crsid, preferred_name, surname, email,
                                                       mail_handler, is_member, is_user)
         member = res_record.value
-    res_user = yield from unix.create_user(crsid, uid=member.uid, system=True,
+    res_user = yield from unix.ensure_user(crsid, uid=member.uid, system=True,
                                            home_dir=os.path.join("/home", crsid),
                                            real_name=member.name)
+    new_user = res_user.state == State.created
     user = res_user.value
-    res_passwd = yield from unix.reset_password(user)
-    yield bespoke.update_nis(True)
+    if new_user or new_passwd:
+        res_passwd = yield from unix.reset_password(user)
+        passwd = res_passwd.value
+    else:
+        passwd = None
+    if res_user:
+        yield bespoke.update_nis(new_user)
     yield unix.create_home(user, os.path.join("/public/home", crsid), True)
     yield bespoke.set_home_exim_acl(member)
     yield bespoke.populate_home_dir(member)
-    yield bespoke.update_quotas()
+    if res_record:
+        yield bespoke.update_quotas()
     if mail_handler == "pip":
         yield bespoke.create_forwarding_file(member)
     # TODO: Legacy mailbox creation
-    yield bespoke.set_web_status(member, "subdomain")
-    yield bespoke.queue_list_subscription(member, "maintenance")
-    if social:
-        yield bespoke.queue_list_subscription(member, "social")
-    yield bespoke.generate_apache_groups()
-    yield bespoke.export_members()
+    res_web = yield from bespoke.enable_website(member)
+    if new_user:
+        yield bespoke.queue_list_subscription(member, "maintenance")
+        if social:
+            yield bespoke.queue_list_subscription(member, "social")
+    if res_web:
+        yield bespoke.generate_apache_groups()
+    if res_record:
+        yield bespoke.export_members()
     # TODO: Welcome email
-    return (member, res_passwd.value)
+    return (member, passwd)
 
 
 @Result.collect
-def create_sysadmin(member: Member) -> Collect[Password]:
+def create_sysadmin(member: Member, new_passwd: bool = False) -> Collect[Optional[Password]]:
     """
     Create an administrative account for an existing member.
     """
@@ -56,18 +68,24 @@ def create_sysadmin(member: Member) -> Collect[Password]:
         raise ValueError("{!r} is not an active user")
     username = "{}-adm".format(member.crsid)
     real_name = "{} (Sysadmin Account)".format(member.name)
-    res_user = yield from unix.create_user(username, real_name=real_name)
+    res_user = yield from unix.ensure_user(username, real_name=real_name)
+    new_user = res_user.state == State.created
     user = res_user.value
-    res_passwd = yield from unix.reset_password(user)
+    if new_user or new_passwd:
+        res_passwd = yield from unix.reset_password(user)
+        passwd = res_passwd.value
+    else:
+        passwd = None
     yield unix.add_to_group(user, unix.get_group("sysadmins"))
     yield unix.add_to_group(user, unix.get_group("adm"))
     # TODO: sed -i~ -re "/^sysadmin/ s/$/ (,$admuser,)/" /etc/netgroup
+    yield bespoke.update_nis(new_user)
     for soc in ("executive", "srcf-admin", "srcf-web"):
         yield add_society_admin(member, get_society(soc))
     with pgsql.context() as cursor:
-        yield pgsql_p.create_user(cursor, username)
+        yield pgsql_p.ensure_user(cursor, username)
         yield pgsql_p.grant_role(cursor, username, pgsql_p.get_role(cursor, "sysadmins"))
-    return res_passwd.value
+    return passwd
 
 
 @Result.collect
@@ -76,7 +94,7 @@ def update_member_name(member: Member, preferred_name: str, surname: str) -> Col
     Update a member's registered name.
     """
     with bespoke.context() as sess:
-        res_record = yield from bespoke.create_member(sess=sess, crsid=member.crsid,
+        res_record = yield from bespoke.ensure_member(sess=sess, crsid=member.crsid,
                                                       preferred_name=preferred_name,
                                                       surname=surname,
                                                       email=member.email,
@@ -92,30 +110,67 @@ def update_member_name(member: Member, preferred_name: str, surname: str) -> Col
 
 
 @Result.collect
+def _add_society_admin(sess: SQLASession, member: Member, society: Society,
+                       group: unix.Group) -> Collect[None]:
+    yield bespoke.add_to_society(sess, member, society)
+    yield unix.add_to_group(unix.get_user(member.crsid), group)
+    yield bespoke.link_soc_home_dir(member, society)
+
+
+@Result.collect
+def _remove_society_admin(sess: SQLASession, member: Member, society: Society,
+                          group: unix.Group) -> Collect[None]:
+    yield bespoke.remove_from_society(sess, member, society)
+    yield unix.remove_from_group(unix.get_user(member.crsid), group)
+    yield bespoke.link_soc_home_dir(member, society)
+
+
+@Result.collect
+def _sync_society_admins(sess: SQLASession, society: Society, admins: Set[str]) -> Collect[None]:
+    if society.admin_crsids == admins:
+        return
+    group = unix.get_group(society.society)
+    for crsid in admins - society.admin_crsids:
+        member = get_member(crsid, sess)
+        yield _add_society_admin(sess, member, society, group)
+    for crsid in society.admin_crsids - admins:
+        member = get_member(crsid, sess)
+        yield _remove_society_admin(sess, member, society, group)
+    with mysql.context() as cursor:
+        yield mysql.sync_society_roles(cursor, society)
+    with pgsql.context() as cursor:
+        yield pgsql.sync_society_roles(cursor, society)
+
+
+@Result.collect
 def create_society(name: str, description: str, admins: Set[str],
                    role_email: str = None) -> Collect[Society]:
     """
     Register a new SRCF society account.
     """
     with bespoke.context() as sess:
-        res_record = yield from bespoke.create_society(sess, name, description, admins, role_email)
+        res_record = yield from bespoke.ensure_society(sess, name, description, role_email)
         society = res_record.value
-    res_user = yield from unix.create_user(name, uid=society.uid, system=True, active=False,
+    res_user = yield from unix.ensure_user(name, uid=society.uid, system=True, active=False,
                                            home_dir=os.path.join("/societies", name),
                                            real_name=description)
-    res_group = yield from unix.create_group(name, gid=society.gid, system=True)
-    user, group = res_user.value, res_group.value
-    yield bespoke.update_nis(True)
+    yield unix.ensure_group(name, gid=society.gid, system=True)
+    user = res_user.value
+    if res_user:
+        yield bespoke.update_nis(res_user.state == State.created)
     yield unix.create_home(user, os.path.join("/public/societies", name), True)
     yield bespoke.set_home_exim_acl(society)
-    yield bespoke.update_quotas()
-    for admin in admins:
-        yield unix.add_to_group(unix.get_user(admin), group)
-        yield bespoke.link_soc_home_dir(get_member(admin), society)
-    yield bespoke.set_web_status(society, "subdomain")
-    yield bespoke.generate_apache_groups()
-    yield bespoke.generate_sudoers()
-    yield bespoke.export_members()
+    if res_record:
+        yield bespoke.update_quotas()
+    with bespoke.context() as sess:
+        res_admins = yield _sync_society_admins(sess, society, admins)
+    res_web = yield bespoke.enable_website(society)
+    if res_web:
+        yield bespoke.generate_apache_groups()
+    if res_admins:
+        yield bespoke.generate_sudoers()
+    if res_record:
+        yield bespoke.export_members()
     # TODO: Welcome email
     # TODO: Existing admins email
     return society
@@ -130,13 +185,12 @@ def add_society_admin(member: Member, society: Society) -> Collect[None]:
         # Re-fetch under current session for transaction safety.
         member = get_member(member.crsid, sess)
         society = get_society(society.society, sess)
-        yield bespoke.add_to_society(sess, member, society)
-    yield unix.add_to_group(unix.get_user(member.crsid), unix.get_group(society.society))
-    yield bespoke.link_soc_home_dir(member, society)
+        group = unix.get_group(society.society)
+        yield _add_society_admin(sess, member, society, group)
     with mysql.context() as cursor:
-        yield mysql.sync_society_roles(cursor, member)
+        yield mysql.sync_society_roles(cursor, society)
     with pgsql.context() as cursor:
-        yield pgsql.sync_society_roles(cursor, member)
+        yield pgsql.sync_society_roles(cursor, society)
 
 
 @Result.collect
@@ -145,15 +199,15 @@ def remove_society_admin(member: Member, society: Society) -> Collect[None]:
     Demote a member from a society account's list of admins.
     """
     with bespoke.context() as sess:
+        # Re-fetch under current session for transaction safety.
         member = get_member(member.crsid, sess)
         society = get_society(society.society, sess)
-        yield bespoke.remove_from_society(sess, member, society)
-    yield unix.remove_from_group(unix.get_user(member.crsid), unix.get_group(society.society))
-    yield bespoke.link_soc_home_dir(member, society)
+        group = unix.get_group(society.society)
+        yield _remove_society_admin(sess, member, society, group)
     with mysql.context() as cursor:
-        yield mysql.sync_society_roles(cursor, member)
+        yield mysql.sync_society_roles(cursor, society)
     with pgsql.context() as cursor:
-        yield pgsql.sync_society_roles(cursor, member)
+        yield pgsql.sync_society_roles(cursor, society)
 
 
 @Result.collect
@@ -161,8 +215,8 @@ def delete_society(society: Society) -> Collect[None]:
     """
     Archive and delete all traces of a society account.
     """
-    for mem in society.admins:
-        yield remove_society_admin(mem, society)
+    with bespoke.context() as sess:
+        _sync_society_admins(sess, society, set())
     yield bespoke.slay_user(society)
     # TODO: for server in {"cavein", "doom", "sinkhole"}: bespoke.slay_user(society)
     yield bespoke.archive_society_files(society)
@@ -187,7 +241,7 @@ def update_society_description(society: Society, description: str) -> Collect[So
     Update a society's description ('full name').
     """
     with bespoke.context() as sess:
-        res_record = yield from bespoke.create_society(sess=sess, name=society.society,
+        res_record = yield from bespoke.ensure_society(sess=sess, name=society.society,
                                                        description=description,
                                                        admins=society.admin_crsids,
                                                        role_email=society.role_email)

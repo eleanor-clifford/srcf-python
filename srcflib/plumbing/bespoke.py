@@ -7,11 +7,11 @@ Most methods identify users and groups using the `Member` and `Society` database
 from contextlib import contextmanager
 from datetime import date
 import logging
-import os.path
+import os
 import pwd
 import shutil
 import time
-from typing import Generator, List, Optional, Set
+from typing import Generator, List, Optional
 
 from requests import Session as RequestsSession
 
@@ -22,10 +22,9 @@ from srcf.database import Domain, HTTPSCert, Member, Session, Society
 from srcf.database.queries import get_member, get_society
 from srcf.database.summarise import summarise_society
 
-from .common import command, get_members, Owner, owner_name, require_host, Result, State
+from .common import Collect, command, Owner, owner_name, require_host, Result, State
 from .mailman import MailList
-from .unix import copytree_chown_chmod
-from . import hosts
+from . import hosts, unix
 
 
 LOG = logging.getLogger(__name__)
@@ -67,57 +66,93 @@ def get_mailman_lists(owner: Owner, sess: RequestsSession = RequestsSession()) -
     return resp.text.splitlines()
 
 
-def create_member(sess: SQLASession, crsid: str, preferred_name: str, surname: str, email: str,
+def _create_member(sess: SQLASession, crsid: str, preferred_name: str, surname: str, email: str,
+                   mail_handler: str = "forward", is_member: bool = True,
+                   is_user: bool = True) -> Result[Member]:
+    member = Member(crsid=crsid,
+                    preferred_name=preferred_name,
+                    surname=surname,
+                    email=email,
+                    mail_handler=mail_handler,
+                    member=is_member,
+                    user=is_user)
+    sess.add(member)
+    return Result(State.created, member)
+
+
+def _update_member(sess: SQLASession, member: Member, preferred_name: str, surname: str,
+                   email: str, mail_handler: str = "forward", is_member: bool = True,
+                   is_user: bool = True) -> Result[None]:
+    member.preferred_name = preferred_name
+    member.surname = surname
+    member.email = email
+    member.mail_handler = mail_handler
+    member.member = is_member
+    member.user = is_user
+    return Result(State.success if sess.is_modified(member) else State.unchanged)
+
+
+@Result.collect
+def ensure_member(sess: SQLASession, crsid: str, preferred_name: str, surname: str, email: str,
                   mail_handler: str = "forward", is_member: bool = True,
-                  is_user: bool = True) -> Result[Member]:
+                  is_user: bool = True) -> Collect[Member]:
     """
     Register or update a member in the database.
     """
     try:
-        mem = get_member(crsid, sess)
+        member = get_member(crsid, sess)
     except KeyError:
-        mem = Member(crsid=crsid,
-                     preferred_name=preferred_name,
-                     surname=surname,
-                     email=email,
-                     mail_handler=mail_handler,
-                     member=is_member,
-                     user=is_user)
-        sess.add(mem)
-        state = State.created
+        res_record = yield from _create_member(sess, crsid, preferred_name, surname, email,
+                                               mail_handler, is_member, is_user)
+        member = res_record.value
     else:
-        mem.preferred_name = preferred_name
-        mem.surname = surname
-        mem.email = email
-        mem.mail_handler = mail_handler
-        mem.member = is_member
-        mem.user = is_user
-        state = State.success if sess.is_modified(mem) else State.unchanged
-    return Result(state, mem)
+        yield _update_member(sess, member, preferred_name, surname, email, mail_handler,
+                             is_member, is_user)
+    return member
 
 
-def create_society(sess: SQLASession, name: str, description: str, admins: Set[str],
-                   role_email: str = None) -> Result[Society]:
+def _create_society(sess: SQLASession, name: str, description: str,
+                    role_email: Optional[str] = None) -> Result[Society]:
+    society = Society(society=name,
+                      description=description,
+                      role_email=role_email)
+    sess.add(society)
+    return Result(State.created, society)
+
+
+def _update_society(sess: SQLASession, society: Society, description: str,
+                    role_email: Optional[str]) -> Result[None]:
+    society.description = description
+    society.role_email = role_email
+    return Result(State.success if sess.is_modified(society) else State.unchanged)
+
+
+def delete_society(sess: SQLASession, society: Society) -> Result[None]:
+    """
+    Drop a society record from the database.
+    """
+    if society.admins:
+        raise ValueError("Remove society admins for {} first".format(society))
+    sess.delete(society)
+    return Result(State.success)
+
+
+@Result.collect
+def ensure_society(sess: SQLASession, name: str, description: str,
+                   role_email: Optional[str] = None) -> Collect[Society]:
     """
     Register or update a society in the database.
+
+    For existing societies, this will synchronise member relations with the given list of admins.
     """
     try:
-        soc = get_society(name, sess)
+        society = get_society(name, sess)
     except KeyError:
-        soc = Society(society=name,
-                      description=description,
-                      admins=get_members(sess, *admins),
-                      role_email=role_email)
-        sess.add(soc)
-        state = State.created
+        res_record = yield from _create_society(sess, name, description, role_email)
+        society = res_record.value
     else:
-        if admins != soc.admin_crsids:
-            raise ValueError("Admins for {!r} are {}, expecting {}"
-                             .format(name, soc.admin_crsids, admins))
-        soc.description = description
-        soc.role_email = role_email
-        state = State.success if sess.is_modified(soc) else State.unchanged
-    return Result(state, soc)
+        yield _update_society(sess, society, description, role_email)
+    return society
 
 
 def add_to_society(sess: SQLASession, member: Member, society: Society) -> Result[None]:
@@ -142,16 +177,6 @@ def remove_from_society(sess: SQLASession, member: Member, society: Society) -> 
     return Result(State.success)
 
 
-def delete_society(sess: SQLASession, society: Society) -> Result[None]:
-    """
-    Drop a society record from the database.
-    """
-    if society.admins:
-        raise ValueError("Remove society admins for {} first".format(society))
-    sess.delete(society)
-    return Result(State.success)
-
-
 def populate_home_dir(member: Member):
     """
     Copy the contents of ``/etc/skel`` to a new user's home directory.
@@ -162,8 +187,8 @@ def populate_home_dir(member: Member):
     if os.listdir(target):
         # Avoid potentially clobbering existing files.
         return Result(State.unchanged)
-    copytree_chown_chmod("/etc/skel", os.path.join("/home", member.crsid),
-                         member.uid, member.gid)
+    unix.copytree_chown_chmod("/etc/skel", os.path.join("/home", member.crsid),
+                              member.uid, member.gid)
     return Result(State.success)
 
 
@@ -179,12 +204,12 @@ def link_soc_home_dir(member: Member, society: Society) -> Result[None]:
         current = None
     valid = current == target
     needed = member in society.admins
-    result = Result(State.unchanged)
+    state = State.unchanged
     if valid == needed:
         # Includes if they're no longer an admin, and something other than the usual link exists
         # where we'd normally put this link, in which case we leave it be.
-        return result
-    if needed:
+        pass
+    elif needed:
         try:
             os.symlink(target, link)
         except FileExistsError:
@@ -192,24 +217,25 @@ def link_soc_home_dir(member: Member, society: Society) -> Result[None]:
         except OSError:
             LOG.warning("Couldn't symlink %r", link, exc_info=True)
         else:
-            result.state = State.success
+            state = State.success
     else:
         try:
             os.unlink(link)
         except OSError:
             LOG.warning("Couldn't remove symlink %r", link, exc_info=True)
         else:
-            result.state = State.success
-    return result
+            state = State.success
+    return Result(state)
 
 
-def set_home_exim_acl(owner: Owner) -> Result[None]:
+@Result.collect
+def set_home_exim_acl(owner: Owner) -> Collect[None]:
     """
     Grant access to the user's ``.forward`` file for Exim.
     """
-    path = pwd.getpwnam(owner_name(owner)).pw_dir
-    command(["/usr/bin/nfs4_setfacl", "-a", "A::Debian-exim@srcf.net:RX", path])
-    return Result(State.success)
+    name = owner_name(owner)
+    path = pwd.getpwnam(name).pw_dir
+    yield unix.set_nfs_acl(path, "Debian-exim@srcf.net", "RX")
 
 
 def create_forwarding_file(owner: Owner) -> Result[None]:
@@ -221,7 +247,7 @@ def create_forwarding_file(owner: Owner) -> Result[None]:
     if os.path.exists(path):
         return Result(State.unchanged)
     with open(path, "w") as f:
-        f.write(owner.email + "\n")
+        f.write("{}\n".format(owner.email))
     os.chown(path, user.pw_uid, user.pw_gid)
     return Result(State.success)
 
@@ -235,9 +261,11 @@ def update_quotas() -> Result[None]:
     return Result(State.success)
 
 
-def set_web_status(owner: Owner, status: str) -> Result[None]:
+def enable_website(owner: Owner, status: str = "subdomain", replace: bool = False) -> Result[str]:
     """
-    Add or update the owner's website type, used for Apache configuration.
+    Initialise the owner's website, so that it will be included in Apache configuration.
+
+    An existing website's type won't be changed unless `replace` is set.
     """
     username = owner_name(owner)
     key = "member" if isinstance(owner, Member) else "soc"
@@ -248,17 +276,17 @@ def set_web_status(owner: Owner, status: str) -> Result[None]:
         name, current = line.split(":", 1)
         if name != username:
             continue
-        if current == status:
-            return Result(State.unchanged)
+        if current == status or not replace:
+            return Result(State.unchanged, current)
         else:
-            data[i] = "{}:{}".format(name, status)
+            data[i] = "{}:{}".format(username, status)
             break
     else:
-        data.append("{}:{}".format(name, status))
+        data.append("{}:{}".format(username, status))
     with open(path, "w") as f:
         for line in data:
             f.write("{}\n".format(line))
-    return Result(State.success)
+    return Result(State.success, status)
 
 
 def add_custom_domain(sess: SQLASession, owner: Owner, name: str,
@@ -280,7 +308,7 @@ def add_custom_domain(sess: SQLASession, owner: Owner, name: str,
                         owner=owner_name(owner),
                         root=root)
         sess.add(domain)
-        state = State.success
+        state = State.created
     else:
         domain.class_ = class_
         domain.owner = owner_name(owner)
@@ -299,7 +327,7 @@ def queue_https_cert(sess: SQLASession, domain: str) -> Result[HTTPSCert]:
     except NoResultFound:
         cert = HTTPSCert(domain=domain)
         sess.add(cert)
-        state = State.success
+        state = State.created
     else:
         state = State.unchanged
     return Result(state, cert)

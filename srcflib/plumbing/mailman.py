@@ -7,16 +7,15 @@ import os.path
 import re
 from typing import List, Optional
 
-from .common import command, Password, require_host, Result, State
+from .common import Collect, command, Password, require_host, Result, State
 from . import hosts
 
+
+LOG = logging.getLogger(__name__)
 
 # Type alias for external callers, who need not be aware of the internal structure when chaining
 # calls (e.g. get_list/new_list -> reset_password).
 MailList = str
-
-
-LOG = logging.getLogger(__name__)
 
 
 @require_host(hosts.LIST)
@@ -40,7 +39,7 @@ def get_owners(mlist: MailList) -> List[str]:
 
 
 @require_host(hosts.LIST)
-def new_list(name: str, owner: str) -> Result[Password]:
+def _create_list(name: str, owner: str) -> Result[Password]:
     """
     Create a new mailing list for the owning email address, with a random password.
     """
@@ -87,16 +86,18 @@ def reset_password(mlist: MailList) -> Result[Password]:
         raise ValueError("Couldn't find password in output")
 
 
-def create_list(name: str, owner: str) -> Result[Optional[Password]]:
+@Result.collect
+def ensure_list(name: str, owner: str) -> Collect[Optional[Password]]:
     """
     Create a new mailing list, or ensure the owner of an existing list is set.
     """
     try:
         mlist = get_list(name)
     except KeyError:
-        return new_list(name, owner)
+        res_create = yield from _create_list(name, owner)
+        return State.created, res_create.value
     else:
-        return set_owner(mlist, owner)
+        yield set_owner(mlist, owner)
 
 
 @require_host(hosts.LIST)

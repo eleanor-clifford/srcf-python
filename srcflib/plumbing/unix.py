@@ -17,13 +17,12 @@ from .common import Collect, command, Password, require_host, Result, State
 from . import hosts
 
 
+LOG = logging.getLogger(__name__)
+
 # Type aliases for external callers, who need not be aware of the internal structure when chaining
 # calls (e.g. get_user/create_user -> reset_password).
 User = pwd.struct_passwd
 Group = grp.struct_group
-
-
-LOG = logging.getLogger(__name__)
 
 _NOLOGIN_SHELLS = ("/bin/false", "/usr/sbin/nologin")
 
@@ -43,8 +42,8 @@ def get_group(username: str) -> Group:
 
 
 @require_host(hosts.USER)
-def add_user(username: str, uid: int = None, system: bool = False, active: bool = True,
-             home_dir: str = None, real_name: str = "") -> Result[User]:
+def _create_user(username: str, uid: int = None, system: bool = False, active: bool = True,
+                 home_dir: str = None, real_name: str = "") -> Result[User]:
     """
     Create a new user account.  System users are created with an empty home directory, whereas
     regular users inherit from ``/etc/skel``.
@@ -118,6 +117,14 @@ def reset_password(user: User) -> Result[Password]:
     return Result(State.success, passwd)
 
 
+@require_host(hosts.USER)
+def set_home_dir(user: User, home: str) -> Result[None]:
+    if user.pw_dir == home:
+        return Result(State.unchanged)
+    command(["/usr/bin/usermod", "--home", home, user.pw_name])
+    return Result(State.success)
+
+
 def create_home(user: User, path: str, world_read: bool = False) -> Result[None]:
     """
     Create an empty home directory owned by the given user.
@@ -137,7 +144,7 @@ def create_home(user: User, path: str, world_read: bool = False) -> Result[None]
 
 
 @Result.collect
-def create_user(username: str, uid: int = None, system: bool = False, active: bool = True,
+def ensure_user(username: str, uid: int = None, system: bool = False, active: bool = True,
                 home_dir: str = None, real_name: str = "") -> Collect[User]:
     """
     Create a new user account, or enable/disable an existing one.
@@ -145,21 +152,19 @@ def create_user(username: str, uid: int = None, system: bool = False, active: bo
     try:
         user = get_user(username)
     except KeyError:
-        res_user = yield from add_user(username, uid, system, active, home_dir, real_name)
+        res_user = yield from _create_user(username, uid, system, active, home_dir, real_name)
         return res_user.value
     else:
         if user.pw_uid != uid:
             raise ValueError("User {!r} has UID {}, expected {}".format(username, user.pw_uid, uid))
-        if user.pw_dir != home_dir:
-            raise ValueError("User {!r} has home directory {!r}, expected {!r}"
-                             .format(username, user.pw_dir, home_dir))
-        yield set_real_name(user, real_name)
         yield enable_user(user, active)
-    return user
+        yield set_home_dir(user, home_dir)
+        yield set_real_name(user, real_name)
+        return user
 
 
 @require_host(hosts.USER)
-def add_group(username: str, gid: int = None, system: bool = False) -> Result[Group]:
+def _create_group(username: str, gid: int = None, system: bool = False) -> Result[Group]:
     """
     Create a new group.
     """
@@ -208,17 +213,52 @@ def remove_from_group(user: User, group: Group) -> Result[None]:
 
 
 @Result.collect
-def create_group(username: str, gid: int = None, system: bool = False) -> Collect[Group]:
+def ensure_group(username: str, gid: int = None, system: bool = False) -> Collect[Group]:
     """
     Create a new or retrieve an existing group.
     """
     try:
         group = get_group(username)
     except KeyError:
-        res_group = yield from add_group(username, gid, system)
-        return State.created, res_group.value
+        res_group = yield from _create_group(username, gid, system)
+        return res_group.value
     else:
         if group.gr_gid != gid:
             raise ValueError("Group {!r} has GID {}, expected {}"
                              .format(username, group.gr_gid, gid))
         return group
+
+
+_ACL_ALIASES = {"R": "rntcy", "W": "watTNcCyD", "X": "xtcy"}
+
+
+def _unalias_acl(perms: str) -> str:
+    for alias, expansion in _ACL_ALIASES.items():
+        perms = perms.replace(alias, expansion)
+    return "".join(sorted(set(perms)))
+
+
+def get_nfs_acl(path: str, user: str) -> str:
+    raw = command(["/usr/bin/nfs4_getfacl", path], output=True).stdout.decode("utf-8")
+    allowed = set()
+    denied = set()
+    for line in raw.splitlines():
+        if line.startswith("#"):
+            continue
+        type_, _, principal, perms = line.split(":")
+        if principal != user:
+            continue
+        if type_ == "A":
+            allowed.update(perms)
+        elif type_ == "D":
+            denied.update(perms)
+    return "".join(sorted(allowed - denied))
+
+
+def set_nfs_acl(path: str, user: str, perms: str) -> Result[None]:
+    acl = get_nfs_acl(path, user)
+    perms = _unalias_acl(perms)
+    if set(acl) >= set(perms):
+        return Result(State.unchanged)
+    command(["/usr/bin/nfs4_setfacl", "-a", "A::{}:{}".format(user, perms), path])
+    return Result(State.success)

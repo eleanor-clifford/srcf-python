@@ -7,7 +7,7 @@ from typing import List, Optional, Tuple
 from srcf.database import Member
 
 from ..plumbing import bespoke, mailman
-from ..plumbing.common import Collect, Owner, owner_name, Password, Result
+from ..plumbing.common import Collect, Owner, State, owner_name, Password, Result
 
 
 def _list_name_owner(owner: Owner, suffix: str = None) -> Tuple[str, str]:
@@ -34,8 +34,8 @@ def create_list(owner: Owner, suffix: str = None) -> Collect[Tuple[str, Optional
     if name.endswith(("-post", "-admin", "-bounces", "-confirm", "-join", "-leave", "-owner",
                       "-request", "-subscribe", "-unsubscribe")):
         raise ValueError("List name {!r} ends with reserved suffix".format(name))
-    res_create = yield from mailman.create_list(name, admin)
-    if res_create:
+    res_create = yield from mailman.ensure_list(name, admin)
+    if res_create.state == State.created:
         yield bespoke.configure_mailing_list(name)
         yield bespoke.generate_mailman_aliases()
     return (name, res_create.value)

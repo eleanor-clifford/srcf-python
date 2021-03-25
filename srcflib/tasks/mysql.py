@@ -54,7 +54,7 @@ def new_account(cursor: Cursor, owner: Owner) -> Collect[Optional[Password]]:
     For members, grants are added to all society databases for which they are a member.
     """
     user = _user_name(owner)
-    res_passwd = yield from mysql.create_user(cursor, user)
+    res_passwd = yield from mysql.ensure_user(cursor, user)
     yield mysql.grant_database(cursor, user, _database_name(owner))
     yield mysql.grant_database(cursor, user, _database_name(owner, "%"))
     if isinstance(owner, Member):

@@ -13,6 +13,8 @@ from psycopg2.extras import NamedTupleCursor
 from .common import Collect, Password, Result, State
 
 
+LOG = logging.getLogger(__name__)
+
 # Type alias for external callers, who need not be aware of the internal structure when chaining
 # calls (e.g. get_user/create_user -> reset_password).
 Role = Tuple[str, bool]
@@ -26,9 +28,6 @@ def _format(sql: str, *literals: str) -> str:
         raise ValueError("Double quotes forbidden in identifiers")
     params = ('"{}"'.format(lit) for lit in literals)
     return sql.format(*params)
-
-
-LOG = logging.getLogger(__name__)
 
 
 def connect(host, db="template1") -> Connection:
@@ -111,7 +110,7 @@ def get_role_databases(cursor: Cursor, owner: Role) -> List[str]:
     return [row[0] for row in cursor]
 
 
-def create_user(cursor: Cursor, name: str) -> Result[Password]:
+def _create_user(cursor: Cursor, name: str) -> Result[Password]:
     """
     Create a PostgreSQL user with a random password, if a user with that name doesn't already exist.
     """
@@ -179,14 +178,14 @@ def revoke_role(cursor: Cursor, name: str, role: Role) -> Result[None]:
 
 
 @Result.collect
-def add_user(cursor: Cursor, name: str) -> Collect[Optional[Password]]:
+def ensure_user(cursor: Cursor, name: str) -> Collect[Optional[Password]]:
     """
     Create a new PostgreSQL user if it doesn't yet exist, or enable a currently disabled role.
     """
     try:
         role = get_role(cursor, name)
     except KeyError:
-        res_create = yield from create_user(cursor, name)
+        res_create = yield from _create_user(cursor, name)
         return res_create.value
     else:
         yield enable_role(cursor, role)
