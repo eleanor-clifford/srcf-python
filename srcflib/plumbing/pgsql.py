@@ -68,6 +68,8 @@ def get_roles(cursor: Cursor, *names: str) -> List[Role]:
     """
     Look up existing roles by name.
     """
+    if not names:
+        return []
     query(cursor, "{} WHERE rolname IN %s".format(_ROLE_SELECT), names)
     return cursor.fetchall()
 

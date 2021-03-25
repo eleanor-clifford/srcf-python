@@ -9,7 +9,9 @@ from typing import Generator, List, Optional, Tuple, Union
 
 from pymysql import connect as pymysql_connect
 from pymysql.connections import Connection
+from pymysql.constants import ER
 from pymysql.cursors import Cursor
+from pymysql.err import DatabaseError
 
 from .common import Password, Result, State
 
@@ -17,14 +19,13 @@ from .common import Password, Result, State
 LOG = logging.getLogger(__name__)
 
 
+HOST = "%"
+
+
 def _format(sql: str, *literals: str) -> str:
     # PyMySQL won't format values normally enclosed in backticks, so handle these ourselves.
-    params = ("`{}`".format(lit.replace("`", "``")) for lit in literals)
+    params = ("`{}`".format(lit.replace("%", "%%").replace("`", "``")) for lit in literals)
     return sql.format(*params)
-
-
-def _truthy(test: bool) -> State:
-    return State.success if test else State.unchanged
 
 
 def connect() -> Connection:
@@ -63,6 +64,8 @@ def get_users(cursor: Cursor, *names: str) -> List[str]:
     """
     Look up existing users by name.
     """
+    if not names:
+        return []
     query(cursor, "SELECT User FROM mysql.user WHERE User IN %s", names)
     return [user[0] for user in cursor]
 
@@ -71,15 +74,15 @@ def validate_user(cursor: Cursor, name: str, passwd: Password) -> bool:
     """
     Test if a user exists matching the given username/password combination.
     """
-    return bool(query(cursor, "SELECT User FROM mysql.user WHERE User = %s "
-                              "AND authentication_string = PASSWORD(%s)", name, passwd))
+    return query(cursor, "SELECT User FROM mysql.user WHERE User = %s "
+                         "AND authentication_string = PASSWORD(%s)", name, passwd)
 
 
 def get_user_grants(cursor: Cursor, user: str) -> List[str]:
     """
     Look up all grants that the given user has.
     """
-    query(cursor, "SHOW GRANTS FOR %s@'%%'", user)
+    query(cursor, "SHOW GRANTS FOR %s@%s", user, HOST)
     databases = []
     for grant in cursor:
         match = re.match(r"GRANT (.+) ON (?:\*|(['`\"])(.*?)\2)\.\*", grant[0])
@@ -104,7 +107,7 @@ def get_user_databases(cursor: Cursor, user: str) -> List[str]:
     """
     Look up all databases that the given user has access to.
     """
-    query(cursor, "SELECT Db FROM mysql.db WHERE Host = '%%' AND User = %s", user)
+    query(cursor, "SELECT Db FROM mysql.db WHERE User = %s AND Host = %s", user, HOST)
     return [db[0].replace("\\_", "_") for db in cursor]
 
 
@@ -112,8 +115,8 @@ def get_database_users(cursor: Cursor, database: str) -> List[str]:
     """
     Look up all users with access to the given database.
     """
-    query(cursor, "SELECT User FROM mysql.db WHERE Host = '%%' AND Db = %s",
-          database.replace("_", "\\_"))
+    query(cursor, "SELECT User FROM mysql.db WHERE Host = %s AND Db = %s",
+          HOST, database.replace("_", "\\_"))
     return [db[0] for db in cursor]
 
 
@@ -124,10 +127,20 @@ def create_user(cursor: Cursor, name: str) -> Result[Optional[Password]]:
     if get_users(cursor, name):
         return Result(State.unchanged)
     passwd = Password.new()
-    query(cursor, "CREATE USER IF NOT EXISTS %s@'%%' IDENTIFIED BY %s", name, passwd)
+    try:
+        query(cursor, "CREATE USER %s@%s IDENTIFIED BY %s", name, HOST, passwd)
+    except DatabaseError as ex:
+        if ex.args[0] == ER.CANNOT_USER:
+            return Result(State.unchanged)
+        else:
+            raise
     # Possible race condition -- paranoia check by confirming the new password works.
     match = validate_user(cursor, name, passwd)
-    return Result(State.created, passwd) if match else Result(State.unchanged)
+    if match:
+        return Result(State.created, passwd)
+    else:
+        # Created elsewhere just before we got there?  We'll just claim it already exists.
+        return Result(State.unchanged)
 
 
 def reset_password(cursor: Cursor, name: str) -> Result[Password]:
@@ -135,11 +148,13 @@ def reset_password(cursor: Cursor, name: str) -> Result[Password]:
     Reset the password of the given MySQL user.
     """
     passwd = Password.new()
-    reset = query(cursor, "SET PASSWORD FOR %s@'%%' = %s", name, passwd)
-    if reset:
-        return Result(State.success, passwd)
-    else:
-        raise LookupError("No MySQL user {!r} to reset password".format(name))
+    # Always returns zero rows; does nothing if the user doesn't exist.
+    query(cursor, "SET PASSWORD FOR %s@%s = %s", name, HOST, passwd)
+    match = validate_user(cursor, name, passwd)
+    if not match:
+        # Unlike ensure_user(), we do want to ensure the password works here.
+        raise RuntimeError("New password doesn't match")
+    return Result(State.success, passwd)
 
 
 def drop_user(cursor: Cursor, name: str) -> Result[None]:
@@ -148,44 +163,74 @@ def drop_user(cursor: Cursor, name: str) -> Result[None]:
     """
     if not get_users(cursor, name):
         return Result(State.unchanged)
-    # Always returns zero rows; emits a warning if the database doesn't exist.
-    query(cursor, "DROP USER IF EXISTS %s@'%%'", name)
-    return Result(State.success)
+    try:
+        # Always returns zero rows; throws an error if the database doesn't exist.
+        query(cursor, "DROP USER %s@%s", name, HOST)
+    except DatabaseError as ex:
+        if ex.args[0] == ER.CANNOT_USER:
+            return Result(State.unchanged)
+        else:
+            raise
+    else:
+        return Result(State.success)
 
 
 def grant_database(cursor: Cursor, user: str, db: str) -> Result[None]:
     """
     Grant all permissions for the user to create, manage and delete this database.
     """
-    db = db.replace("%", "%%")
-    return Result(_truthy(query(cursor, _format("GRANT ALL ON {}.* TO %s@'%%'", db), user)))
+    if db in get_user_grants(cursor, user):
+        return Result(State.unchanged)
+    # Always returns zero rows; does nothing if already granted.
+    query(cursor, _format("GRANT ALL ON {}.* TO %s@%s", db), user, HOST)
+    return Result(State.success)
 
 
 def revoke_database(cursor: Cursor, user: str, db: str) -> Result[None]:
     """
     Remove any permissions for the user to create, manage and delete this database.
     """
-    db = db.replace("%", "%%")
-    return Result(_truthy(query(cursor, _format("REVOKE ALL ON {}.* FROM %s@'%%'", db), user)))
+    if db not in get_user_grants(cursor, user):
+        return Result(State.unchanged)
+    try:
+        # Returns zero rows; throws an error if not granted.
+        query(cursor, _format("REVOKE ALL ON {}.* FROM %s@%s", db), user, HOST)
+    except DatabaseError as ex:
+        if ex.args[0] == ER.NONEXISTING_GRANT:
+            return Result(State.unchanged)
+        else:
+            raise
+    else:
+        return Result(State.success)
 
 
 def create_database(cursor: Cursor, name: str) -> Result[None]:
     """
     Create a MySQL database.  No permissions are granted.
     """
-    if name in get_matched_databases(cursor, name):
-        return Result(State.unchanged)
-    # Always returns one row; emits a warning if the database already exist.
-    query(cursor, _format("CREATE DATABASE IF NOT EXISTS {}", name))
-    return Result(State.created)
+    try:
+        # Returns one row; throws an error if the database already exists.
+        query(cursor, _format("CREATE DATABASE {}", name))
+    except DatabaseError as ex:
+        if ex.args[0] == ER.DB_CREATE_EXISTS:
+            return Result(State.unchanged)
+        else:
+            raise
+    else:
+        return Result(State.created)
 
 
 def drop_database(cursor: Cursor, name: str) -> Result[None]:
     """
     Drop a MySQL database and all of its tables.
     """
-    if name not in get_matched_databases(cursor, name):
-        return Result(State.unchanged)
-    # Always returns zero rows; emits a warning if the database doesn't exist.
-    query(cursor, _format("DROP DATABASE IF EXISTS {}", name))
-    return Result(State.success)
+    try:
+        # Returns one row; throws an error if the database doesn't exists.
+        query(cursor, _format("DROP DATABASE {}", name))
+    except DatabaseError as ex:
+        if ex.args[0] == ER.DB_DROP_EXISTS:
+            return Result(State.unchanged)
+        else:
+            raise
+    else:
+        return Result(State.success)
