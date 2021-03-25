@@ -7,13 +7,14 @@ INSTALL_ARGS = -e
 DPKG_ARGS = -us -uc
 LINTIAN_ARGS = --pedantic --suppress-tags new-package-should-close-itp-bug
 DEBUILD_ARGS = $(DPKG_ARGS) --lintian-opts $(LINTIAN_ARGS)
+PDOC_ARGS = --html --force --config show_type_annotations=True --config lunr_search={}
 
 VERSION = r$$(git rev-list --count HEAD)$$([ "$$(git diff-index --name-only HEAD)" = "" ] || echo d)-$$(date +"%Y%m%d%H%M%S")
 DISTS = sdist bdist_wheel
 
 SETUP = FAKEROOTDONTTRYCHOWN=1 $(PYTHON) setup.py --command-packages=stdeb.command egg_info $(if $(strip $(VERSION)), -b $(VERSION))
 DEBPKG = FAKEROOTDONTTRYCHOWN=1 debuild -e FAKEROOTDONTTRYCHOWN
-DOCS = $(PDOC) --html --force --config show_type_annotations=True
+DOCS = $(PDOC) $(PDOC_ARGS)
 
 NAME = srcf
 MODULES = $(NAME) srcflib srcfmail srcfmailmanwrapper

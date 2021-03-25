@@ -21,8 +21,15 @@ LOG = logging.getLogger(__name__)
 T = TypeVar("T")
 
 Owner = Union[Member, Society]
+"""
+Union type combining `Member` and `Society` database objects, useful for functions that work with
+either account type.
+"""
 
 Collect = Generator["Result", None, T]
+"""
+Generic type for the return value of functions using `Result.collect`.
+"""
 
 
 def owner_name(owner: Owner) -> str:
@@ -117,9 +124,9 @@ class Result(Generic[T]):
 
     A result can also be converted to a string, which produces a tree-like summary of changes:
 
-        module:task State.success True
-            module:unit1 State.unchanged
-            module:unit2 State.success
+        module:task success True
+            module:unit1 unchanged
+            module:unit2 success
     """
 
     @classmethod
@@ -180,6 +187,11 @@ class Result(Generic[T]):
 
     @property
     def state(self) -> State:
+        """
+        Modification state of the unit of work.
+
+        This may be set directly, computed from `parts`, or defaulted to `State.unchanged`.
+        """
         if self._state:
             return self._state
         elif any(self.parts):
@@ -196,6 +208,11 @@ class Result(Generic[T]):
 
     @property
     def value(self) -> T:
+        """
+        Return value produced by the unit of work.
+
+        Accessing this attribute will raise `ValueError` if no value has been set.
+        """
         if self._value is None:
             raise ValueError("No value set")
         return self._value

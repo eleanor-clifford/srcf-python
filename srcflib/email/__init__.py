@@ -54,11 +54,10 @@ class EmailWrapper:
     """
 
     def __init__(self, subject: str = None, body: str = None, context: dict = None):
-        self._layouts = {Layout.SUBJECT: subject,
-                         Layout.BODY: body}
+        self._layouts = {Layout.SUBJECT: subject, Layout.BODY: body}
         self._context = context
 
-    def render(self, template: str, layout: Layout, target: Owner, context: dict = None):
+    def render(self, template: str, layout: Layout, target: Owner, context: dict = None) -> str:
         """
         Render an email template with Jinja using the provided context.
         """
