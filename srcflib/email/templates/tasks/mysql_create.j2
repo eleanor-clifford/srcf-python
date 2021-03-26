@@ -17,16 +17,16 @@ Your new MySQL database '{{ database }}' is now active.  You can use your existi
 {% endif %}
 
 {% if target | is_society %}
-If you have a personal MySQL account already, you can also login with that to manage both your personal and society databases.  However, as this new account is shared between all admins of the '{{ target | owner_name }}' society account, you MUST use the society account's username/password (rather than your own personal credentials) when configuring any websites, scripts or other programmatic access within the society account.
+If you have a personal MySQL account already, you can also login with that to manage both your personal and group databases.  However, as this new account is shared between all admins of the '{{ target.society }}' group account, you MUST use the group account's username/password (rather than your own personal credentials) when configuring any websites, scripts or other programmatic access within the group account.
 
 {% endif %}
 To access the database via a web interface (phpMyAdmin):
 
     https://www.srcf.net/phpmyadmin
 
-To access the database from the shell, use the following command:
+To access the database from the shell, use the following command, replacing <password> with the password shown above:
 
-    mysql -u {{ username }} -p {{ password or "<password>" }}
+    mysql -u {{ username }} -p <password>
 
 You can change your MySQL password via phpMyAdmin or by issuing the following query:
 
