@@ -3,8 +3,13 @@ Notification email machinery, for tasks to send credentials and instructions to 
 
 Email templates placed inside the `templates` directory of this module should:
 
-- extend from `layout`
+- extend from `layout` (a template variable, not a string)
 - provide `subject` and `body` blocks
+
+The following Jinja2 filters are available to templates:
+
+- `owner_name`, `owner_desc` and `owner_website` for common account attributes
+- `is_member` and `is_society` for testing owner types
 """
 
 from enum import Enum
@@ -47,11 +52,11 @@ class Layout(Enum):
     Base layout template to be inherited by an email-specific template.
     """
 
-    SUBJECT = "/common/subject.j2"
+    subject = 1
     """
     Subject line of the email.
     """
-    BODY = "/common/body.j2"
+    body = 2
     """
     Main content of the email.
     """
@@ -62,23 +67,20 @@ class EmailWrapper:
     Context manager for email sending, used to augment emails with additional metadata.
     """
 
-    def __init__(self, subject: str = None, body: str = None, context: dict = None):
-        self._layouts = {Layout.SUBJECT: subject, Layout.BODY: body}
-        self._context = context
+    def __init__(self, prefix: Optional[str] = "[SRCF]", footer: Optional[str] = None):
+        self._prefix = prefix
+        self._footer = footer
 
     def render(self, template: str, layout: Layout, target: Optional[Owner],
-               context: dict = None) -> str:
+               context: Optional[dict] = None) -> str:
         """
         Render an email template with Jinja using the provided context.
         """
-        context = dict(context or (), layout=layout.value, target=target)
+        context = dict(context or ())
+        context.update({"layout": "/layouts/{}.j2".format(layout.name), "target": target,
+                        "prefix": self._prefix, "footer": self._footer})
         out = ENV.get_template(template).render(context)
-        custom = self._layouts.get(layout)
-        if custom:
-            if self._context:
-                context.update(self._context)
-            out = custom.format(out, **context)
-        if layout == Layout.SUBJECT:
+        if layout == Layout.subject:
             out = " ".join(out.split())
         return out
 
@@ -93,7 +95,7 @@ class EmailWrapper:
         CURRENT_WRAPPER = None
 
 
-DEFAULT_WRAPPER = EmailWrapper(subject="[SRCF] {}")
+DEFAULT_WRAPPER = EmailWrapper()
 
 
 def _make_recipient(target: Recipient) -> Tuple[Optional[str], str]:
@@ -110,9 +112,9 @@ def send(target: Recipient, template: str, context: dict = None, session: SQLASe
     Render and send an email to the target member or society, or a specific email address.
     """
     wrapper = CURRENT_WRAPPER or DEFAULT_WRAPPER
-    owner = target if isinstance(target, Owner) else None
-    subject = wrapper.render(template, Layout.SUBJECT, owner, context)
-    body = wrapper.render(template, Layout.BODY, owner, context)
+    owner = target if isinstance(target, (Member, Society)) else None
+    subject = wrapper.render(template, Layout.subject, owner, context)
+    body = wrapper.render(template, Layout.body, owner, context)
     recipient = _make_recipient(target)
     LOG.debug("Sending email %r to %s", template, recipient)
     send_mail(recipient, subject, body, copy_sysadmins=False, session=session)

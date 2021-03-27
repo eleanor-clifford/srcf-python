@@ -4,3 +4,8 @@ Dear {{ target | owner_desc(true) }},
 
 Best wishes,
 The SRCF sysadmins
+{% if footer %}
+
+-- 
+{{ footer }}
+{% endif %}
