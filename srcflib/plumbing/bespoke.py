@@ -133,6 +133,8 @@ def delete_society(sess: SQLASession, society: Society) -> Result[None]:
     """
     if society.admins:
         raise ValueError("Remove society admins for {} first".format(society))
+    if society.domains:
+        raise ValueError("Remove domains for {} first".format(society))
     sess.delete(society)
     return Result(State.success)
 
@@ -289,6 +291,20 @@ def enable_website(owner: Owner, status: str = "subdomain", replace: bool = Fals
     return Result(State.success, status)
 
 
+def get_custom_domains(sess: SQLASession, owner: Owner) -> List[Domain]:
+    """
+    Retrieve all custom domains assigned to a member or society.
+    """
+    if isinstance(owner, Member):
+        class_ = "user"
+    elif isinstance(owner, Society):
+        class_ = "soc"
+    else:
+        raise TypeError(owner)
+    return list(sess.query(Domain).filter(Domain.class_ == class_,
+                                          Domain.owner == owner_name(owner)))
+
+
 def add_custom_domain(sess: SQLASession, owner: Owner, name: str,
                       root: str = None) -> Result[Domain]:
     """
@@ -315,6 +331,20 @@ def add_custom_domain(sess: SQLASession, owner: Owner, name: str,
         domain.root = root
         state = State.success if sess.is_modified(domain) else State.unchanged
     return Result(state, domain)
+
+
+def remove_custom_domain(sess: SQLASession, owner: Owner, name: str) -> Result:
+    """
+    Unassign a domain name from a member or society.
+    """
+    try:
+        domain = sess.query(Domain).filter(Domain.domain == name).one()
+    except NoResultFound:
+        state = State.unchanged
+    else:
+        domain.delete()
+        state = State.success
+    return Result(state)
 
 
 def queue_https_cert(sess: SQLASession, domain: str) -> Result[HTTPSCert]:

@@ -252,6 +252,8 @@ def delete_society(society: Society) -> Collect[None]:
     yield _scrub_society_user(society)
     yield _scrub_society_group(society)
     with bespoke.context() as sess:
+        for domain in bespoke.get_custom_domains(sess, society):
+            yield bespoke.remove_custom_domain(sess, society, domain.domain)
         yield bespoke.delete_society(sess, society)
     yield bespoke.export_members()
 
