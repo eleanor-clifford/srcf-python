@@ -10,8 +10,9 @@ from psycopg2.extensions import connection as Connection, cursor as Cursor
 from srcf.database import Member, Society
 from srcf.database.queries import get_member, get_society
 
+from ..email import send
 from ..plumbing import pgsql
-from ..plumbing.common import Collect, Owner, owner_name, Password, Result
+from ..plumbing.common import Collect, Owner, State, owner_name, Password, Result
 
 
 def connect(db: Optional[str] = None) -> Connection:
@@ -119,7 +120,10 @@ def reset_password(cursor: Cursor, owner: Owner) -> Result[Password]:
     """
     Reset the password of a member's or society's PostgreSQL user account.
     """
-    return pgsql.reset_password(cursor, owner_name(owner))
+    result = pgsql.reset_password(cursor, owner_name(owner))
+    send(owner, "tasks/pgsql_password.j2", {"username": owner_name(owner),
+                                            "password": result.value})
+    return result
 
 
 def drop_account(cursor: Cursor, owner: Owner) -> Result[None]:
@@ -166,6 +170,10 @@ def create_account(cursor: Cursor, owner: Owner) -> Collect[Tuple[Optional[Passw
     """
     Create a PostgreSQL user account and initial database for a member or society.
     """
-    res_passwd = yield from new_account(cursor, owner)
+    res_account = yield from new_account(cursor, owner)
     res_db = yield from create_database(cursor, owner)
-    return (res_passwd.value, res_db.value)
+    if res_account.state == State.created:
+        send(owner, "tasks/pgsql_create.j2", {"username": owner_name(owner),
+                                              "password": res_account.value,
+                                              "database": res_db.value})
+    return (res_account.value, res_db.value)

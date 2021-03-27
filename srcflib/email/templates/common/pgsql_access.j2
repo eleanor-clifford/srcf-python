@@ -1,0 +1,11 @@
+To access the database via a web interface (phpPgAdmin):
+
+    https://www.srcf.net/phppgadmin
+
+To access databases from the shell, use the 'psql' command:
+
+    psql -h postgres {{ database }}
+
+Authentication is handled by the current shell user so no password is required.
+
+You can change your PostgreSQL password via phpPgAdmin by going to Account > Change password, or using the '\password' command within psql.
