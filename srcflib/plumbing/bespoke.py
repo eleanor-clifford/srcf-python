@@ -25,6 +25,7 @@ from srcf.database.summarise import summarise_society
 from .common import Collect, command, Owner, owner_name, require_host, Result, State
 from .mailman import MailList
 from . import hosts, unix
+from ..email import send
 
 
 LOG = logging.getLogger(__name__)
@@ -265,7 +266,14 @@ def create_forwarding_file(owner: Owner) -> Result[None]:
         f.write("{}\n".format(owner.email))
     os.chown(path, user.pw_uid, user.pw_gid)
     LOG.debug("Created forwarding file: %r", path)
-    return Result(State.success)
+    return Result(State.created)
+
+
+def create_legacy_mailbox(member: Member) -> Result[None]:
+    if os.path.exists(os.path.join("/home", member.crsid, "mbox")):
+        return Result(State.unchanged)
+    send((member.name, "real-{}@srcf.net"), "plumbing/legacy_mailbox.j2")
+    return Result(State.created)
 
 
 def update_quotas() -> Result[None]:

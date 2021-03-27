@@ -1,0 +1,23 @@
+{% extends layout %}
+
+{% block subject %}
+Welcome to your SRCF inbox
+{% endblock %}
+
+{% block body %}
+Hello and welcome to your 'legacy' SRCF inbox!
+
+{% if target.mail_handler == "pip" %}
+As you've chosen to use pip as your mail handler, by default any emails sent to {{ target.crsid }}@srcf.net will be forwarded to your registered email address, {{ target.email }}.  You can change this by editing the .forward file in your home directory.
+{% else %}
+As you've chosen to {% if target.mail_handler == "forward" %}forward incoming emails to your registered email address, {{ target.email }}{% else %}use the SRCF Hades email service{% endif %}, any emails sent to {{ target.crsid }}@srcf.net will not be delivered here -- you'll need to switch to our legacy email handling in order to use a local mailbox and forwarding.
+{% endif %}
+
+For full instructions on how to manage email on the SRCF, including the differences between legacy mail and the SRCF Hades email service, please consult the documentation:
+
+    https://docs.srcf.net/email/summary.html
+
+If you would like any assistance, please contact the SRCF support team:
+
+    support@srcf.net
+{% endblock %}

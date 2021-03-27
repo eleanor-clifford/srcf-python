@@ -10,6 +10,7 @@ Email templates placed inside the `templates` directory of this module should:
 from enum import Enum
 import logging
 import os.path
+from typing import Optional, Tuple, Union
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -23,7 +24,6 @@ from ..plumbing.common import Owner, owner_desc, owner_name, owner_website
 
 LOG = logging.getLogger(__name__)
 
-
 ENV = Environment(loader=FileSystemLoader(os.path.join(os.path.dirname(__file__), "templates")),
                   trim_blocks=True, lstrip_blocks=True)
 
@@ -33,8 +33,13 @@ ENV.filters.update({"is_member": lambda mem: isinstance(mem, Member),
                     "owner_desc": owner_desc,
                     "owner_website": owner_website})
 
-
 CURRENT_WRAPPER = None
+
+Recipient = Union[Owner, Tuple[str, str], str]
+"""
+Target recipient of an email; can be either a `Member` or `Society`, a `(name, email)` pair, or a
+bare email address.
+"""
 
 
 class Layout(Enum):
@@ -61,7 +66,8 @@ class EmailWrapper:
         self._layouts = {Layout.SUBJECT: subject, Layout.BODY: body}
         self._context = context
 
-    def render(self, template: str, layout: Layout, target: Owner, context: dict = None) -> str:
+    def render(self, template: str, layout: Layout, target: Optional[Owner],
+               context: dict = None) -> str:
         """
         Render an email template with Jinja using the provided context.
         """
@@ -90,13 +96,23 @@ class EmailWrapper:
 DEFAULT_WRAPPER = EmailWrapper(subject="[SRCF] {}")
 
 
-def send(target: Owner, template: str, context: dict = None, session: SQLASession = None):
+def _make_recipient(target: Recipient) -> Tuple[Optional[str], str]:
+    if isinstance(target, (Member, Society)):
+        return (owner_desc(target, True), target.email)
+    elif isinstance(target, str):
+        return (None, target)
+    else:
+        return target
+
+
+def send(target: Recipient, template: str, context: dict = None, session: SQLASession = None):
     """
-    Render and send an email to the target member or society.
+    Render and send an email to the target member or society, or a specific email address.
     """
     wrapper = CURRENT_WRAPPER or DEFAULT_WRAPPER
-    subject = wrapper.render(template, Layout.SUBJECT, target, context)
-    body = wrapper.render(template, Layout.BODY, target, context)
-    recipient = (owner_desc(target, True), target.email)
-    LOG.debug("Sending email %r to %s", template, target)
+    owner = target if isinstance(target, Owner) else None
+    subject = wrapper.render(template, Layout.SUBJECT, owner, context)
+    body = wrapper.render(template, Layout.BODY, owner, context)
+    recipient = _make_recipient(target)
+    LOG.debug("Sending email %r to %s", template, recipient)
     send_mail(recipient, subject, body, copy_sysadmins=False, session=session)
