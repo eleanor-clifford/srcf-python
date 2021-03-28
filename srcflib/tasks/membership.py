@@ -57,7 +57,8 @@ def create_member(crsid: str, preferred_name: str, surname: str, email: str,
         yield bespoke.generate_apache_groups()
     if res_record:
         yield bespoke.export_members()
-    # TODO: Welcome email
+    if new_user:
+        send(member, "/tasks/member_create.j2", {"password": passwd})
     return (member, passwd)
 
 
@@ -98,8 +99,10 @@ def reset_password(member: Member) -> Collect[Password]:
     """
     user = unix.get_user(member.crsid)
     res_passwd = yield from unix.reset_password(user)
+    passwd = res_passwd.value
     yield from bespoke.update_nis()
-    return res_passwd.value
+    send(member, "/tasks/member_password.j2", {"password": passwd})
+    return passwd
 
 
 @Result.collect
@@ -120,6 +123,7 @@ def update_member_name(member: Member, preferred_name: str, surname: str) -> Col
     res_name = yield from unix.set_real_name(user, member.name)
     if res_name:
         yield bespoke.update_nis()
+        send(member, "tasks/member_rename.j2")
     return member
 
 
@@ -168,8 +172,9 @@ def create_society(name: str, description: str, admins: Set[str],
     res_user = yield from unix.ensure_user(name, uid=society.uid, system=True, active=False,
                                            home_dir=os.path.join("/societies", name),
                                            real_name=description)
-    yield unix.ensure_group(name, gid=society.gid, system=True)
+    new_user = res_user.state == State.created
     user = res_user.value
+    yield unix.ensure_group(name, gid=society.gid, system=True)
     if res_user:
         yield bespoke.update_nis(res_user.state == State.created)
     yield unix.create_home(user, os.path.join("/public/societies", name), True)
@@ -185,7 +190,8 @@ def create_society(name: str, description: str, admins: Set[str],
         yield bespoke.generate_sudoers()
     if res_record:
         yield bespoke.export_members()
-    send(society, "tasks/society_create.j2")
+    if new_user:
+        send(society, "tasks/society_create.j2")
     return society
 
 
@@ -199,11 +205,17 @@ def add_society_admin(member: Member, society: Society) -> Collect[None]:
         member = get_member(member.crsid, sess)
         society = get_society(society.society, sess)
         group = unix.get_group(society.society)
-        yield _add_society_admin(sess, member, society, group)
+        res_add = yield _add_society_admin(sess, member, society, group)
     with mysql.context() as cursor:
         yield mysql.sync_society_roles(cursor, society)
     with pgsql.context() as cursor:
         yield pgsql.sync_society_roles(cursor, society)
+    if res_add:
+        # Temporarily remove the new admin when emailing the short notification.
+        society.admins.remove(member)
+        send(society, "tasks/society_admin_add.j2", {"member": member})
+        society.admins.add(member)
+        send(member, "tasks/society_admin_join.j2", {"society": society})
 
 
 @Result.collect
@@ -216,11 +228,14 @@ def remove_society_admin(member: Member, society: Society) -> Collect[None]:
         member = get_member(member.crsid, sess)
         society = get_society(society.society, sess)
         group = unix.get_group(society.society)
-        yield _remove_society_admin(sess, member, society, group)
+        res_remove = yield _remove_society_admin(sess, member, society, group)
     with mysql.context() as cursor:
         yield mysql.sync_society_roles(cursor, society)
     with pgsql.context() as cursor:
         yield pgsql.sync_society_roles(cursor, society)
+    if res_remove:
+        send(society, "tasks/society_admin_remove.j2", {"member": member})
+        send(member, "tasks/society_admin_leave.j2", {"society": society})
 
 
 def _scrub_society_user(society: Society) -> Result[None]:
@@ -284,4 +299,5 @@ def update_society_description(society: Society, description: str) -> Collect[So
     res_name = yield from unix.set_real_name(user, society.description)
     if res_name:
         yield bespoke.update_nis()
+        send(society, "tasks/society_rename.j2")
     return society

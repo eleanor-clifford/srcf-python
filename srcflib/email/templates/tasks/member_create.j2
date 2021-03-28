@@ -1,0 +1,54 @@
+{% extends layout %}
+
+{% block subject %}
+Your new SRCF account
+{% endblock %}
+
+{% block body %}
+Welcome to the SRCF!  Thank you for joining us.
+
+This email contains some important information about your SRCF account, as well as useful links that will help you get the most out of your SRCF account.
+
+The important details you'll need to know are your SRCF credentials:
+
+    Username: {{ target.crsid }}
+    Password: {{ password }}
+
+{% include "/common/password_sharing.j2" %}
+
+You can manage your account, for example to request additional services, via the SRCF Control Panel:
+
+    https://control.srcf.net
+
+Unsure where to go next?  Take a look at our tutorials:
+
+    https://docs.srcf.net/learn/
+
+Or if you're an experienced Linux user and just want the server details:
+
+    * Shell access via SSH: shell.srcf.net
+      (https://docs.srcf.net/shell-and-files/ssh.html)
+
+    * File space access via SFTP or SCP: files.srcf.net
+      (https://docs.srcf.net/shell-and-files/files.html)
+
+Inside your home directory, you will find a 'public_html' directory -- you can upload web content here, which will appear at the following address:
+
+    {{ target | owner_website }}
+
+(However, it may take up to 20 minutes between uploading a new site and it being published.)
+
+Use of the SRCF facilities constitutes acceptance of our Terms of Service:
+
+    https://www.srcf.net/tos
+
+To find out more about the various services provided by the SRCF, please take a look at our documentation:
+
+    https://docs.srcf.net
+
+If you have any further queries, feel free to contact the sysadmins:
+
+    https://www.srcf.net/contact
+
+Please also remember that the SRCF is a volunteer-run organisation which must ultimately rely on the generosity and support of its members.
+{% endblock %}

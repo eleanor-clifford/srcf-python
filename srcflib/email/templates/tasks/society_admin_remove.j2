@@ -1,0 +1,15 @@
+{% extends layout %}
+
+{% block subject %}
+Group account access removed
+{% endblock %}
+
+{% block body %}
+{{ member.name }} ({{ member.crsid }}) has been removed from the '{{ target.society }}' shared account.
+
+The updated list of administrators is as follows:
+
+{% for admin in target.admins %}
+{{ admin.name }} ({{ admin.crsid }})
+{% endfor %}
+{% endblock %}

@@ -1,13 +1,13 @@
 {% extends layout %}
 
 {% block subject %}
-New group account
+{{ society.society }}: Group account access granted
 {% endblock %}
 
 {% block body %}
-Your new group account '{{ target | owner_name }}' is now live on the SRCF.  A link to this account has been added to your home folder.  Inside, you will find 'public_html' and 'cgi_bin' directories -- you can upload web content here, which will appear at the following address:
+You have been granted access to the '{{ society.society }}' shared account on the SRCF.  A link to this account has been added to your home folder.  Inside, you will find a public_html and a cgi_bin folder -- you can upload web content here, which will appear at the following address:
 
-    {{ target | owner_website }}
+    {{ society | owner_website }}
 
 (However, it may take up to 20 minutes between uploading a new site and it being published.)
 
