@@ -23,7 +23,7 @@ Or if you're an experienced Linux user and just want the server details:
  * File space access via SFTP or SCP: files.srcf.net
     (https://docs.srcf.net/shell-and-files/files.html)
 
-If you upload files into your public_html folder, they will be published on the web at https://{{ target.crsid }}.user.srcf.net/.  ynamic websites and web applications are supported too (ttps://docs.srcf.net/web-hosting/apache.html).
+If you upload files into your public_html folder, they will be published on the web at https://{{ target.crsid }}.user.srcf.net/.  Dynamic websites and web applications are supported too (https://docs.srcf.net/web-hosting/apache.html).
 
 You can find a lot more information in our documentation at
   https://docs.srcf.net/
