@@ -89,6 +89,17 @@ def create_sysadmin(member: Member, new_passwd: bool = False) -> Collect[Optiona
 
 
 @Result.collect
+def reset_password(member: Member) -> Collect[Password]:
+    """
+    Reset the password of a member's shell account.
+    """
+    user = unix.get_user(member.crsid)
+    res_passwd = yield from unix.reset_password(user)
+    yield from bespoke.update_nis()
+    return res_passwd.value
+
+
+@Result.collect
 def update_member_name(member: Member, preferred_name: str, surname: str) -> Collect[Member]:
     """
     Update a member's registered name.
