@@ -74,6 +74,8 @@ def sync_member_roles(cursor: Cursor, member: Member) -> Collect[None]:
     """
     Adjust grants for society roles to match the given member's memberships.
     """
+    if not member.societies:
+        return
     username = owner_name(member)
     current = set()
     for role in pgsql.get_user_roles(cursor, username):
@@ -86,10 +88,9 @@ def sync_member_roles(cursor: Cursor, member: Member) -> Collect[None]:
             continue
         else:
             current.add((username, role))
-    if member.societies:
-        roles = pgsql.get_roles(cursor, *(soc.society for soc in member.societies))
-        needed = set((username, role) for role in roles)
-        yield from _sync_roles(cursor, current, needed)
+    roles = pgsql.get_roles(cursor, *(soc.society for soc in member.societies))
+    needed = set((username, role) for role in roles)
+    yield from _sync_roles(cursor, current, needed)
 
 
 @Result.collect
@@ -97,7 +98,10 @@ def sync_society_roles(cursor: Cursor, society: Society) -> Collect[None]:
     """
     Adjust grants for member roles to match the given society's admins.
     """
-    role = pgsql.get_role(cursor, owner_name(society))
+    try:
+        role = pgsql.get_role(cursor, owner_name(society))
+    except KeyError:
+        return
     current = set()
     for username in pgsql.get_role_users(cursor, role):
         # Filter active roles to those owned by member accounts.
