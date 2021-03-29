@@ -8,6 +8,7 @@ import grp
 import logging
 import os
 import pwd
+from typing import Optional
 
 # Expose these here for now, so that other parts of SRCFLib can reference them locally, but keep a
 # single implementation in case it needs revising.  TODO: Move here as part of control migration.
@@ -42,8 +43,9 @@ def get_group(username: str) -> Group:
 
 
 @require_host(hosts.USER)
-def _create_user(username: str, uid: int = None, system: bool = False, active: bool = True,
-                 home_dir: str = None, real_name: str = "") -> Result[User]:
+def _create_user(username: str, uid: Optional[int] = None, system: bool = False,
+                 active: bool = True, home_dir: Optional[str] = None,
+                 real_name: str = "") -> Result[User]:
     """
     Create a new user account.  System users are created with an empty home directory, whereas
     regular users inherit from ``/etc/skel``.
@@ -154,8 +156,9 @@ def create_home(user: User, path: str, world_read: bool = False) -> Result[None]
 
 
 @Result.collect
-def ensure_user(username: str, uid: int = None, system: bool = False, active: bool = True,
-                home_dir: str = None, real_name: str = "") -> Collect[User]:
+def ensure_user(username: str, uid: Optional[int] = None, system: bool = False,
+                active: bool = True, home_dir: Optional[str] = None,
+                real_name: str = "") -> Collect[User]:
     """
     Create a new user account, or enable/disable an existing one.
     """
@@ -165,16 +168,17 @@ def ensure_user(username: str, uid: int = None, system: bool = False, active: bo
         res_user = yield from _create_user(username, uid, system, active, home_dir, real_name)
         return res_user.value
     else:
-        if user.pw_uid != uid:
+        if uid and user.pw_uid != uid:
             raise ValueError("User {!r} has UID {}, expected {}".format(username, user.pw_uid, uid))
         yield enable_user(user, active)
-        yield set_home_dir(user, home_dir)
+        if home_dir:
+            yield set_home_dir(user, home_dir)
         yield set_real_name(user, real_name)
         return user
 
 
 @require_host(hosts.USER)
-def _create_group(username: str, gid: int = None, system: bool = False) -> Result[Group]:
+def _create_group(username: str, gid: Optional[int] = None, system: bool = False) -> Result[Group]:
     """
     Create a new group.
     """
@@ -233,7 +237,7 @@ def rename_group(group: Group, username: str) -> Result[None]:
 
 
 @Result.collect
-def ensure_group(username: str, gid: int = None, system: bool = False) -> Collect[Group]:
+def ensure_group(username: str, gid: Optional[int] = None, system: bool = False) -> Collect[Group]:
     """
     Create a new or retrieve an existing group.
     """
@@ -243,7 +247,7 @@ def ensure_group(username: str, gid: int = None, system: bool = False) -> Collec
         res_group = yield from _create_group(username, gid, system)
         return res_group.value
     else:
-        if group.gr_gid != gid:
+        if gid and group.gr_gid != gid:
             raise ValueError("Group {!r} has GID {}, expected {}"
                              .format(username, group.gr_gid, gid))
         return group

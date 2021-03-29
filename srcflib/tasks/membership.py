@@ -36,7 +36,7 @@ def create_member(crsid: str, preferred_name: str, surname: str, email: str, mai
         passwd = res_passwd.value
     else:
         passwd = None
-    if res_user:
+    if res_user or passwd:
         yield bespoke.update_nis(new_user)
     yield unix.create_home(user, os.path.join("/public/home", crsid), True)
     yield bespoke.set_home_exim_acl(member)
@@ -76,10 +76,11 @@ def create_sysadmin(member: Member, new_passwd: bool = False) -> Collect[Optiona
         passwd = res_passwd.value
     else:
         passwd = None
+    if res_user or passwd:
+        yield bespoke.update_nis(new_user)
     yield unix.add_to_group(user, unix.get_group("sysadmins"))
     yield unix.add_to_group(user, unix.get_group("adm"))
     yield unix.grant_netgroup(user, "sysadmins")
-    yield bespoke.update_nis(new_user)
     for soc in ("executive", "srcf-admin", "srcf-web"):
         yield add_society_admin(member, get_society(soc))
     with pgsql.context() as cursor:
