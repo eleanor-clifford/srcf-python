@@ -6,6 +6,7 @@ Most methods identify users and groups using the `Member` and `Society` database
 
 from contextlib import contextmanager
 from datetime import date
+from enum import Enum
 import logging
 import os
 import pwd
@@ -49,6 +50,25 @@ def context(sess: SQLASession = None) -> Generator[SQLASession, None, None]:
         sess.commit()
 
 
+class MailHandler(Enum):
+    """
+    Choices for handling of email sent to `@srcf.net` addresses.
+    """
+
+    forward = 1
+    """
+    Forward emails to the user's registered contact address.
+    """
+    pip = 2
+    """
+    Process emails using Exim.
+    """
+    hades = 3
+    """
+    Deliver emails to the user's Hades mailbox.
+    """
+
+
 def get_crontab(owner: Owner) -> Optional[str]:
     """
     Fetch the owning user's crontab, if one exists on the current server.
@@ -67,13 +87,13 @@ def get_mailman_lists(owner: Owner, sess: RequestsSession = RequestsSession()) -
 
 
 def _create_member(sess: SQLASession, crsid: str, preferred_name: str, surname: str, email: str,
-                   mail_handler: str = "forward", is_member: bool = True,
+                   mail_handler: MailHandler = MailHandler.forward, is_member: bool = True,
                    is_user: bool = True) -> Result[Member]:
     member = Member(crsid=crsid,
                     preferred_name=preferred_name,
                     surname=surname,
                     email=email,
-                    mail_handler=mail_handler,
+                    mail_handler=mail_handler.name,
                     member=is_member,
                     user=is_user)
     sess.add(member)
@@ -81,12 +101,12 @@ def _create_member(sess: SQLASession, crsid: str, preferred_name: str, surname: 
 
 
 def _update_member(sess: SQLASession, member: Member, preferred_name: str, surname: str,
-                   email: str, mail_handler: str = "forward", is_member: bool = True,
-                   is_user: bool = True) -> Result[None]:
+                   email: str, mail_handler: MailHandler = MailHandler.forward,
+                   is_member: bool = True, is_user: bool = True) -> Result[None]:
     member.preferred_name = preferred_name
     member.surname = surname
     member.email = email
-    member.mail_handler = mail_handler
+    member.mail_handler = mail_handler.name
     member.member = is_member
     member.user = is_user
     return Result(State.success if sess.is_modified(member) else State.unchanged)
@@ -94,7 +114,7 @@ def _update_member(sess: SQLASession, member: Member, preferred_name: str, surna
 
 @Result.collect
 def ensure_member(sess: SQLASession, crsid: str, preferred_name: str, surname: str, email: str,
-                  mail_handler: str = "forward", is_member: bool = True,
+                  mail_handler: MailHandler = MailHandler.forward, is_member: bool = True,
                   is_user: bool = True) -> Collect[Member]:
     """
     Register or update a member in the database.

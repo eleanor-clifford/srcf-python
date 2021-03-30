@@ -15,9 +15,14 @@ from ..plumbing.common import Collect, Password, Result, State
 from . import mailman, mysql, pgsql
 
 
+# Re-export enums to avoid unnecessary imports elsewhere.
+MailHandler = bespoke.MailHandler
+
+
 @Result.collect
-def create_member(crsid: str, preferred_name: str, surname: str, email: str, mail_handler: str,
-                  is_member: bool = True, is_user: bool = True, social: bool = False,
+def create_member(crsid: str, preferred_name: str, surname: str, email: str,
+                  mail_handler: MailHandler, is_member: bool = True,
+                  is_user: bool = True, social: bool = False, 
                   new_passwd: bool = False) -> Collect[Tuple[Member, Optional[Password]]]:
     """
     Register and provision a new member of the SRCF.
