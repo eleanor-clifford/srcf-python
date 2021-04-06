@@ -19,7 +19,7 @@ from requests import Session as RequestsSession
 from sqlalchemy.orm import Session as SQLASession
 from sqlalchemy.orm.exc import NoResultFound
 
-from srcf.database import Domain, HTTPSCert, Member, Session, Society
+from srcf.database import Domain, HTTPSCert, MailHandler, Member, Session, Society
 from srcf.database.queries import get_member, get_society
 from srcf.database.summarise import summarise_society
 
@@ -48,25 +48,6 @@ def context(sess: SQLASession = None) -> Generator[SQLASession, None, None]:
         raise
     finally:
         sess.commit()
-
-
-class MailHandler(Enum):
-    """
-    Choices for handling of email sent to `@srcf.net` addresses.
-    """
-
-    forward = 1
-    """
-    Forward emails to the user's registered contact address.
-    """
-    pip = 2
-    """
-    Process emails using Exim.
-    """
-    hades = 3
-    """
-    Deliver emails to the user's Hades mailbox.
-    """
 
 
 def get_crontab(owner: Owner) -> Optional[str]:

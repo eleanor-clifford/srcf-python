@@ -1,12 +1,13 @@
 from __future__ import print_function, unicode_literals
 
 from binascii import unhexlify
+from enum import Enum
 import os
 import pwd
 
 import six
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, Enum, Numeric
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, Enum as SQLAEnum, Numeric
 from sqlalchemy import event
 from sqlalchemy.dialects.postgresql import HSTORE
 from sqlalchemy.schema import Table, FetchedValue, CheckConstraint, ForeignKey, DDL
@@ -42,9 +43,6 @@ is_hades = POSTGRES_USER == "hades"
 RESTRICTED = not is_root
 
 
-VALID_MAIL_HANDLERS = ('forward', 'pip', 'hades')
-
-
 def _hexdump(raw):
     rendered = "".join(chr(x) if len(repr(chr(x))) == 3 else "." for x in range(256))
     safe = []
@@ -62,6 +60,25 @@ CRSID_TYPE = String(7)
 SOCIETY_TYPE = String(16)
 
 Base = declarative_base()
+
+
+class MailHandler(Enum):
+    """
+    Choices for handling of email sent to `@srcf.net` addresses.
+    """
+
+    forward = 1
+    """
+    Forward emails to the user's registered contact address.
+    """
+    pip = 2
+    """
+    Process emails using Exim.
+    """
+    hades = 3
+    """
+    Deliver emails to the user's Hades mailbox.
+    """
 
 
 class Member(Base, MemberCompat):
@@ -87,8 +104,8 @@ class Member(Base, MemberCompat):
         notes = Column(Text, nullable=False, server_default='')
         domains = relationship("Domain", primaryjoin="foreign(Domain.owner) == Member.crsid")
     if is_root or is_webapp or is_hades:
-        # Beware: Enum doesn't validate until sqlalchemy 1.1
-        mail_handler = Column(Enum(*VALID_MAIL_HANDLERS), nullable=False, server_default='pip')
+        mail_handler = Column(SQLAEnum(*(handler.name for handler in MailHandler)),
+                              nullable=False, server_default='pip')
 
     __table_args__ = (
         CheckConstraint("""
@@ -254,12 +271,12 @@ if is_root or is_webapp:
         def __repr__(self):
             return "<{}: {} ({})>".format(self.__class__.__name__, self.domain, self.name)
 
-    JobState = Enum('unapproved', 'queued', 'running', 'done', 'failed', 'withdrawn',
-                    name='job_state')
-    LogType = Enum('created', 'started', 'progress', 'output', 'done', 'failed', 'note',
-                   name='log_type')
-    LogLevel = Enum('debug', 'info', 'warning', 'error', 'critical',
-                    name='log_level')
+    JobState = SQLAEnum('unapproved', 'queued', 'running', 'done', 'failed', 'withdrawn',
+                        name='job_state')
+    LogType = SQLAEnum('created', 'started', 'progress', 'output', 'done', 'failed', 'note',
+                       name='log_type')
+    LogLevel = SQLAEnum('debug', 'info', 'warning', 'error', 'critical',
+                        name='log_level')
 
     event.listen(
         Base.metadata,

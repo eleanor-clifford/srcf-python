@@ -4,11 +4,12 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 
-__all__ = ["Member", "Society", "PendingAdmin",
+__all__ = ["MailHandler", "Member", "Society", "PendingAdmin",
+           "LogLevel", "Domain", "HTTPSCert", "JobState", "Job", "JobLog",
            "RESTRICTED", "assert_readwrite", "Session", "url"]
 
 from .schema import RESTRICTED, POSTGRES_USER
-from .schema import Member, Society, PendingAdmin
+from .schema import MailHandler, Member, Society, PendingAdmin
 from .schema import LogLevel, Domain, HTTPSCert, JobState, Job, JobLog
 
 

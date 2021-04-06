@@ -7,7 +7,7 @@ from typing import Optional, Set, Tuple
 
 from sqlalchemy.orm import Session as SQLASession
 
-from srcf.database import Member, Society
+from srcf.database import MailHandler, Member, Society
 from srcf.database.queries import get_member, get_society
 
 from ..plumbing import bespoke, pgsql as pgsql_p, unix
@@ -15,14 +15,10 @@ from ..plumbing.common import Collect, Password, Result, State
 from . import mailman, mysql, pgsql
 
 
-# Re-export enums to avoid unnecessary imports elsewhere.
-MailHandler = bespoke.MailHandler
-
-
 @Result.collect
 def create_member(crsid: str, preferred_name: str, surname: str, email: str,
                   mail_handler: MailHandler, is_member: bool = True,
-                  is_user: bool = True, social: bool = False, 
+                  is_user: bool = True, social: bool = False,
                   new_passwd: bool = False) -> Collect[Tuple[Member, Optional[Password]]]:
     """
     Register and provision a new member of the SRCF.
