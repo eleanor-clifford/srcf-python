@@ -249,7 +249,7 @@ def delete_society(society: Society) -> Collect[None]:
     Archive and delete all traces of a society account.
     """
     with bespoke.context() as sess:
-        _sync_society_admins(sess, society, set())
+        yield _sync_society_admins(sess, society, set())
     yield bespoke.slay_user(society)
     # TODO: for server in {"cavein", "doom", "sinkhole"}: bespoke.slay_user(society)
     yield bespoke.archive_society_files(society)
