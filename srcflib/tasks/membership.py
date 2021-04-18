@@ -157,7 +157,7 @@ def _sync_society_admins(sess: SQLASession, society: Society, admins: Set[str]) 
 
 @Result.collect
 def create_society(name: str, description: str, admins: Set[str],
-                   role_email: str = None) -> Collect[Society]:
+                   role_email: Optional[str] = None) -> Collect[Society]:
     """
     Register a new SRCF society account.
     """
@@ -229,8 +229,7 @@ def _scrub_society_user(society: Society) -> Result[None]:
     except KeyError:
         return Result(State.unchanged)
     else:
-        unix.rename_user(user, "exsoc{}".format(society.uid))
-        return Result(State.success)
+        return unix.rename_user(user, "exsoc{}".format(society.uid))
 
 
 def _scrub_society_group(society: Society) -> Result[None]:
@@ -239,8 +238,7 @@ def _scrub_society_group(society: Society) -> Result[None]:
     except KeyError:
         return Result(State.unchanged)
     else:
-        unix.rename_group(group, "exsoc{}".format(society.gid))
-        return Result(State.success)
+        return unix.rename_group(group, "exsoc{}".format(society.gid))
 
 
 @Result.collect

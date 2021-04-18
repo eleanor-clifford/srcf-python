@@ -5,7 +5,7 @@ Mailman mailing list management.
 import logging
 import os.path
 import re
-from typing import List, Optional
+from typing import List, NewType, Optional
 
 from .common import Collect, command, Password, require_host, Result, State
 from . import hosts
@@ -15,7 +15,7 @@ LOG = logging.getLogger(__name__)
 
 # Type alias for external callers, who need not be aware of the internal structure when chaining
 # calls (e.g. get_list/new_list -> reset_password).
-MailList = str
+MailList = NewType("MailList", str)
 
 
 @require_host(hosts.LIST)
@@ -24,7 +24,7 @@ def get_list(name: str) -> MailList:
     Test if a list of the given name has been created.
     """
     if os.path.isdir(os.path.join("/var/lib/mailman/lists", name)):
-        return name
+        return MailList(name)
     else:
         raise KeyError(name)
 
@@ -95,7 +95,7 @@ def ensure_list(name: str, owner: str) -> Collect[Optional[Password]]:
         mlist = get_list(name)
     except KeyError:
         res_create = yield from _create_list(name, owner)
-        return State.created, res_create.value
+        return res_create.value
     else:
         yield set_owner(mlist, owner)
 
@@ -109,7 +109,7 @@ def remove_list(mlist: MailList, remove_archive: bool = False) -> Result[None]:
     archive = os.path.exists(os.path.join("/var/lib/mailman/archives/private", mlist))
     if not (config or (remove_archive and archive)):
         return Result(State.unchanged)
-    args = ["/usr/sbin/rmlist", mlist]
+    args = ["/usr/sbin/rmlist", str(mlist)]
     if remove_archive:
         args[1:1] = ["--archives"]
     command(args)

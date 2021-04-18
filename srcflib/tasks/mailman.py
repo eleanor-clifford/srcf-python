@@ -10,7 +10,7 @@ from ..plumbing import bespoke, mailman
 from ..plumbing.common import Collect, Owner, State, owner_name, Password, Result
 
 
-def _list_name_owner(owner: Owner, suffix: str = None) -> Tuple[str, str]:
+def _list_name_owner(owner: Owner, suffix: Optional[str] = None) -> Tuple[str, str]:
     username = owner_name(owner)
     name = "{}-{}".format(username, suffix) if suffix else username
     admin = "{}@srcf.net".format(username) if isinstance(owner, Member) else owner.email
@@ -26,7 +26,7 @@ def get_list_suffixes(owner: Owner) -> List[Optional[str]]:
 
 
 @Result.collect
-def create_list(owner: Owner, suffix: str = None) -> Collect[Tuple[str, Optional[Password]]]:
+def create_list(owner: Owner, suffix: Optional[str] = None) -> Collect[Tuple[str, Optional[Password]]]:
     """
     Create a new mailing list for a user or society.
     """
@@ -42,7 +42,7 @@ def create_list(owner: Owner, suffix: str = None) -> Collect[Tuple[str, Optional
 
 
 @Result.collect
-def reset_owner_password(owner: Owner, suffix: str = None) -> Collect[Password]:
+def reset_owner_password(owner: Owner, suffix: Optional[str] = None) -> Collect[Password]:
     """
     Reset a list's owner to match its name, and generate a new admin password.
     """
@@ -53,7 +53,7 @@ def reset_owner_password(owner: Owner, suffix: str = None) -> Collect[Password]:
 
 
 @Result.collect
-def remove_list(owner: Owner, suffix: str = None, remove_archive: bool = False) -> Collect[None]:
+def remove_list(owner: Owner, suffix: Optional[str] = None, remove_archive: bool = False) -> Collect[None]:
     """
     Delete an existing mailing list, and optionally its message archives.
     """

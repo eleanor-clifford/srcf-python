@@ -35,7 +35,7 @@ def connect() -> Connection:
 
 
 @contextmanager
-def context(conn: Connection = None) -> Generator[Cursor, None, None]:
+def context(conn: Optional[Connection] = None) -> Generator[Cursor, None, None]:
     """
     Run multiple MySQL commands in a single connection:
 
@@ -82,7 +82,7 @@ def get_user_grants(cursor: Cursor, user: str) -> List[str]:
     Look up all grants that the given user has.
     """
     query(cursor, "SHOW GRANTS FOR %s@%s", user, HOST)
-    databases = []
+    databases: List[str] = []
     for grant in cursor:
         match = re.match(r"GRANT (.+) ON (?:\*|(['`\"])(.*?)\2)\.\*", grant[0])
         if match:

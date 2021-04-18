@@ -4,7 +4,7 @@ PostgreSQL user and database management.
 
 from contextlib import contextmanager
 import logging
-from typing import Generator, List, Optional, Tuple, Union
+from typing import Generator, List, NewType, Optional, Tuple, Union
 
 from psycopg2 import connect as psycopg2_connect, errorcodes, ProgrammingError
 from psycopg2.extensions import connection as Connection, cursor as Cursor
@@ -17,7 +17,7 @@ LOG = logging.getLogger(__name__)
 
 # Type alias for external callers, who need not be aware of the internal structure when chaining
 # calls (e.g. get_user/create_user -> reset_password).
-Role = Tuple[str, bool]
+Role = NewType("Role", Tuple[str, bool])
 
 _ROLE_SELECT = "SELECT rolname, rolcanlogin FROM pg_roles"
 
@@ -30,17 +30,19 @@ def _format(sql: str, *literals: str) -> str:
     return sql.format(*params)
 
 
-def connect(host, db="template1") -> Connection:
+def connect(host: str, db: Optional[str] = None) -> Connection:
     """
     Create a PostgreSQL connection using Psycopg2 and namedtuple cursors.
     """
-    conn = psycopg2_connect(host=host, database=db, cursor_factory=NamedTupleCursor)
+    conn = psycopg2_connect(host=host, database=(db or "template1"),
+                            cursor_factory=NamedTupleCursor)
     conn.autocommit = True
     return conn
 
 
 @contextmanager
-def context(conn: Connection = None, db: str = None) -> Generator[Cursor, None, None]:
+def context(conn: Optional[Connection] = None,
+            db: Optional[str] = None) -> Generator[Cursor, None, None]:
     """
     Run multiple PostgreSQL commands in a single connection:
 
@@ -144,7 +146,7 @@ def enable_role(cursor: Cursor, role: Role) -> Result[Role]:
     if role[1]:
         return Result(State.unchanged)
     query(cursor, _format("ALTER ROLE {} LOGIN", role[0]))
-    return Result(State.success, (role[0], True))
+    return Result(State.success, Role((role[0], True)))
 
 
 def disable_role(cursor: Cursor, role: Role) -> Result[Role]:
@@ -154,7 +156,7 @@ def disable_role(cursor: Cursor, role: Role) -> Result[Role]:
     if not role[1]:
         return Result(State.unchanged)
     query(cursor, _format("ALTER ROLE {} NOLOGIN", role[0]))
-    return Result(State.success, (role[0], False))
+    return Result(State.success, Role((role[0], False)))
 
 
 def grant_role(cursor: Cursor, name: str, role: Role) -> Result[None]:

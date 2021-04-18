@@ -102,7 +102,7 @@ def set_real_name(user: User, real_name: str = "") -> Result[None]:
     """
     Update a user's GECOS name field.
     """
-    current, *rest = user.pw_gecos.split(",")
+    current = user.pw_gecos.split(",", 1)[0]
     if current == real_name:
         return Result(State.unchanged)
     command(["/usr/bin/chfn", "--full-name", real_name, user.pw_name])

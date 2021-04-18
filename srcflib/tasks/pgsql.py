@@ -22,7 +22,7 @@ def connect(db: str = None) -> Connection:
 
 
 @wraps(pgsql.context)
-def context(db: str = None):
+def context(db: Optional[str] = None):
     """
     Run multiple PostgreSQL commands in a single connection:
 
@@ -77,7 +77,7 @@ def sync_member_roles(cursor: Cursor, member: Member) -> Collect[None]:
     if not member.societies:
         return
     username = owner_name(member)
-    current = set()
+    current: Set[Tuple[str, pgsql.Role]] = set()
     for role in pgsql.get_user_roles(cursor, username):
         # Filter active roles to those owned by society accounts.
         if role[0] == member.crsid:
@@ -102,7 +102,7 @@ def sync_society_roles(cursor: Cursor, society: Society) -> Collect[None]:
         role = pgsql.get_role(cursor, owner_name(society))
     except KeyError:
         return
-    current = set()
+    current: Set[Tuple[str, pgsql.Role]] = set()
     for username in pgsql.get_role_users(cursor, role):
         # Filter active roles to those owned by member accounts.
         try:
@@ -132,7 +132,7 @@ def drop_account(cursor: Cursor, owner: Owner) -> Result[None]:
 
 
 @Result.collect
-def create_database(cursor: Cursor, owner: Owner, name: str = None) -> Collect[str]:
+def create_database(cursor: Cursor, owner: Owner, name: Optional[str] = None) -> Collect[str]:
     """
     Create a new PostgreSQL database for the owner, defaulting to one matching their username.
     """

@@ -26,7 +26,7 @@ def _user_name_rev(name: str) -> str:
     return name.replace("_", "-")
 
 
-def _database_name(name: Union[str, Owner], suffix: str = None) -> str:
+def _database_name(name: Union[str, Owner], suffix: Optional[str] = None) -> str:
     if not isinstance(name, str):
         name = _user_name(name)
     if suffix:
@@ -78,8 +78,8 @@ def sync_member_roles(cursor: Cursor, member: Member) -> Collect[None]:
     Adjust grants for society roles to match the given member's memberships.
     """
     user = _user_name(member)
-    current = set()
-    seen = set()
+    current: Set[Tuple[str, str]] = set()
+    seen: Set[str] = set()
     for database in mysql.get_user_databases(cursor, user):
         name = _database_name_rev(database)
         # Filter active roles to those owned by society accounts.
@@ -94,7 +94,7 @@ def sync_member_roles(cursor: Cursor, member: Member) -> Collect[None]:
                 seen.add(name)
         if name in seen:
             current.add((user, database))
-    needed = set()
+    needed: Set[Tuple[str, str]] = set()
     if member.societies:
         for role in mysql.get_users(cursor, *(_user_name(soc) for soc in member.societies)):
             databases = (_database_name(role), _database_name(role, "%"))
@@ -108,7 +108,7 @@ def sync_society_roles(cursor: Cursor, society: Society) -> Collect[None]:
     Adjust grants for member roles to match the given society's admins.
     """
     databases = (_database_name(society), _database_name(society, "%"))
-    current = set()
+    current: Set[Tuple[str, str]] = set()
     for database in databases:
         for user in mysql.get_database_users(cursor, database):
             # Filter active roles to those owned by society accounts.
@@ -121,7 +121,7 @@ def sync_society_roles(cursor: Cursor, society: Society) -> Collect[None]:
                 continue
             else:
                 current.add((user, database))
-    needed = set()
+    needed: Set[Tuple[str, str]] = set()
     for user in mysql.get_users(cursor, *society.admin_crsids):
         needed.update({(user, database) for database in databases})
     yield from _sync_roles(cursor, current, needed)
@@ -154,7 +154,7 @@ def drop_account(cursor: Cursor, owner: Owner) -> Collect[None]:
 
 
 @Result.collect
-def create_database(cursor: Cursor, owner: Owner, suffix: str = None) -> Collect[str]:
+def create_database(cursor: Cursor, owner: Owner, suffix: Optional[str] = None) -> Collect[str]:
     """
     Create a new MySQL database for the owner, either the primary name or a suffixed alternative.
     """
@@ -164,7 +164,7 @@ def create_database(cursor: Cursor, owner: Owner, suffix: str = None) -> Collect
 
 
 @Result.collect
-def drop_database(cursor: Cursor, owner: Owner, suffix: str = None) -> Collect[str]:
+def drop_database(cursor: Cursor, owner: Owner, suffix: Optional[str] = None) -> Collect[str]:
     """
     Drop either the primary or a suffixed secondary MySQL database belonging to the owner.
     """

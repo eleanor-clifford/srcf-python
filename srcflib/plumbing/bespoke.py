@@ -6,7 +6,6 @@ Most methods identify users and groups using the `Member` and `Society` database
 
 from contextlib import contextmanager
 from datetime import date
-from enum import Enum
 import logging
 import os
 import pwd
@@ -32,7 +31,7 @@ LOG = logging.getLogger(__name__)
 
 
 @contextmanager
-def context(sess: SQLASession = None) -> Generator[SQLASession, None, None]:
+def context(sess: Optional[SQLASession] = None) -> Generator[SQLASession, None, None]:
     """
     Run multiple database commands and commit at the end:
 
@@ -180,7 +179,7 @@ def remove_from_society(sess: SQLASession, member: Member, society: Society) -> 
     return Result(State.success)
 
 
-def populate_home_dir(member: Member):
+def populate_home_dir(member: Member) -> Result[None]:
     """
     Copy the contents of ``/etc/skel`` to a new user's home directory.
 
@@ -307,7 +306,7 @@ def get_custom_domains(sess: SQLASession, owner: Owner) -> List[Domain]:
 
 
 def add_custom_domain(sess: SQLASession, owner: Owner, name: str,
-                      root: str = None) -> Result[Domain]:
+                      root: Optional[str] = None) -> Result[Domain]:
     """
     Assign a domain name to a member or society website.
     """
@@ -334,7 +333,7 @@ def add_custom_domain(sess: SQLASession, owner: Owner, name: str,
     return Result(state, domain)
 
 
-def remove_custom_domain(sess: SQLASession, owner: Owner, name: str) -> Result:
+def remove_custom_domain(sess: SQLASession, owner: Owner, name: str) -> Result[None]:
     """
     Unassign a domain name from a member or society.
     """
@@ -462,7 +461,7 @@ def archive_society_files(society: Society) -> Result[str]:
 
 
 @Result.collect
-def delete_society_files(society: Society):
+def delete_society_files(society: Society) -> Collect[None]:
     """
     Remove all public and private files of a society in /home.
     """

@@ -8,7 +8,7 @@ import inspect
 import logging
 import platform
 import subprocess
-from typing import Callable, Generator, Generic, Iterable, Optional, Set, TypeVar, Union
+from typing import Any, Callable, Generator, Generic, Iterable, List, Optional, Set, TypeVar, Union
 
 from sqlalchemy.orm import Session as SQLASession
 
@@ -26,7 +26,7 @@ Union type combining `Member` and `Society` database objects, useful for functio
 either account type.
 """
 
-Collect = Generator["Result", None, T]
+Collect = Generator["Result[Any]", None, T]
 """
 Generic type for the return value of functions using `Result.collect`.
 """
@@ -151,10 +151,10 @@ class Result(Generic[T]):
         the inner function.
         """
         @wraps(fn)
-        def inner(*args, **kwargs) -> Result[T]:
+        def inner(*args: Any, **kwargs: Any) -> Result[T]:
             state = None
             value = None
-            parts = []
+            parts: List[Result[Any]] = []
             gen = fn(*args, **kwargs)
             try:
                 while True:
@@ -166,7 +166,7 @@ class Result(Generic[T]):
         return inner
 
     def __init__(self, state: Optional[State] = None, value: Optional[T] = None,
-                 parts: Iterable["Result"] = (), caller: Callable = None):
+                 parts: Iterable["Result[Any]"] = (), caller: Optional[Callable[..., Any]] = None):
         self._state = state
         self._value = value
         self.parts = tuple(parts)
@@ -248,7 +248,7 @@ class Password:
     Container of randomly generated passwords.  Use `str(passwd)` to get the actual value.
     """
 
-    def __init__(self, value, template="{}"):
+    def __init__(self, value: str, template: str = "{}"):
         self._value = value
         self._template = template
 
@@ -265,7 +265,7 @@ class Password:
         """
         return cls(pwgen().decode("utf-8"))
 
-    def wrap(self, template) -> "Password":
+    def wrap(self, template: str) -> "Password":
         """
         Embed a plaintext password into a larger string, and wrap that as a `Password`:
 
@@ -279,7 +279,7 @@ class Password:
         return self.__class__(self._value, template.format(self._template))
 
 
-def require_host(*hosts: str):
+def require_host(*hosts: str) -> Callable[[Callable[..., T]], Callable[..., T]]:
     """
     Only allow a function to be called on the given hosts, identified by hostname:
 
@@ -288,7 +288,7 @@ def require_host(*hosts: str):
     """
     def outer(fn: Callable[..., T]) -> Callable[..., T]:
         @wraps(fn)
-        def inner(*args, **kwargs):
+        def inner(*args: Any, **kwargs: Any):
             host = platform.node()
             if host not in hosts:
                 raise RuntimeError("{}() can't be used on host {}, requires {}"
@@ -298,8 +298,8 @@ def require_host(*hosts: str):
     return outer
 
 
-def command(args, input_: Optional[Union[str, Password]] = None,
-            output: bool = False) -> subprocess.CompletedProcess:
+def command(args: List[str], input_: Optional[Union[str, Password]] = None,
+            output: bool = False) -> "subprocess.CompletedProcess[bytes]":
     """
     Create a subprocess to execute an external command.
     """
