@@ -4,7 +4,7 @@ import os.path
 from setuptools import find_packages, setup
 
 # Import all script providers so that ENTRYPOINTS gets populated.
-from srcflib.scripts import mailman, mysql, pgsql  # noqa: F401
+from srcflib.scripts import mailman, membership, mysql, pgsql  # noqa: F401
 from srcflib.scripts.utils import ENTRYPOINTS
 
 
