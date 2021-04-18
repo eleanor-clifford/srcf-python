@@ -3,120 +3,95 @@ Helpers for converting methods into scripts, and filling in arguments with datab
 """
 
 from functools import wraps
-from inspect import cleandoc
-import os.path
+from inspect import cleandoc, signature
+from itertools import islice
 import sys
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from docopt import docopt
 
-from srcf.database.queries import get_member, get_society
+from srcf.database import Member, Society
+from srcf.database.queries import get_member, get_member_or_society, get_society
+
+from ..plumbing.common import Owner
 
 
-ENTRYPOINTS = []
+DocOptArgs = Dict[str, Union[bool, str, List[str]]]
 
 
-def entrypoint(fn):
+ENTRYPOINTS: List[str] = []
+
+
+def entrypoint(fn: Callable[..., Any]) -> Callable[..., Any]:
     """
     Decorator to make an entrypoint out of a generic function.
 
     This uses `docopt` to parse arguments according to the method docstring, and will be formatted
     with `{script}` set to the script name.  At minimum, it should contain `Usage: {script}`.
 
-    The function itself should accept one argument, a `dict` of console parameters, unless using
-    the `with_*` helpers to add additional arguments.
+    The function being decorated should accept at least one argument, a `dict` of input parameters.
+    Additional arguments must be type-annotated, and will be filled in by looking up objects of the
+    corresponding types (`Member`, `Society`, or `Owner`).  For example:
+
+        @entrypoint
+        def grant(opts: DocOptArgs, member: Member, society: Society):
+            \"""
+            Add the member to the society.
+
+            Usage: {script} MEMBER SOCIETY
+            \"""
     """
-    @wraps(fn)
-    def wrap(opts=None):
-        if opts is None:
-            name = os.path.basename(sys.argv[0])
-            doc = cleandoc(fn.__doc__.format(script=name))
-            opts = docopt(doc)
-        return fn(opts)
-    wrap.__doc__ = wrap.__doc__.format(script=fn.__name__)
-    # Create a console script line for setup.
     label = "srcflib-{}-{}".format(fn.__module__.rsplit(".", 1)[-1],
                                    fn.__qualname__).replace("_", "-")
+    @wraps(fn)
+    def wrap(opts: Optional[DocOptArgs] = None):
+        extra: Dict[str, Any] = {}
+        if opts is None:
+            doc = cleandoc(fn.__doc__.format(script=label))
+            opts = docopt(doc)
+        # Detect resolvable-typed arguments and fill in their values.
+        sig = signature(fn)
+        for param in islice(sig.parameters.values(), 1, None):
+            name = param.name
+            cls = param.annotation
+            try:
+                value = opts[name.upper()]
+            except KeyError:
+                raise RuntimeError("Missing parameter {!r}".format(name))
+            try:
+                if cls in (Member, "Member"):
+                    extra[name] = get_member(value)
+                elif cls in (Society, "Society"):
+                    extra[name] = get_society(value)
+                elif cls in (Owner, "Owner"):
+                    extra[name] = get_member_or_society(value)
+                else:
+                    raise RuntimeError("Bad parameter {!r} type {!r}".format(name, cls))
+            except KeyError:
+                error("{!r} is not valid for parameter {!r}".format(value, name), colour="1")
+        return fn(opts, **extra)
+    wrap.__doc__ = wrap.__doc__.format(script=fn.__name__)
+    # Create a console script line for setup.
     target = "{}:{}".format(fn.__module__, fn.__qualname__)
     ENTRYPOINTS.append("{}={}".format(label, target))
     return wrap
 
 
-def confirm(msg="Are you sure?"):
+def confirm(msg: str = "Are you sure?"):
     """
     Prompt for confirmation before destructive actions.
     """
-    yn = input("{} [yN] ".format(msg))
+    yn = input("\033[96m{} [yN]\033[0m ".format(msg))
     if yn.lower() not in ("y", "yes"):
-        error("Aborted!")
+        error("Aborted!", exit=1)
 
 
-def error(msg=None, code=1):
+def error(msg: Optional[str] = None, *, exit: Optional[int] = None, colour: Optional[str] = None):
     """
-    Print an error message and exit.
+    Print an error message and/or exit.
     """
     if msg:
-        print(msg, file=sys.stderr)
-    sys.exit(code)
-
-
-def with_member(fn):
-    """
-    Decorator to resolve a `CRSID` parameter into a `Member` argument for the function.
-
-    Use `{member}` to place the argument in the usage line.
-    """
-    @wraps(fn)
-    def wrap(opts, *args):
-        member = None
-        if "CRSID" in opts:
-            try:
-                member = get_member(opts["CRSID"])
-            except KeyError:
-                error("Member {!r} doesn't exist".format(opts["CRSID"]))
-        return fn(opts, member=member, *args)
-    wrap.__doc__ = wrap.__doc__.replace("{member}", "CRSID")
-    return wrap
-
-
-def with_society(fn):
-    """
-    Decorator to resolve a `SOCIETY` parameter into a `Society` argument for the function.
-
-    Use `{society}` to place the argument in the usage line.
-    """
-    @wraps(fn)
-    def wrap(opts, *args):
-        society = None
-        if "SOCIETY" in opts:
-            try:
-                society = get_society(opts["SOCIETY"])
-            except KeyError:
-                error("Society {!r} doesn't exist".format(opts["SOCIETY"]))
-        return fn(opts, society=society, *args)
-    wrap.__doc__ = wrap.__doc__.replace("{society}", "SOCIETY")
-    return wrap
-
-
-def with_owner(fn):
-    """
-    Decorator to resolve `member CRSID` or `society SOCIETY` parameter pairs into `Member` or
-    `Society` arguments for the function.
-
-    Use `{owner}` to place the argument in the usage line.
-    """
-    @wraps(fn)
-    def wrap(opts, *args):
-        owner = None
-        if opts.get("member") and "CRSID" in opts:
-            try:
-                owner = get_member(opts["CRSID"])
-            except KeyError:
-                error("Member {!r} doesn't exist".format(opts["CRSID"]))
-        elif opts.get("society") and "SOCIETY" in opts:
-            try:
-                owner = get_society(opts["SOCIETY"])
-            except KeyError:
-                error("Society {!r} doesn't exist".format(opts["SOCIETY"]))
-        return fn(opts, owner=owner, *args)
-    wrap.__doc__ = wrap.__doc__.replace("{owner}", "(member CRSID | society SOCIETY)")
-    return wrap
+        colour = colour or ("1" if exit else "3")
+        print("\033[9{}m{}\033[0m".format(colour, msg), file=sys.stderr)
+    if exit is not None:
+        sys.exit(exit)

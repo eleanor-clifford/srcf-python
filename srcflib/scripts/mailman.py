@@ -2,19 +2,19 @@
 Scripts to manage Mailman mailing lists.
 """
 
-from .utils import confirm, entrypoint, with_owner
+from .utils import confirm, DocOptArgs, entrypoint
+from ..plumbing.common import Owner
 from ..tasks import mailman
 
 
 @entrypoint
-@with_owner
-def create(opts, owner):
+def create(opts: DocOptArgs, owner: Owner):
     """
     Create a Mailman mailing list.
 
     If SUFFIX is omitted, the list will be named after its owner, without a suffix.
 
-    Usage: {script} {owner} [SUFFIX]
+    Usage: {script} OWNER [SUFFIX]
     """
     name, admin = mailman._list_name_owner(owner, opts["SUFFIX"])
     print("List address: {}@srcf.net{}".format(name, "" if opts["SUFFIX"] else " (!)"))
@@ -30,12 +30,11 @@ def create(opts, owner):
 
 
 @entrypoint
-@with_owner
-def delete(opts, owner):
+def delete(opts: DocOptArgs, owner: Owner):
     """
     Delete a Mailman mailing list, and optionally its archives.
 
-    Usage: {script} {owner} [SUFFIX] [--archives]
+    Usage: {script} OWNER [SUFFIX] [--archives]
     """
     name, _ = mailman._list_name_owner(owner, opts["SUFFIX"])
     archives = opts["--archives"]

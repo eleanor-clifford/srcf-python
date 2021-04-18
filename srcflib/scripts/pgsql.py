@@ -2,20 +2,19 @@
 Scripts to manage PostgreSQL users and databases.
 """
 
-from .utils import confirm, entrypoint, with_owner
-from ..plumbing.common import owner_name
+from .utils import confirm, DocOptArgs, entrypoint
+from ..plumbing.common import Owner, owner_name
 from ..tasks import pgsql
 
 
 @entrypoint
-@with_owner
-def create(opts, owner):
+def create(opts: DocOptArgs, owner: Owner):
     """
     Create a PostgreSQL database for a member or society.
 
     A corresponding PostgreSQL account will also be created if needed.
 
-    Usage: {script} {owner} [DATABASE]
+    Usage: {script} OWNER [DATABASE]
     """
     name = owner_name(owner)
     database = opts["DATABASE"]
@@ -44,12 +43,11 @@ def create(opts, owner):
 
 
 @entrypoint
-@with_owner
-def drop(opts, owner):
+def drop(opts: DocOptArgs, owner: Owner):
     """
     Drop a PostgreSQL user and all their databases.
 
-    Usage: {script} {owner}
+    Usage: {script} OWNER
     """
     name = owner_name(owner)
     with pgsql.context() as cursor:

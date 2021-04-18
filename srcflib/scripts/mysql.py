@@ -2,19 +2,19 @@
 Scripts to manage MySQL users and databases.
 """
 
-from .utils import confirm, entrypoint, with_owner
+from .utils import confirm, DocOptArgs, entrypoint
+from ..plumbing.common import Owner
 from ..tasks import mysql
 
 
 @entrypoint
-@with_owner
-def create(opts, owner):
+def create(opts: DocOptArgs, owner: Owner):
     """
     Create a MySQL database for a member or society.
 
     A corresponding MySQL account will also be created if needed.
 
-    Usage: {script} {owner} [SUFFIX]
+    Usage: {script} OWNER [SUFFIX]
     """
     name = mysql._user_name(owner)
     suffix = opts["SUFFIX"]
@@ -35,12 +35,11 @@ def create(opts, owner):
 
 
 @entrypoint
-@with_owner
-def drop(opts, owner):
+def drop(opts: DocOptArgs, owner: Owner):
     """
     Drop a MySQL user and all their databases.
 
-    Usage: {script} {owner}
+    Usage: {script} OWNER
     """
     name = mysql._user_name(owner)
     with mysql.context() as cursor:
