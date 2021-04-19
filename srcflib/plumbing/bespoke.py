@@ -77,6 +77,7 @@ def _create_member(sess: SQLASession, crsid: str, preferred_name: str, surname: 
                     member=is_member,
                     user=is_user)
     sess.add(member)
+    LOG.debug("Created member record: %r", member)
     return Result(State.created, member)
 
 
@@ -89,7 +90,10 @@ def _update_member(sess: SQLASession, member: Member, preferred_name: str, surna
     member.mail_handler = mail_handler.name
     member.member = is_member
     member.user = is_user
-    return Result(State.success if sess.is_modified(member) else State.unchanged)
+    if not sess.is_modified(member):
+        return Result(State.unchanged)
+    LOG.debug("Updated member record: %r", member)
+    return Result(State.success)
 
 
 @Result.collect
@@ -117,6 +121,7 @@ def _create_society(sess: SQLASession, name: str, description: str,
                       description=description,
                       role_email=role_email)
     sess.add(society)
+    LOG.debug("Created society record: %r", society)
     return Result(State.created, society)
 
 
@@ -124,7 +129,10 @@ def _update_society(sess: SQLASession, society: Society, description: str,
                     role_email: Optional[str]) -> Result[None]:
     society.description = description
     society.role_email = role_email
-    return Result(State.success if sess.is_modified(society) else State.unchanged)
+    if not sess.is_modified(society):
+        return Result(State.unchanged)
+    LOG.debug("Updated society record: %r", society)
+    return Result(State.success)
 
 
 def delete_society(sess: SQLASession, society: Society) -> Result[None]:
@@ -136,6 +144,7 @@ def delete_society(sess: SQLASession, society: Society) -> Result[None]:
     if society.domains:
         raise ValueError("Remove domains for {} first".format(society))
     sess.delete(society)
+    LOG.debug("Deleted society record: %r", society)
     return Result(State.success)
 
 
@@ -165,6 +174,7 @@ def add_to_society(sess: SQLASession, member: Member, society: Society) -> Resul
         return Result(State.unchanged)
     society.admins.add(member)
     sess.add(society)
+    LOG.debug("Added society admin: %r %r", member, society)
     return Result(State.success)
 
 
@@ -176,6 +186,7 @@ def remove_from_society(sess: SQLASession, member: Member, society: Society) -> 
         return Result(State.unchanged)
     society.admins.remove(member)
     sess.add(society)
+    LOG.debug("Removed society admin: %r %r", member, society)
     return Result(State.success)
 
 
@@ -219,6 +230,7 @@ def link_soc_home_dir(member: Member, society: Society) -> Result[None]:
         except OSError:
             LOG.warning("Couldn't symlink %r", link, exc_info=True)
         else:
+            LOG.debug("Created society symlink: %r", link)
             state = State.success
     else:
         try:
@@ -226,6 +238,7 @@ def link_soc_home_dir(member: Member, society: Society) -> Result[None]:
         except OSError:
             LOG.warning("Couldn't remove symlink %r", link, exc_info=True)
         else:
+            LOG.debug("Deleted society symlink: %r", link)
             state = State.success
     return Result(state)
 
@@ -251,6 +264,7 @@ def create_forwarding_file(owner: Owner) -> Result[None]:
     with open(path, "w") as f:
         f.write("{}\n".format(owner.email))
     os.chown(path, user.pw_uid, user.pw_gid)
+    LOG.debug("Created forwarding file: %r", path)
     return Result(State.success)
 
 
@@ -282,9 +296,11 @@ def enable_website(owner: Owner, status: str = "subdomain", replace: bool = Fals
             return Result(State.unchanged, current)
         else:
             data[i] = "{}:{}".format(username, status)
+            LOG.debug("Updated web status: %r %r", owner, status)
             break
     else:
         data.append("{}:{}".format(username, status))
+        LOG.debug("Added web status: %r %r", owner, status)
     with open(path, "w") as f:
         for line in data:
             f.write("{}\n".format(line))
@@ -325,11 +341,16 @@ def add_custom_domain(sess: SQLASession, owner: Owner, name: str,
                         root=root)
         sess.add(domain)
         state = State.created
+        LOG.debug("Created domain record: %r", domain)
     else:
         domain.class_ = class_
         domain.owner = owner_name(owner)
         domain.root = root
-        state = State.success if sess.is_modified(domain) else State.unchanged
+        if sess.is_modified(domain):
+            state = State.success
+            LOG.debug("Updated domain record: %r", domain)
+        else:
+            state = State.unchanged
     return Result(state, domain)
 
 
@@ -344,6 +365,7 @@ def remove_custom_domain(sess: SQLASession, owner: Owner, name: str) -> Result[N
     else:
         domain.delete()
         state = State.success
+        LOG.debug("Deleted domain record: %r", domain)
     return Result(state)
 
 
@@ -358,6 +380,7 @@ def queue_https_cert(sess: SQLASession, domain: str) -> Result[HTTPSCert]:
         cert = HTTPSCert(domain=domain)
         sess.add(cert)
         state = State.created
+        LOG.debug("Created HTTPS cert record: %r", cert)
     else:
         state = State.unchanged
     return Result(state, cert)
@@ -385,6 +408,7 @@ def queue_list_subscription(member: Member, *lists: str) -> Result[None]:
     for name in lists:
         args.append("soc-srcf-{}:{}".format(name, entry))
     command(args)
+    LOG.debug("Queued list subscriptions: %r %r", member, lists)
     return Result(State.success)
 
 
@@ -415,6 +439,7 @@ def update_nis(wait: bool = False) -> Result[None]:
     the caching of non-existent UIDs or GIDs.
     """
     command(["/usr/bin/make", "-C", "/var/yp"])
+    LOG.debug("Updated NIS")
     if wait:
         time.sleep(16)
     return Result(State.success)
@@ -426,6 +451,7 @@ def configure_mailing_list(name: str) -> Result[None]:
     Apply default options to a new mailing list, and create the necessary mail aliases.
     """
     command(["/usr/sbin/config_list", "--inputfile", "/root/mailman-newlist-defaults", name])
+    LOG.debug("Configured mailing list: %r", name)
     return Result(State.success)
 
 
@@ -450,10 +476,12 @@ def archive_society_files(society: Society) -> Result[str]:
     tar = os.path.join(root, "soc-{}-{}.tar.bz2".format(society.society,
                                                         date.today().strftime("%Y%m%d")))
     command(["/bin/tar", "cjf", tar, home, public])
+    LOG.debug("Archived society files: %r %r", home, public)
     crontab = get_crontab(society)
     if crontab:
         with open(os.path.join(root, "crontab"), "w") as f:
             f.write(crontab)
+        LOG.debug("Archived crontab: %r", society.society)
     # TOOD: for host in {"cavein", "sinkhole"}: get_crontab(society)
     with open(os.path.join(root, "society_info"), "w") as f:
         f.write(summarise_society(society))
@@ -470,6 +498,7 @@ def delete_society_files(society: Society) -> Collect[None]:
     for path in (home, public):
         if os.path.exists(path):
             shutil.rmtree(home)
+            LOG.debug("Deleted society files: %r", path)
             yield Result(State.success)
         else:
             yield Result(State.unchanged)

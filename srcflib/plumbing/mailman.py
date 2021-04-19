@@ -56,6 +56,7 @@ def _create_list(name: str, owner: str) -> Result[Password]:
         raise ValueError("List name {!r} suffixed with reserved keyword".format(name))
     passwd = Password.new()
     command(["/usr/bin/sshpass", "/usr/sbin/newlist", "--quiet", name, owner], passwd)
+    LOG.debug("Created mailing list: %r %r", name, owner)
     return Result(State.created, passwd)
 
 
@@ -69,6 +70,7 @@ def set_owner(mlist: MailList, *owners: str) -> Result[None]:
         return Result(State.unchanged)
     data = "owner = {}".format(repr(list(owners)))
     command(["/usr/sbin/config_list", "--inputfile", "/dev/stdin", mlist], data)
+    LOG.debug("Updated mailing list owners: %r %r", mlist, owners)
     return Result(State.success)
 
 
@@ -81,6 +83,7 @@ def reset_password(mlist: MailList) -> Result[Password]:
     for line in proc.stdout.decode("utf-8").split("\n"):
         if line.startswith("New {} password: ".format(mlist)):
             passwd = Password(line.split(": ", 1)[1])
+            LOG.debug("Reset mailing list password: %r", mlist)
             return Result(State.success, passwd)
     else:
         raise ValueError("Couldn't find password in output")
@@ -113,4 +116,7 @@ def remove_list(mlist: MailList, remove_archive: bool = False) -> Result[None]:
     if remove_archive:
         args[1:1] = ["--archives"]
     command(args)
+    LOG.debug("Deleted mailing list: %r", mlist)
+    if remove_archive:
+        LOG.debug("Deleted mailing list archives: %r", mlist)
     return Result(State.success)

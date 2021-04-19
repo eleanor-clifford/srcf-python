@@ -76,6 +76,7 @@ def _create_user(username: str, uid: Optional[int] = None, system: bool = False,
         args[-1:-1] = ["--gecos", real_name]
     command(args)
     user = get_user(username)
+    LOG.debug("Created UNIX user: %r", user)
     if system and home_dir:
         create_home(user, home_dir)
     return Result(State.created, user)
@@ -89,9 +90,11 @@ def enable_user(user: User, active: bool = True) -> Result[None]:
     login = user.pw_shell not in _NOLOGIN_SHELLS
     if login and not active:
         command(["/usr/bin/chsh", "--shell", "/bin/bash", user.pw_name])
+        LOG.debug("Enabled UNIX user: %r", user)
         return Result(State.success)
     elif active and not login:
         command(["/usr/bin/chsh", "--shell", _NOLOGIN_SHELLS[0], user.pw_name])
+        LOG.debug("Disabled UNIX user: %r", user)
         return Result(State.success)
     else:
         return Result(State.unchanged)
@@ -106,6 +109,7 @@ def set_real_name(user: User, real_name: str = "") -> Result[None]:
     if current == real_name:
         return Result(State.unchanged)
     command(["/usr/bin/chfn", "--full-name", real_name, user.pw_name])
+    LOG.debug("Updated UNIX user GECOS name: %r %r", user, real_name)
     return Result(State.success)
 
 
@@ -116,6 +120,7 @@ def reset_password(user: User) -> Result[Password]:
     """
     passwd = Password.new()
     command(["/usr/sbin/chpasswd"], passwd.wrap("{}:{{}}".format(user.pw_name)))
+    LOG.debug("Reset UNIX user password: %r", user)
     return Result(State.success, passwd)
 
 
@@ -126,6 +131,7 @@ def rename_user(user: User, username: str) -> Result[None]:
     if user.pw_name == username:
         return Result(State.unchanged)
     command(["/usr/bin/usermod", "--login", username, user.pw_name])
+    LOG.debug("Renamed UNIX user: %r %r", user, username)
     return Result(State.success)
 
 
@@ -134,6 +140,7 @@ def set_home_dir(user: User, home: str) -> Result[None]:
     if user.pw_dir == home:
         return Result(State.unchanged)
     command(["/usr/bin/usermod", "--home", home, user.pw_name])
+    LOG.debug("Updated UNIX user home directory: %r %r", user, home)
     return Result(State.success)
 
 
@@ -148,9 +155,11 @@ def create_home(user: User, path: str, world_read: bool = False) -> Result[None]
         pass
     else:
         state = State.created
+        LOG.debug("Created UNIX user home directory: %r %r", user, path)
     stat = os.stat(path)
     if stat.st_uid != user.pw_uid or stat.st_gid != user.pw_gid:
         nfs_aware_chown(path, user.pw_uid, user.pw_gid)
+        LOG.debug("Set UNIX home directory owner/group: %r %r", user, path)
         state = state or State.success
     return Result(state)
 
@@ -199,7 +208,9 @@ def _create_group(username: str, gid: Optional[int] = None, system: bool = False
     if system:
         args[-1:-1] = ["--system"]
     command(args)
-    return Result(State.created, get_group(username))
+    group = get_group(username)
+    LOG.debug("Created UNIX group: %r %r", group)
+    return Result(State.created, group)
 
 
 @require_host(hosts.USER)
@@ -211,6 +222,7 @@ def add_to_group(user: User, group: Group) -> Result[None]:
         return Result(State.unchanged)
     command(["/usr/sbin/addgroup", user.pw_name, group.gr_name])
     group.gr_mem.append(user.pw_name)
+    LOG.debug("Added UNIX user to group: %r %r", user, group)
     return Result(State.success)
 
 
@@ -223,6 +235,7 @@ def remove_from_group(user: User, group: Group) -> Result[None]:
         return Result(State.unchanged)
     command(["/usr/sbin/deluser", user.pw_name, group.gr_name])
     group.gr_mem.remove(user.pw_name)
+    LOG.debug("Removed UNIX user from group: %r %r", user, group)
     return Result(State.success)
 
 
@@ -233,6 +246,7 @@ def rename_group(group: Group, username: str) -> Result[None]:
     if group.gr_name == username:
         return Result(State.unchanged)
     command(["/usr/bin/groupmod", "--new-name", username, group.gr_name])
+    LOG.debug("Renamed UNIX group: %r %r", group, username)
     return Result(State.success)
 
 
@@ -291,6 +305,7 @@ def set_nfs_acl(path: str, user: str, perms: str) -> Result[None]:
     if set(acl) >= set(perms):
         return Result(State.unchanged)
     command(["/usr/bin/nfs4_setfacl", "-a", "A::{}:{}".format(user, perms), path])
+    LOG.debug("Granted NFS access: %r %r %r", user, perms, path)
     return Result(State.success)
 
 
@@ -309,6 +324,7 @@ def grant_netgroup(user: User, group: str) -> Result[None]:
             return Result(State.unchanged)
         else:
             data[i] = "{} {}".format(line, entry)
+            LOG.debug("Added to netgroup: %r %r", user, group)
             break
     else:
         raise KeyError("No such group: {!r}".format(group))

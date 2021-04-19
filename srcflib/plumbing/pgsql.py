@@ -61,7 +61,7 @@ def query(cursor: Cursor, sql: str, *args: Union[str, Tuple[str, ...], Password]
     """
     Run a SQL query against a database cursor.
     """
-    LOG.debug("Query: %r %% %r", sql, args)
+    LOG.debug("Ran query: %r %% %r", sql, args)
     cursor.execute(sql, [str(arg) if isinstance(arg, Password) else arg for arg in args])
 
 
