@@ -63,7 +63,7 @@ def get_mailman_lists(owner: Owner, sess: RequestsSession = RequestsSession()) -
     """
     prefix = owner_name(owner)
     resp = sess.get("https://lists.srcf.net/getlists.cgi", params={"prefix": prefix})
-    return resp.text.splitlines()
+    return [MailList(name) for name in resp.text.splitlines()]
 
 
 def _create_member(sess: SQLASession, crsid: str, preferred_name: str, surname: str, email: str,

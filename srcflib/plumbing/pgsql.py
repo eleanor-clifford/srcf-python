@@ -72,7 +72,7 @@ def get_roles(cursor: Cursor, *names: str) -> List[Role]:
     if not names:
         return []
     query(cursor, "{} WHERE rolname IN %s".format(_ROLE_SELECT), names)
-    return cursor.fetchall()
+    return [Role(role) for role in cursor.fetchall()]
 
 
 def get_role(cursor: Cursor, name: str) -> Role:
@@ -81,7 +81,7 @@ def get_role(cursor: Cursor, name: str) -> Role:
     """
     query(cursor, "{} WHERE rolname = %s".format(_ROLE_SELECT), name)
     if cursor.rowcount:
-        return cursor.fetchone()
+        return Role(cursor.fetchone())
     else:
         raise KeyError(name)
 
@@ -91,7 +91,7 @@ def get_user_roles(cursor: Cursor, name: str) -> List[Role]:
     Look up all roles that the given user is a member of.
     """
     query(cursor, "{} WHERE pg_has_role(%s, oid, 'member')".format(_ROLE_SELECT), name)
-    return cursor.fetchall()
+    return [Role(role) for role in cursor.fetchall()]
 
 
 def get_role_users(cursor: Cursor, role: Role) -> List[str]:

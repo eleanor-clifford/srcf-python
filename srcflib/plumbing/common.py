@@ -72,7 +72,7 @@ def owner_website(owner: Owner):
     return "https://{}.{}.srcf.net".format(owner_name(owner), key)
 
 
-def get_members(sess: SQLASession, *crsids: str) -> Set[str]:
+def get_members(sess: SQLASession, *crsids: str) -> Set[Member]:
     """
     Fetch multiple `Member` objects by their CRSids.
     """
@@ -134,7 +134,7 @@ class Result(Generic[T]):
         """
         Decorator: build a `Result` from multiple sub-tasks:
 
-            def plumb_a() -> Result[str]: ...
+            def plumb_b() -> Result[str]: ...
 
             @Result.collect
             def task() -> Collect[str]:
@@ -148,7 +148,7 @@ class Result(Generic[T]):
 
         The return value of the wrapper function will be a new `Result` object, whose `parts` will
         be those collected sub-task results, and whose `value` will be set to the return value of
-        the inner function.
+        the inner function (i.e. the example above will return a `Result[str]`).
         """
         @wraps(fn)
         def inner(*args: Any, **kwargs: Any) -> Result[T]:

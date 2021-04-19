@@ -8,7 +8,7 @@ import grp
 import logging
 import os
 import pwd
-from typing import Optional
+from typing import NewType, Optional, Set
 
 # Expose these here for now, so that other parts of SRCFLib can reference them locally, but keep a
 # single implementation in case it needs revising.  TODO: Move here as part of control migration.
@@ -22,8 +22,8 @@ LOG = logging.getLogger(__name__)
 
 # Type aliases for external callers, who need not be aware of the internal structure when chaining
 # calls (e.g. get_user/create_user -> reset_password).
-User = pwd.struct_passwd
-Group = grp.struct_group
+User = NewType("User", pwd.struct_passwd)
+Group = NewType("Group", grp.struct_group)
 
 _NOLOGIN_SHELLS = ("/bin/false", "/usr/sbin/nologin")
 
@@ -32,14 +32,14 @@ def get_user(username: str) -> User:
     """
     Look up an existing user by name.
     """
-    return pwd.getpwnam(username)
+    return User(pwd.getpwnam(username))
 
 
 def get_group(username: str) -> Group:
     """
     Look up an existing group by name.
     """
-    return grp.getgrnam(username)
+    return Group(grp.getgrnam(username))
 
 
 @require_host(hosts.USER)
@@ -263,9 +263,12 @@ def _unalias_acl(perms: str) -> str:
 
 
 def get_nfs_acl(path: str, user: str) -> str:
+    """
+    Retrieve the complete list of access control permissions assigned to a file or directory.
+    """
     raw = command(["/usr/bin/nfs4_getfacl", path], output=True).stdout.decode("utf-8")
-    allowed = set()
-    denied = set()
+    allowed: Set[str] = set()
+    denied: Set[str] = set()
     for line in raw.splitlines():
         if line.startswith("#"):
             continue
@@ -280,6 +283,9 @@ def get_nfs_acl(path: str, user: str) -> str:
 
 
 def set_nfs_acl(path: str, user: str, perms: str) -> Result[None]:
+    """
+    Add an access control entry for the user's rights to interact with the given file or directory.
+    """
     acl = get_nfs_acl(path, user)
     perms = _unalias_acl(perms)
     if set(acl) >= set(perms):

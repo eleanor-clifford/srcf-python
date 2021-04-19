@@ -14,7 +14,7 @@ from ..plumbing import pgsql
 from ..plumbing.common import Collect, Owner, owner_name, Password, Result
 
 
-def connect(db: str = None) -> Connection:
+def connect(db: Optional[str] = None) -> Connection:
     """
     Connect to the PostgreSQL server using ident authentication.
     """
