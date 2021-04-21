@@ -66,7 +66,7 @@ def get_users(cursor: Cursor, *names: str) -> List[str]:
     if not names:
         return []
     query(cursor, "SELECT User FROM mysql.user WHERE User IN %s", names)
-    return [user[0] for user in cursor]
+    return [user[0] for user in cursor.fetchall()]
 
 
 def validate_user(cursor: Cursor, name: str, passwd: Password) -> bool:
@@ -83,7 +83,7 @@ def get_user_grants(cursor: Cursor, user: str) -> List[str]:
     """
     query(cursor, "SHOW GRANTS FOR %s@%s", user, HOST)
     databases: List[str] = []
-    for grant in cursor:
+    for grant in cursor.fetchall():
         match = re.match(r"GRANT (.+) ON (?:\*|(['`\"])(.*?)\2)\.\*", grant[0])
         if match:
             if "ALL PRIVILEGES" in match.group(1).split(", "):
@@ -99,7 +99,7 @@ def get_matched_databases(cursor: Cursor, like: str = "%") -> List[str]:
     Fetch names of all databases matching the given pattern.
     """
     query(cursor, "SHOW DATABASES LIKE %s", like)
-    return [db[0] for db in cursor]
+    return [db[0] for db in cursor.fetchall()]
 
 
 def get_user_databases(cursor: Cursor, user: str) -> List[str]:
@@ -107,7 +107,7 @@ def get_user_databases(cursor: Cursor, user: str) -> List[str]:
     Look up all databases that the given user has access to.
     """
     query(cursor, "SELECT Db FROM mysql.db WHERE User = %s AND Host = %s", user, HOST)
-    return [db[0].replace("\\_", "_") for db in cursor]
+    return [db[0].replace("\\_", "_") for db in cursor.fetchall()]
 
 
 def get_database_users(cursor: Cursor, database: str) -> List[str]:
@@ -116,7 +116,7 @@ def get_database_users(cursor: Cursor, database: str) -> List[str]:
     """
     query(cursor, "SELECT User FROM mysql.db WHERE Host = %s AND Db = %s",
           HOST, database.replace("_", "\\_"))
-    return [db[0] for db in cursor]
+    return [db[0] for db in cursor.fetchall()]
 
 
 def ensure_user(cursor: Cursor, name: str) -> Result[Optional[Password]]:

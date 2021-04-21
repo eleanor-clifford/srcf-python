@@ -44,7 +44,7 @@ def create_member(crsid: str, preferred_name: str, surname: str, email: str,
     yield bespoke.populate_home_dir(member)
     if res_record:
         yield bespoke.update_quotas()
-    if mail_handler == "pip":
+    if mail_handler == MailHandler.pip:
         yield bespoke.create_forwarding_file(member)
     # TODO: Legacy mailbox creation
     res_web = yield from bespoke.enable_website(member)

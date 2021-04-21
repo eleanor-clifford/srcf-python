@@ -41,8 +41,7 @@ def connect(host: str, db: Optional[str] = None) -> Connection:
 
 
 @contextmanager
-def context(conn: Optional[Connection] = None,
-            db: Optional[str] = None) -> Generator[Cursor, None, None]:
+def context(conn: Connection) -> Generator[Cursor, None, None]:
     """
     Run multiple PostgreSQL commands in a single connection:
 
@@ -50,7 +49,6 @@ def context(conn: Optional[Connection] = None,
             create_account(cursor, owner)
             create_database(cursor, owner)
     """
-    conn = conn or connect(db)
     try:
         yield conn.cursor()
     finally:
@@ -100,7 +98,7 @@ def get_role_users(cursor: Cursor, role: Role) -> List[str]:
     """
     query(cursor, "SELECT u.usename FROM pg_user u, pg_auth_members m, pg_roles r "
                   "WHERE u.usesysid = m.member AND m.roleid = r.oid AND r.rolname = %s", role[0])
-    return [row[0] for row in cursor]
+    return [row[0] for row in cursor.fetchall()]
 
 
 def get_role_databases(cursor: Cursor, owner: Role) -> List[str]:
@@ -109,7 +107,7 @@ def get_role_databases(cursor: Cursor, owner: Role) -> List[str]:
     """
     query(cursor, "SELECT datname FROM pg_database d, pg_user u "
                   "WHERE d.datdba = u.usesysid AND u.usename = %s", owner[0])
-    return [row[0] for row in cursor]
+    return [row[0] for row in cursor.fetchall()]
 
 
 def _create_user(cursor: Cursor, name: str) -> Result[Password]:
