@@ -576,7 +576,7 @@ class UpdateMailHandler(Job):
 
     @classmethod
     def new(cls, member, mail_handler):
-        if mail_handler not in schema.VALID_MAIL_HANDLERS:
+        if mail_handler not in schema.MailHandler.__members__:
             raise LookupError(mail_handler)
         args = {"mail_handler": mail_handler}
         require_approval = member.danger
