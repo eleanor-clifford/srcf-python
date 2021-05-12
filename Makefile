@@ -48,10 +48,10 @@ docs:
 
 venv:
 	$(PYTHON) -m venv venv
-	echo /usr/local/lib/python3.5/dist-packages >$$(echo venv/lib/python3.*)/site-packages/srcf.pth
+	echo /usr/local/lib/python3/dist-packages >$$(echo venv/lib/python3.*)/site-packages/srcf.pth
 	$(MAKE) PIP=venv/bin/pip install
 
 venv%:
 	$(PYTHON) -m venv venv$*
-	echo /usr/local/lib/python3.5/dist-packages >$$(echo venv$*/lib/python3.*)/site-packages/srcf.pth
+	echo /usr/local/lib/python3/dist-packages >$$(echo venv$*/lib/python3.*)/site-packages/srcf.pth
 	$(MAKE) PIP=venv$*/bin/pip install

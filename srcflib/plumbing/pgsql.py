@@ -116,7 +116,7 @@ def _create_user(cursor: Cursor, name: str) -> Result[Password]:
     """
     passwd = Password.new()
     query(cursor, _format("CREATE USER {} ENCRYPTED PASSWORD %s "
-                          "NOCREATEDB NOCREATEUSER", name), passwd)
+                          "NOCREATEDB NOSUPERUSER", name), passwd)
     return Result(State.created, passwd)
 
 
