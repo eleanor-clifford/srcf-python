@@ -69,14 +69,6 @@ def get_users(cursor: Cursor, *names: str) -> List[str]:
     return [user[0] for user in cursor.fetchall()]
 
 
-def validate_user(cursor: Cursor, name: str, passwd: Password) -> bool:
-    """
-    Test if a user exists matching the given username/password combination.
-    """
-    return query(cursor, "SELECT User FROM mysql.user WHERE User = %s "
-                         "AND authentication_string = PASSWORD(%s)", name, passwd)
-
-
 def get_user_grants(cursor: Cursor, user: str) -> List[str]:
     """
     Look up all grants that the given user has.
@@ -133,13 +125,7 @@ def ensure_user(cursor: Cursor, name: str) -> Result[Optional[Password]]:
             return Result(State.unchanged)
         else:
             raise
-    # Possible race condition -- paranoia check by confirming the new password works.
-    match = validate_user(cursor, name, passwd)
-    if match:
-        return Result(State.created, passwd)
-    else:
-        # Created elsewhere just before we got there?  We'll just claim it already exists.
-        return Result(State.unchanged)
+    return Result(State.created, passwd)
 
 
 def reset_password(cursor: Cursor, name: str) -> Result[Password]:
@@ -149,10 +135,6 @@ def reset_password(cursor: Cursor, name: str) -> Result[Password]:
     passwd = Password.new()
     # Always returns zero rows; does nothing if the user doesn't exist.
     query(cursor, "SET PASSWORD FOR %s@%s = %s", name, HOST, passwd)
-    match = validate_user(cursor, name, passwd)
-    if not match:
-        # Unlike ensure_user(), we do want to ensure the password works here.
-        raise RuntimeError("New password doesn't match")
     return Result(State.success, passwd)
 
 
