@@ -3,9 +3,14 @@ import os.path
 
 from setuptools import find_packages, setup
 
-# Import all script providers so that ENTRYPOINTS gets populated.
-from srcflib.scripts import mailman, membership, mysql, pgsql  # noqa: F401
-from srcflib.scripts.utils import ENTRYPOINTS
+try:
+    # Import all script providers so that ENTRYPOINTS gets populated.
+    from srcflib.scripts import mailman, membership, mysql, pgsql  # noqa: F401
+    from srcflib.scripts.utils import ENTRYPOINTS
+except ImportError:
+    # Avoid chicken-and-egg dependency requirements during initial installation.
+    # This means you need to re-run setup in order to gain script entrypoints.
+    ENTRYPOINTS = {}
 
 
 README = os.path.join(os.path.abspath(os.path.dirname(__file__)), "README.rst")
