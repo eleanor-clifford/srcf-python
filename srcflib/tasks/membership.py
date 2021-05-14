@@ -115,7 +115,7 @@ def update_member_name(member: Member, preferred_name: str, surname: str) -> Col
                                                       preferred_name=preferred_name,
                                                       surname=surname,
                                                       email=member.email,
-                                                      mail_handler=member.mail_handler,
+                                                      mail_handler=MailHandler[member.mail_handler],
                                                       is_member=member.member,
                                                       is_user=member.user)
         member = res_record.value
