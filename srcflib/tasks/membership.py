@@ -49,7 +49,7 @@ def create_member(crsid: str, preferred_name: str, surname: str, email: str,
     if mail_handler == MailHandler.pip:
         yield bespoke.create_forwarding_file(member)
     yield bespoke.create_legacy_mailbox(member)
-    res_web = yield from bespoke.enable_website(member)
+    yield bespoke.enable_website(member)
     if new_user:
         yield bespoke.queue_list_subscription(member, "maintenance")
         if social:
@@ -168,21 +168,20 @@ def create_society(name: str, description: str, admins: Set[str],
     with bespoke.context() as sess:
         res_record = yield from bespoke.ensure_society(sess, name, description, role_email)
         society = res_record.value
-    res_user = yield from unix.ensure_user(name, uid=society.uid, system=True, active=False,
-                                           home_dir=os.path.join("/societies", name),
-                                           real_name=description)
-    new_user = res_user.state == State.created
-    user = res_user.value
-    yield unix.ensure_group(name, gid=society.gid, system=True)
-    if res_user:
-        yield bespoke.update_nis(res_user.state == State.created)
-    yield unix.create_home(user, os.path.join("/public/societies", name), True)
-    yield bespoke.set_home_exim_acl(society)
+        res_user = yield from unix.ensure_user(name, uid=society.uid, system=True, active=False,
+                                               home_dir=os.path.join("/societies", name),
+                                               real_name=description)
+        new_user = res_user.state == State.created
+        user = res_user.value
+        yield unix.ensure_group(name, gid=society.gid, system=True)
+        if res_user:
+            yield bespoke.update_nis(res_user.state == State.created)
+        yield unix.create_home(user, os.path.join("/public/societies", name), True)
+        yield bespoke.set_home_exim_acl(society)
+        res_admins = yield _sync_society_admins(sess, society, admins)
     if res_record:
         yield bespoke.update_quotas()
-    with bespoke.context() as sess:
-        res_admins = yield _sync_society_admins(sess, society, admins)
-    res_web = yield bespoke.enable_website(society)
+    yield bespoke.enable_website(society)
     if res_admins:
         yield bespoke.generate_sudoers()
     if res_record:
