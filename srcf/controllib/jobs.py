@@ -305,10 +305,8 @@ class Signup(Job):
     social = property(lambda s: s.row.args["social"] == "y")
 
     def run(self, sess):
-        crsid = self.crsid
-
         srcflib_call(self, "Create member", membership.create_member,
-                     crsid, self.preferred_name, self.surname, self.email, self.mail_handler, social=self.social)
+                     self.crsid, self.preferred_name, self.surname, self.email, self.mail_handler, social=self.social)
 
     def __repr__(self): return "<Signup {0.crsid}>".format(self)
     def __str__(self): return "Signup: {0.crsid} ({0.preferred_name} {0.surname}, {0.email}, {0.mail_handler} mail)".format(self)
@@ -782,8 +780,6 @@ class ChangeSocietyAdmin(SocietyJob):
         return fmt.format(self, verb=verb, prep=prep)
 
     def add_admin(self, sess):
-        if self.target_member in self.society.admins:
-            raise JobFailed("{0.target_member.crsid} is already an admin of {0.society}".format(self))
         if not self.target_member.member:
             raise JobFailed("{0.target_member.crsid} is not a SRCF member".format(self))
         if not self.target_member.user:
@@ -792,9 +788,6 @@ class ChangeSocietyAdmin(SocietyJob):
         srcflib_call(self, "Add admin", membership.add_society_admin, self.target_member, self.society)
 
     def rm_admin(self, sess):
-        if self.target_member not in self.society.admins:
-            raise JobFailed("{0.target_member.crsid} is not an admin of {0.society.society}".format(self))
-
         if len(self.society.admins) == 1:
             raise JobFailed("Removing all admins not implemented")
 
