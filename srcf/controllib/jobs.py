@@ -672,7 +672,7 @@ class CreateSociety(SocietyJob):
         return cls.create(member, args, True)
 
     description = property(lambda s: s.row.args["description"])
-    admin_crsids = property(lambda s: s.row.args["admins"].split(","))
+    admin_crsids = property(lambda s: set(s.row.args["admins"].split(",")))
 
     def run(self, sess):
         srcflib_call(self, "Create society", membership.create_society,
