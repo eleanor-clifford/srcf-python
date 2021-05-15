@@ -68,11 +68,11 @@ def _create_user(username: str, uid: Optional[int] = None, system: bool = False,
             raise ValueError("UID {} is already in use by {!r}".format(uid, user.pw_name))
     if system:
         # Don't auto-create home directory as it will clone from /etc/skel.
-        args[-2:-2] = ["--system"]
+        args[-1:-1] = ["--system"]
     if home_dir:
-        args[-2:-2] = ["--home", home_dir]
+        args[-1:-1] = ["--home", home_dir]
     if real_name:
-        args[-2:-2] = ["--gecos", real_name]
+        args[-1:-1] = ["--gecos", real_name]
     command(args)
     user = get_user(username)
     LOG.debug("Created UNIX user: %r", user)
