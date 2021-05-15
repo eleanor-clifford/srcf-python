@@ -12,7 +12,7 @@ from srcf.database.queries import get_member, get_society
 
 from ..email import send
 from ..plumbing import pgsql
-from ..plumbing.common import Collect, Owner, State, owner_name, Password, Result
+from ..plumbing.common import Collect, Owner, State, owner_name, Password, Result, Unset
 
 
 def connect(db: Optional[str] = None) -> Connection:
@@ -126,7 +126,7 @@ def reset_password(cursor: Cursor, owner: Owner) -> Result[Password]:
     return result
 
 
-def drop_account(cursor: Cursor, owner: Owner) -> Result[None]:
+def drop_account(cursor: Cursor, owner: Owner) -> Result[Unset]:
     """
     Drop a PostgreSQL user account for a given member or society.
     """

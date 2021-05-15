@@ -10,7 +10,7 @@ from psycopg2 import connect as psycopg2_connect, errorcodes, ProgrammingError
 from psycopg2.extensions import connection as Connection, cursor as Cursor
 from psycopg2.extras import NamedTupleCursor
 
-from .common import Collect, Password, Result, State
+from .common import Collect, Password, Result, State, Unset
 
 
 LOG = logging.getLogger(__name__)
@@ -129,7 +129,7 @@ def reset_password(cursor: Cursor, name: str) -> Result[Password]:
     return Result(State.success, passwd)
 
 
-def drop_user(cursor: Cursor, name: str) -> Result[None]:
+def drop_user(cursor: Cursor, name: str) -> Result[Unset]:
     """
     Drop a PostgreSQL user and all of its grants.
     """
@@ -157,7 +157,7 @@ def disable_role(cursor: Cursor, role: Role) -> Result[Role]:
     return Result(State.success, Role((role[0], False)))
 
 
-def grant_role(cursor: Cursor, name: str, role: Role) -> Result[None]:
+def grant_role(cursor: Cursor, name: str, role: Role) -> Result[Unset]:
     """
     Add the user to a secondary role.
     """
@@ -167,7 +167,7 @@ def grant_role(cursor: Cursor, name: str, role: Role) -> Result[None]:
     return Result(State.success)
 
 
-def revoke_role(cursor: Cursor, name: str, role: Role) -> Result[None]:
+def revoke_role(cursor: Cursor, name: str, role: Role) -> Result[Unset]:
     """
     Remove the user from a secondary role.
     """
@@ -192,7 +192,7 @@ def ensure_user(cursor: Cursor, name: str) -> Collect[Optional[Password]]:
         return None
 
 
-def create_database(cursor: Cursor, name: str, owner: Role) -> Result[None]:
+def create_database(cursor: Cursor, name: str, owner: Role) -> Result[Unset]:
     """
     Create a new database owned by the given role.
 
@@ -209,7 +209,7 @@ def create_database(cursor: Cursor, name: str, owner: Role) -> Result[None]:
         return Result(State.created)
 
 
-def drop_database(cursor: Cursor, name: str) -> Result[None]:
+def drop_database(cursor: Cursor, name: str) -> Result[Unset]:
     """
     Create a new database owned by the given role.
 

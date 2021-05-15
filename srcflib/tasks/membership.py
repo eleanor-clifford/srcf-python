@@ -12,7 +12,7 @@ from srcf.database.queries import get_member, get_society
 
 from ..email import send
 from ..plumbing import bespoke, pgsql as pgsql_p, unix
-from ..plumbing.common import Collect, Password, Result, State
+from ..plumbing.common import Collect, Password, Result, State, Unset
 from . import mailman, mysql, pgsql
 
 
@@ -239,7 +239,7 @@ def remove_society_admin(member: Member, society: Society) -> Collect[None]:
         send(member, "tasks/society_admin_leave.j2", {"society": society})
 
 
-def _scrub_society_user(society: Society) -> Result[None]:
+def _scrub_society_user(society: Society) -> Result[Unset]:
     try:
         user = unix.get_user(society.society)
     except KeyError:
@@ -248,7 +248,7 @@ def _scrub_society_user(society: Society) -> Result[None]:
         return unix.rename_user(user, "exsoc{}".format(society.uid))
 
 
-def _scrub_society_group(society: Society) -> Result[None]:
+def _scrub_society_group(society: Society) -> Result[Unset]:
     try:
         group = unix.get_group(society.society)
     except KeyError:

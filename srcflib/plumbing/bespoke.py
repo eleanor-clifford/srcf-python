@@ -22,7 +22,7 @@ from srcf.database import Domain, HTTPSCert, MailHandler, Member, Session, Socie
 from srcf.database.queries import get_member, get_society
 from srcf.database.summarise import summarise_society
 
-from .common import Collect, command, Owner, owner_name, require_host, Result, State
+from .common import Collect, command, Owner, owner_name, require_host, Result, State, Unset
 from .mailman import MailList
 from . import hosts, unix
 from ..email import send
@@ -84,7 +84,7 @@ def _create_member(sess: SQLASession, crsid: str, preferred_name: str, surname: 
 
 def _update_member(sess: SQLASession, member: Member, preferred_name: str, surname: str,
                    email: str, mail_handler: MailHandler = MailHandler.forward,
-                   is_member: bool = True, is_user: bool = True) -> Result[None]:
+                   is_member: bool = True, is_user: bool = True) -> Result[Unset]:
     member.preferred_name = preferred_name
     member.surname = surname
     member.email = email
@@ -127,7 +127,7 @@ def _create_society(sess: SQLASession, name: str, description: str,
 
 
 def _update_society(sess: SQLASession, society: Society, description: str,
-                    role_email: Optional[str]) -> Result[None]:
+                    role_email: Optional[str]) -> Result[Unset]:
     society.description = description
     society.role_email = role_email
     if not sess.is_modified(society):
@@ -136,7 +136,7 @@ def _update_society(sess: SQLASession, society: Society, description: str,
     return Result(State.success)
 
 
-def delete_society(sess: SQLASession, society: Society) -> Result[None]:
+def delete_society(sess: SQLASession, society: Society) -> Result[Unset]:
     """
     Drop a society record from the database.
     """
@@ -167,7 +167,7 @@ def ensure_society(sess: SQLASession, name: str, description: str,
     return society
 
 
-def add_to_society(sess: SQLASession, member: Member, society: Society) -> Result[None]:
+def add_to_society(sess: SQLASession, member: Member, society: Society) -> Result[Unset]:
     """
     Add a new admin to a society account.
     """
@@ -179,7 +179,7 @@ def add_to_society(sess: SQLASession, member: Member, society: Society) -> Resul
     return Result(State.success)
 
 
-def remove_from_society(sess: SQLASession, member: Member, society: Society) -> Result[None]:
+def remove_from_society(sess: SQLASession, member: Member, society: Society) -> Result[Unset]:
     """
     Remove an existing admin from a society account.
     """
@@ -191,7 +191,7 @@ def remove_from_society(sess: SQLASession, member: Member, society: Society) -> 
     return Result(State.success)
 
 
-def populate_home_dir(member: Member) -> Result[None]:
+def populate_home_dir(member: Member) -> Result[Unset]:
     """
     Copy the contents of ``/etc/skel`` to a new user's home directory.
 
@@ -206,7 +206,7 @@ def populate_home_dir(member: Member) -> Result[None]:
     return Result(State.success)
 
 
-def link_soc_home_dir(member: Member, society: Society) -> Result[None]:
+def link_soc_home_dir(member: Member, society: Society) -> Result[Unset]:
     """
     Add or remove a user's society symlink based on their admin membership.
     """
@@ -254,7 +254,7 @@ def set_home_exim_acl(owner: Owner) -> Collect[None]:
     yield unix.set_nfs_acl(path, "Debian-exim@srcf.net", "RX")
 
 
-def create_forwarding_file(owner: Owner) -> Result[None]:
+def create_forwarding_file(owner: Owner) -> Result[Unset]:
     """
     Write a default ``.forward`` file matching the user's external email address.
     """
@@ -269,7 +269,7 @@ def create_forwarding_file(owner: Owner) -> Result[None]:
     return Result(State.created)
 
 
-def create_legacy_mailbox(member: Member) -> Result[None]:
+def create_legacy_mailbox(member: Member) -> Result[Unset]:
     if os.path.exists(os.path.join("/home", member.crsid, "mbox")):
         return Result(State.unchanged)
     send((member.name, "real-{}@srcf.net".format(member.crsid)),
@@ -277,7 +277,7 @@ def create_legacy_mailbox(member: Member) -> Result[None]:
     return Result(State.created)
 
 
-def update_quotas() -> Result[None]:
+def update_quotas() -> Result[Unset]:
     """
     Apply quotas from member and society limits to the filesystem.
     """
@@ -363,7 +363,7 @@ def add_custom_domain(sess: SQLASession, owner: Owner, name: str,
     return Result(state, domain)
 
 
-def remove_custom_domain(sess: SQLASession, owner: Owner, name: str) -> Result[None]:
+def remove_custom_domain(sess: SQLASession, owner: Owner, name: str) -> Result[Unset]:
     """
     Unassign a domain name from a member or society.
     """
@@ -396,7 +396,7 @@ def queue_https_cert(sess: SQLASession, domain: str) -> Result[HTTPSCert]:
 
 
 @require_host(hosts.WEB)
-def generate_apache_groups() -> Result[None]:
+def generate_apache_groups() -> Result[Unset]:
     """
     Synchronise the Apache groups file, providing ``srcfmembers`` and ``srcfusers`` groups.
     """
@@ -405,7 +405,7 @@ def generate_apache_groups() -> Result[None]:
     return Result(State.success)
 
 
-def queue_list_subscription(member: Member, *lists: str) -> Result[None]:
+def queue_list_subscription(member: Member, *lists: str) -> Result[Unset]:
     """
     Subscribe the user to one or more mailing lists.
     """
@@ -421,7 +421,7 @@ def queue_list_subscription(member: Member, *lists: str) -> Result[None]:
     return Result(State.success)
 
 
-def generate_sudoers() -> Result[None]:
+def generate_sudoers() -> Result[Unset]:
     """
     Update sudo permissions to allow admins to exdcute commands under their society accounts.
     """
@@ -430,7 +430,7 @@ def generate_sudoers() -> Result[None]:
     return Result(State.success)
 
 
-def export_members() -> Result[None]:
+def export_members() -> Result[Unset]:
     """
     Regenerate the legacy membership lists.
     """
@@ -440,7 +440,7 @@ def export_members() -> Result[None]:
 
 
 @require_host(hosts.USER)
-def update_nis(wait: bool = False) -> Result[None]:
+def update_nis(wait: bool = False) -> Result[Unset]:
     """
     Synchronise UNIX users and passwords over NIS.
 
@@ -455,7 +455,7 @@ def update_nis(wait: bool = False) -> Result[None]:
 
 
 @require_host(hosts.LIST)
-def configure_mailing_list(name: str) -> Result[None]:
+def configure_mailing_list(name: str) -> Result[Unset]:
     """
     Apply default options to a new mailing list, and create the necessary mail aliases.
     """
@@ -465,7 +465,7 @@ def configure_mailing_list(name: str) -> Result[None]:
 
 
 @require_host(hosts.LIST)
-def generate_mailman_aliases() -> Result[None]:
+def generate_mailman_aliases() -> Result[Unset]:
     """
     Refresh the Exim alias file for Mailman lists.
     """
@@ -513,7 +513,7 @@ def delete_society_files(society: Society) -> Collect[None]:
             yield Result(State.unchanged)
 
 
-def slay_user(owner: Owner) -> Result[None]:
+def slay_user(owner: Owner) -> Result[Unset]:
     """
     Kill all processes belonging to the given account.
     """

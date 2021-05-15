@@ -14,7 +14,7 @@ from typing import NewType, Optional, Set
 # single implementation in case it needs revising.  TODO: Move here as part of control migration.
 from srcf.controllib.utils import copytree_chown_chmod, nfs_aware_chown  # noqa: F401
 
-from .common import Collect, command, Password, require_host, Result, State
+from .common import Collect, command, Password, require_host, Result, State, Unset
 from . import hosts
 
 
@@ -82,7 +82,7 @@ def _create_user(username: str, uid: Optional[int] = None, system: bool = False,
 
 
 @require_host(hosts.USER)
-def enable_user(user: User, active: bool = True) -> Result[None]:
+def enable_user(user: User, active: bool = True) -> Result[Unset]:
     """
     Change the default shell for this user, using a no-login shell to disable, and bash to enable.
     """
@@ -100,7 +100,7 @@ def enable_user(user: User, active: bool = True) -> Result[None]:
 
 
 @require_host(hosts.USER)
-def set_real_name(user: User, real_name: str = "") -> Result[None]:
+def set_real_name(user: User, real_name: str = "") -> Result[Unset]:
     """
     Update a user's GECOS name field.
     """
@@ -123,7 +123,7 @@ def reset_password(user: User) -> Result[Password]:
     return Result(State.success, passwd)
 
 
-def rename_user(user: User, username: str) -> Result[None]:
+def rename_user(user: User, username: str) -> Result[Unset]:
     """
     Update the login name of an existing user.
     """
@@ -135,7 +135,7 @@ def rename_user(user: User, username: str) -> Result[None]:
 
 
 @require_host(hosts.USER)
-def set_home_dir(user: User, home: str) -> Result[None]:
+def set_home_dir(user: User, home: str) -> Result[Unset]:
     if user.pw_dir == home:
         return Result(State.unchanged)
     command(["/usr/bin/usermod", "--home", home, user.pw_name])
@@ -143,7 +143,7 @@ def set_home_dir(user: User, home: str) -> Result[None]:
     return Result(State.success)
 
 
-def create_home(user: User, path: str, world_read: bool = False) -> Result[None]:
+def create_home(user: User, path: str, world_read: bool = False) -> Result[Unset]:
     """
     Create an empty home directory owned by the given user.
     """
@@ -213,7 +213,7 @@ def _create_group(username: str, gid: Optional[int] = None, system: bool = False
 
 
 @require_host(hosts.USER)
-def add_to_group(user: User, group: Group) -> Result[None]:
+def add_to_group(user: User, group: Group) -> Result[Unset]:
     """
     Add a user to a secondary group.
     """
@@ -226,7 +226,7 @@ def add_to_group(user: User, group: Group) -> Result[None]:
 
 
 @require_host(hosts.USER)
-def remove_from_group(user: User, group: Group) -> Result[None]:
+def remove_from_group(user: User, group: Group) -> Result[Unset]:
     """
     Remove a user from a secondary group.
     """
@@ -238,7 +238,7 @@ def remove_from_group(user: User, group: Group) -> Result[None]:
     return Result(State.success)
 
 
-def rename_group(group: Group, username: str) -> Result[None]:
+def rename_group(group: Group, username: str) -> Result[Unset]:
     """
     Update the name of an existing group.
     """
@@ -295,7 +295,7 @@ def get_nfs_acl(path: str, user: str) -> str:
     return "".join(sorted(allowed - denied))
 
 
-def set_nfs_acl(path: str, user: str, perms: str) -> Result[None]:
+def set_nfs_acl(path: str, user: str, perms: str) -> Result[Unset]:
     """
     Add an access control entry for the user's rights to interact with the given file or directory.
     """
@@ -308,7 +308,7 @@ def set_nfs_acl(path: str, user: str, perms: str) -> Result[None]:
     return Result(State.success)
 
 
-def grant_netgroup(user: User, group: str) -> Result[None]:
+def grant_netgroup(user: User, group: str) -> Result[Unset]:
     """
     Grant netgroup privileges for a user account. 
     """

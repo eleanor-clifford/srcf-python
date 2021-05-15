@@ -32,6 +32,21 @@ Generic type for the return value of functions using `Result.collect`.
 """
 
 
+class Unset:
+    """
+    Constructor of generic default values for optional but nullable parameters.
+    """
+    
+    def __repr__(self):
+        return "UNSET"
+
+
+UNSET = Unset()
+"""
+Global generic default value.
+"""
+
+
 def owner_name(owner: Owner) -> str:
     """
     Return a `Member` CRSid, or a `Society` short name.
@@ -165,7 +180,7 @@ class Result(Generic[T]):
             return cls(state, value, parts, fn)
         return inner
 
-    def __init__(self, state: Optional[State] = None, value: Optional[T] = None,
+    def __init__(self, state: Optional[State] = None, value: Union[T, Unset] = UNSET,
                  parts: Iterable["Result[Any]"] = (), caller: Optional[Callable[..., Any]] = None):
         self._state = state
         self._value = value
@@ -213,7 +228,7 @@ class Result(Generic[T]):
 
         Accessing this attribute will raise `ValueError` if no value has been set.
         """
-        if self._value is None:
+        if isinstance(self._value, Unset):
             raise ValueError("No value set")
         return self._value
 
@@ -230,9 +245,12 @@ class Result(Generic[T]):
         return self
 
     def __repr__(self) -> str:
-        return "{}({}{}{})".format(self.__class__.__name__, self.state,
-                                   ", {!r}".format(self._value) if self._value else "",
-                                   ", <{} parts>".format(len(self.parts)) if self.parts else "")
+        params = [repr(self.state)]
+        if not isinstance(self._value, Unset):
+            params.append(repr(self._value))
+        if self.parts:
+            params.append("<{} parts>".format(len(self.parts)))
+        return "{}({})".format(self.__class__.__name__, ", ".join(repr(part) for part in params))
 
     def __str__(self) -> str:
         tree = "{}: {}{}".format(self.caller, self.state.name,

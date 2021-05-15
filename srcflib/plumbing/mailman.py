@@ -7,7 +7,7 @@ import os.path
 import re
 from typing import List, NewType, Optional
 
-from .common import Collect, command, Password, require_host, Result, State
+from .common import Collect, command, Password, require_host, Result, State, Unset
 from . import hosts
 
 
@@ -61,7 +61,7 @@ def _create_list(name: str, owner: str) -> Result[Password]:
 
 
 @require_host(hosts.LIST)
-def set_owner(mlist: MailList, *owners: str) -> Result[None]:
+def set_owner(mlist: MailList, *owners: str) -> Result[Unset]:
     """
     Overwrite the owners of a list.
     """
@@ -104,7 +104,7 @@ def ensure_list(name: str, owner: str) -> Collect[Optional[Password]]:
 
 
 @require_host(hosts.LIST)
-def remove_list(mlist: MailList, remove_archive: bool = False) -> Result[None]:
+def remove_list(mlist: MailList, remove_archive: bool = False) -> Result[Unset]:
     """
     Delete an existing mailing list, and optionally its message archives.
     """

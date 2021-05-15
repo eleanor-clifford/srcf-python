@@ -13,7 +13,7 @@ from pymysql.constants import ER
 from pymysql.cursors import Cursor
 from pymysql.err import DatabaseError
 
-from .common import Password, Result, State
+from .common import Password, Result, State, Unset
 
 
 LOG = logging.getLogger(__name__)
@@ -138,7 +138,7 @@ def reset_password(cursor: Cursor, name: str) -> Result[Password]:
     return Result(State.success, passwd)
 
 
-def drop_user(cursor: Cursor, name: str) -> Result[None]:
+def drop_user(cursor: Cursor, name: str) -> Result[Unset]:
     """
     Drop a MySQL user and all of its grants.
     """
@@ -156,7 +156,7 @@ def drop_user(cursor: Cursor, name: str) -> Result[None]:
         return Result(State.success)
 
 
-def grant_database(cursor: Cursor, user: str, db: str) -> Result[None]:
+def grant_database(cursor: Cursor, user: str, db: str) -> Result[Unset]:
     """
     Grant all permissions for the user to create, manage and delete this database.
     """
@@ -167,7 +167,7 @@ def grant_database(cursor: Cursor, user: str, db: str) -> Result[None]:
     return Result(State.success)
 
 
-def revoke_database(cursor: Cursor, user: str, db: str) -> Result[None]:
+def revoke_database(cursor: Cursor, user: str, db: str) -> Result[Unset]:
     """
     Remove any permissions for the user to create, manage and delete this database.
     """
@@ -185,7 +185,7 @@ def revoke_database(cursor: Cursor, user: str, db: str) -> Result[None]:
         return Result(State.success)
 
 
-def create_database(cursor: Cursor, name: str) -> Result[None]:
+def create_database(cursor: Cursor, name: str) -> Result[Unset]:
     """
     Create a MySQL database.  No permissions are granted.
     """
@@ -201,7 +201,7 @@ def create_database(cursor: Cursor, name: str) -> Result[None]:
         return Result(State.created)
 
 
-def drop_database(cursor: Cursor, name: str) -> Result[None]:
+def drop_database(cursor: Cursor, name: str) -> Result[Unset]:
     """
     Drop a MySQL database and all of its tables.
     """
