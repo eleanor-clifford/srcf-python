@@ -33,6 +33,7 @@ def create_member(crsid: str, preferred_name: str, surname: str, email: str,
                                            real_name=member.name)
     new_user = res_user.state == State.created
     user = res_user.value
+    yield unix.ensure_group(crsid, gid=member.gid, system=True)
     if new_user or new_passwd:
         res_passwd = yield from unix.reset_password(user)
         passwd = res_passwd.value

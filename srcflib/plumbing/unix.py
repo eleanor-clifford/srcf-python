@@ -56,7 +56,8 @@ def _create_user(username: str, uid: Optional[int] = None, system: bool = False,
         pass
     else:
         raise ValueError("Username {!r} is already in use".format(username))
-    args = ["/usr/sbin/adduser", "--disabled-password", "--no-create-home", username]
+    shell = "/bin/bash" if active else _NOLOGIN_SHELLS[0]
+    args = ["/usr/sbin/adduser", "--disabled-password", "--no-create-home", "--shell", shell, username]
     if uid:
         try:
             user = pwd.getpwuid(uid)
@@ -67,13 +68,11 @@ def _create_user(username: str, uid: Optional[int] = None, system: bool = False,
             raise ValueError("UID {} is already in use by {!r}".format(uid, user.pw_name))
     if system:
         # Don't auto-create home directory as it will clone from /etc/skel.
-        args[-1:-1] = ["--system", "--no-create-home"]
-    if not active:
-        args[-1:-1] = ["--shell", _NOLOGIN_SHELLS[0]]
+        args[-2:-2] = ["--system"]
     if home_dir:
-        args[-1:-1] = ["--home", home_dir]
+        args[-2:-2] = ["--home", home_dir]
     if real_name:
-        args[-1:-1] = ["--gecos", real_name]
+        args[-2:-2] = ["--gecos", real_name]
     command(args)
     user = get_user(username)
     LOG.debug("Created UNIX user: %r", user)
