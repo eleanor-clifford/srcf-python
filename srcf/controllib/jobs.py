@@ -307,10 +307,6 @@ class Signup(Job):
     def run(self, sess):
         crsid = self.crsid
 
-        self.log("Sanity check for an existing account for {0}".format(crsid))
-        if queries.list_members().get(crsid):
-            raise JobFailed(crsid + " is already a user")
-
         srcflib_call(self, "Create member", membership.create_member,
                      crsid, self.preferred_name, self.surname, self.email, self.mail_handler, social=self.social)
 
