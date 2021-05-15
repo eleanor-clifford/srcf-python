@@ -15,7 +15,7 @@ The following Jinja2 filters are available to templates:
 from enum import Enum
 import logging
 import os.path
-from typing import Optional, Tuple, Union
+from typing import Any, Mapping, Optional, Tuple, Union
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -62,6 +62,15 @@ class Layout(Enum):
     """
 
 
+def _make_recipient(target: Recipient) -> Tuple[Optional[str], str]:
+    if isinstance(target, (Member, Society)):
+        return (owner_desc(target, True), target.email)
+    elif isinstance(target, str):
+        return (None, target)
+    else:
+        return target
+
+
 class EmailWrapper:
     """
     Context manager for email sending, used to augment emails with additional metadata.
@@ -72,7 +81,7 @@ class EmailWrapper:
         self._footer = footer
 
     def render(self, template: str, layout: Layout, target: Optional[Owner],
-               extra_context: Optional[dict] = None) -> str:
+               extra_context: Optional[Mapping[str, Any]] = None) -> str:
         """
         Render an email template with Jinja using the provided context.
         """
@@ -84,6 +93,18 @@ class EmailWrapper:
         if layout == Layout.subject:
             out = " ".join(out.split())
         return out
+
+    def send(self, target: Recipient, template: str, context: Optional[Mapping[str, Any]] = None,
+             session: Optional[SQLASession] = None):
+        """
+        Render and send an email to the target member or society, or a specific email address.
+        """
+        owner = target if isinstance(target, (Member, Society)) else None
+        subject = self.render(template, Layout.subject, owner, context)
+        body = self.render(template, Layout.body, owner, context)
+        recipient = _make_recipient(target)
+        LOG.debug("Sending email %r to %s", template, recipient)
+        send_mail(recipient, subject, body, copy_sysadmins=False, session=session)
 
     def __enter__(self):
         global CURRENT_WRAPPER
@@ -99,23 +120,21 @@ class EmailWrapper:
 DEFAULT_WRAPPER = EmailWrapper()
 
 
-def _make_recipient(target: Recipient) -> Tuple[Optional[str], str]:
-    if isinstance(target, (Member, Society)):
-        return (owner_desc(target, True), target.email)
-    elif isinstance(target, str):
-        return (None, target)
-    else:
-        return target
-
-
-def send(target: Recipient, template: str, context: dict = None, session: SQLASession = None):
+class SuppressEmails(EmailWrapper):
     """
-    Render and send an email to the target member or society, or a specific email address.
+    When being used as a context, no emails will be sent by tasks.
+    """
+
+    def send(self, target: Recipient, template: str, context: Optional[Mapping[str, Any]] = None,
+             session: Optional[SQLASession] = None):
+        recipient = _make_recipient(target)
+        LOG.debug("Suppressing email %r to %r", template, recipient)
+
+
+def send(target: Recipient, template: str, context: Optional[Mapping[str, Any]] = None,
+         session: Optional[SQLASession] = None):
+    """
+    Render and send an email using the currently-enabled email wrapper -- see `EmailWrapper.send`.
     """
     wrapper = CURRENT_WRAPPER or DEFAULT_WRAPPER
-    owner = target if isinstance(target, (Member, Society)) else None
-    subject = wrapper.render(template, Layout.subject, owner, context)
-    body = wrapper.render(template, Layout.body, owner, context)
-    recipient = _make_recipient(target)
-    LOG.debug("Sending email %r to %s", template, recipient)
-    send_mail(recipient, subject, body, copy_sysadmins=False, session=session)
+    wrapper.send(target, template, context, session)
