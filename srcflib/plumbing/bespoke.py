@@ -272,7 +272,8 @@ def create_forwarding_file(owner: Owner) -> Result[None]:
 def create_legacy_mailbox(member: Member) -> Result[None]:
     if os.path.exists(os.path.join("/home", member.crsid, "mbox")):
         return Result(State.unchanged)
-    send((member.name, "real-{}@srcf.net"), "plumbing/legacy_mailbox.j2")
+    send((member.name, "real-{}@srcf.net".format(member.crsid)),
+         "plumbing/legacy_mailbox.j2", {"target": member})
     return Result(State.created)
 
 

@@ -72,13 +72,14 @@ class EmailWrapper:
         self._footer = footer
 
     def render(self, template: str, layout: Layout, target: Optional[Owner],
-               context: Optional[dict] = None) -> str:
+               extra_context: Optional[dict] = None) -> str:
         """
         Render an email template with Jinja using the provided context.
         """
-        context = dict(context or ())
-        context.update({"layout": "/layouts/{}.j2".format(layout.name), "target": target,
-                        "prefix": self._prefix, "footer": self._footer})
+        context = {"layout": "/layouts/{}.j2".format(layout.name), "target": target,
+                   "prefix": self._prefix, "footer": self._footer}
+        if extra_context:
+            context.update(extra_context)
         out = ENV.get_template(template).render(context)
         if layout == Layout.subject:
             out = " ".join(out.split())
