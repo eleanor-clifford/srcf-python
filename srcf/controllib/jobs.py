@@ -9,16 +9,13 @@ from jinja2 import Environment, FileSystemLoader
 
 from srcf import database, pwgen
 from srcf.database import schema, queries, Job as db_Job
-from srcf.database.schema import Member, Society, Domain
+from srcf.database.schema import Member, MailHandler, Society, Domain
 from srcf.mail import send_mail
 
 from srcflib.tasks import mailman, membership, mysql, pgsql
 from srcflib.plumbing.mysql import context as mysql_context
 
 from . import utils
-
-
-DEFAULT_MAIL_HANDLER = "pip"
 
 
 emails = Environment(loader=FileSystemLoader(os.path.join(os.path.dirname(__file__), "emails")))
@@ -289,7 +286,7 @@ class Signup(Job):
         return self.crsid == crsid
 
     @classmethod
-    def new(cls, crsid, preferred_name, surname, email, social, mail_handler=DEFAULT_MAIL_HANDLER):
+    def new(cls, crsid, preferred_name, surname, email, social, mail_handler):
         args = {
             "crsid": crsid,
             "preferred_name": preferred_name,
@@ -304,7 +301,7 @@ class Signup(Job):
     preferred_name = property(lambda s: s.row.args["preferred_name"])
     surname = property(lambda s: s.row.args["surname"])
     email = property(lambda s: s.row.args["email"])
-    mail_handler = property(lambda s: s.row.args.get("mail_handler", DEFAULT_MAIL_HANDLER))
+    mail_handler = property(lambda s: MailHandler[s.row.args["mail_handler"]])
     social = property(lambda s: s.row.args["social"] == "y")
 
     def run(self, sess):
