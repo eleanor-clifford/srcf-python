@@ -54,8 +54,6 @@ def create_member(crsid: str, preferred_name: str, surname: str, email: str,
         yield bespoke.queue_list_subscription(member, "maintenance")
         if social:
             yield bespoke.queue_list_subscription(member, "social")
-    if res_web:
-        yield bespoke.generate_apache_groups()
     if res_record:
         yield bespoke.export_members()
     if new_user:
@@ -185,8 +183,6 @@ def create_society(name: str, description: str, admins: Set[str],
     with bespoke.context() as sess:
         res_admins = yield _sync_society_admins(sess, society, admins)
     res_web = yield bespoke.enable_website(society)
-    if res_web:
-        yield bespoke.generate_apache_groups()
     if res_admins:
         yield bespoke.generate_sudoers()
     if res_record:
