@@ -245,16 +245,17 @@ class Result(Generic[T]):
         return self
 
     def __repr__(self) -> str:
-        params = [repr(self.state)]
+        params = [str(self.state)]
         if not isinstance(self._value, Unset):
             params.append(repr(self._value))
         if self.parts:
             params.append("<{} parts>".format(len(self.parts)))
-        return "{}({})".format(self.__class__.__name__, ", ".join(repr(part) for part in params))
+        return "{}({})".format(self.__class__.__name__, ", ".join(params))
 
     def __str__(self) -> str:
-        tree = "{}: {}{}".format(self.caller, self.state.name,
-                                 " {!r}".format(self._value) if self._value else "")
+        tree = "{}: {}".format(self.caller, self.state.name)
+        if not isinstance(self._value, Unset):
+            tree = "{} {!r}".format(tree, self._value)
         if self.parts:
             for result in self.parts:
                 tree += "\n    {}".format(str(result).replace("\n", "\n    "))
