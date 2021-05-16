@@ -97,7 +97,7 @@ def _update_member(sess: SQLASession, member: Member, preferred_name: str, surna
     return Result(State.success)
 
 
-@Result.collect
+@Result.collect_value
 def ensure_member(sess: SQLASession, crsid: str, preferred_name: str, surname: str, email: str,
                   mail_handler: MailHandler = MailHandler.forward, is_member: bool = True,
                   is_user: bool = True) -> Collect[Member]:
@@ -149,7 +149,7 @@ def delete_society(sess: SQLASession, society: Society) -> Result[Unset]:
     return Result(State.success)
 
 
-@Result.collect
+@Result.collect_value
 def ensure_society(sess: SQLASession, name: str, description: str,
                    role_email: Optional[str] = None) -> Collect[Society]:
     """

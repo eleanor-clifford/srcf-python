@@ -37,6 +37,9 @@ class Unset:
     Constructor of generic default values for optional but nullable parameters.
     """
     
+    def __bool__(self):
+        return False
+    
     def __repr__(self):
         return "UNSET"
 
@@ -145,7 +148,7 @@ class Result(Generic[T]):
     """
 
     @classmethod
-    def collect(cls, fn: Callable[..., Collect[T]]) -> Callable[..., "Result[T]"]:
+    def collect_value(cls, fn: Callable[..., Collect[T]]) -> Callable[..., "Result[T]"]:
         """
         Decorator: build a `Result` from multiple sub-tasks:
 
@@ -168,7 +171,7 @@ class Result(Generic[T]):
         @wraps(fn)
         def inner(*args: Any, **kwargs: Any) -> Result[T]:
             state = None
-            value = None
+            value = UNSET
             parts: List[Result[Any]] = []
             gen = fn(*args, **kwargs)
             try:
@@ -178,6 +181,19 @@ class Result(Generic[T]):
             except StopIteration as ex:
                 value = ex.value
             return cls(state, value, parts, fn)
+        return inner
+
+    @classmethod
+    def collect(cls, fn: Callable[..., Collect[None]]) -> Callable[..., "Result[Unset]"]:
+        """
+        Decorator: variant of `Result.collect_value` with no return value parsing, producing
+        results with unset values.
+        
+        Note that the inner function's return type should be `Collect[None]`, not `Collect[Unset]`.
+        """
+        @wraps(fn)
+        def inner(*args: Any, **kwargs: Any) -> "Result[Unset]":
+            return Result(parts=fn(*args, **kwargs), caller=fn)
         return inner
 
     def __init__(self, state: Optional[State] = None, value: Union[T, Unset] = UNSET,

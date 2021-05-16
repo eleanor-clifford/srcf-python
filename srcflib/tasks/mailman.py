@@ -26,7 +26,7 @@ def get_list_suffixes(owner: Owner) -> List[Optional[str]]:
     return [name.split("-", 1)[1] if "-" in name else None for name in lists]
 
 
-@Result.collect
+@Result.collect_value
 def create_list(owner: Owner, suffix: Optional[str] = None) -> Collect[Tuple[str, Optional[Password]]]:
     """
     Create a new mailing list for a user or society.
@@ -44,7 +44,7 @@ def create_list(owner: Owner, suffix: Optional[str] = None) -> Collect[Tuple[str
     return (name, res_create.value)
 
 
-@Result.collect
+@Result.collect_value
 def reset_owner_password(owner: Owner, suffix: Optional[str] = None) -> Collect[Password]:
     """
     Reset a list's owner to match its name, and generate a new admin password.

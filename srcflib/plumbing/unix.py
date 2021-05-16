@@ -163,7 +163,7 @@ def create_home(user: User, path: str, world_read: bool = False) -> Result[Unset
     return Result(state)
 
 
-@Result.collect
+@Result.collect_value
 def ensure_user(username: str, uid: Optional[int] = None, system: bool = False,
                 active: bool = True, home_dir: Optional[str] = None,
                 real_name: str = "") -> Collect[User]:
@@ -249,7 +249,7 @@ def rename_group(group: Group, username: str) -> Result[Unset]:
     return Result(State.success)
 
 
-@Result.collect
+@Result.collect_value
 def ensure_group(username: str, gid: Optional[int] = None, system: bool = False) -> Collect[Group]:
     """
     Create a new or retrieve an existing group.

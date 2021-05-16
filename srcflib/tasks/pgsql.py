@@ -46,7 +46,7 @@ def get_owned_databases(cursor: Cursor, owner: Owner) -> List[str]:
         return pgsql.get_role_databases(cursor, role)
 
 
-@Result.collect
+@Result.collect_value
 def new_account(cursor: Cursor, owner: Owner) -> Collect[Optional[Password]]:
     """
     Create a PostgreSQL user account for a given member or society.
@@ -135,7 +135,7 @@ def drop_account(cursor: Cursor, owner: Owner) -> Result[Unset]:
     return pgsql.drop_user(cursor, owner_name(owner))
 
 
-@Result.collect
+@Result.collect_value
 def create_database(cursor: Cursor, owner: Owner, name: Optional[str] = None) -> Collect[str]:
     """
     Create a new PostgreSQL database for the owner, defaulting to one matching their username.
@@ -146,7 +146,7 @@ def create_database(cursor: Cursor, owner: Owner, name: Optional[str] = None) ->
     return name
 
 
-@Result.collect
+@Result.collect_value
 def drop_database(cursor: Cursor, target: Union[Owner, str]) -> Collect[str]:
     """
     Drop the named, or owner-named, PostgreSQL database.
@@ -165,7 +165,7 @@ def drop_all_databases(cursor: Cursor, owner: Owner) -> Collect[None]:
         yield pgsql.drop_database(cursor, database)
 
 
-@Result.collect
+@Result.collect_value
 def create_account(cursor: Cursor, owner: Owner) -> Collect[Tuple[Optional[Password], str]]:
     """
     Create a PostgreSQL user account and initial database for a member or society.

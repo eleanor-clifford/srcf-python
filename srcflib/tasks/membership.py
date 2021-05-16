@@ -16,7 +16,7 @@ from ..plumbing.common import Collect, Password, Result, State, Unset
 from . import mailman, mysql, pgsql
 
 
-@Result.collect
+@Result.collect_value
 def create_member(crsid: str, preferred_name: str, surname: str, email: str,
                   mail_handler: MailHandler, is_member: bool = True,
                   is_user: bool = True, social: bool = False,
@@ -61,7 +61,7 @@ def create_member(crsid: str, preferred_name: str, surname: str, email: str,
     return (member, passwd)
 
 
-@Result.collect
+@Result.collect_value
 def create_sysadmin(member: Member, new_passwd: bool = False) -> Collect[Optional[Password]]:
     """
     Create an administrative account for an existing member.
@@ -91,7 +91,7 @@ def create_sysadmin(member: Member, new_passwd: bool = False) -> Collect[Optiona
     return passwd
 
 
-@Result.collect
+@Result.collect_value
 def reset_password(member: Member) -> Collect[Password]:
     """
     Reset the password of a member's shell account.
@@ -104,7 +104,7 @@ def reset_password(member: Member) -> Collect[Password]:
     return passwd
 
 
-@Result.collect
+@Result.collect_value
 def update_member_name(member: Member, preferred_name: str, surname: str) -> Collect[Member]:
     """
     Update a member's registered name.
@@ -159,7 +159,7 @@ def _sync_society_admins(sess: SQLASession, society: Society, admins: Set[str]) 
         yield pgsql.sync_society_roles(cursor, society)
 
 
-@Result.collect
+@Result.collect_value
 def create_society(name: str, description: str, admins: Set[str],
                    role_email: Optional[str] = None) -> Collect[Society]:
     """
@@ -280,7 +280,7 @@ def delete_society(society: Society) -> Collect[None]:
     yield bespoke.export_members()
 
 
-@Result.collect
+@Result.collect_value
 def update_society_description(society: Society, description: str) -> Collect[Society]:
     """
     Update a society's description ('full name').

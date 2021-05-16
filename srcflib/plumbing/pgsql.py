@@ -177,7 +177,7 @@ def revoke_role(cursor: Cursor, name: str, role: Role) -> Result[Unset]:
     return Result(State.success)
 
 
-@Result.collect
+@Result.collect_value
 def ensure_user(cursor: Cursor, name: str) -> Collect[Optional[Password]]:
     """
     Create a new PostgreSQL user if it doesn't yet exist, or enable a currently disabled role.

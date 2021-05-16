@@ -89,7 +89,7 @@ def reset_password(mlist: MailList) -> Result[Password]:
         raise ValueError("Couldn't find password in output")
 
 
-@Result.collect
+@Result.collect_value
 def ensure_list(name: str, owner: str) -> Collect[Optional[Password]]:
     """
     Create a new mailing list, or ensure the owner of an existing list is set.

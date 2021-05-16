@@ -47,7 +47,7 @@ def get_owned_databases(cursor: Cursor, owner: Owner) -> List[str]:
             mysql.get_matched_databases(cursor, _database_name(owner, "%")))
 
 
-@Result.collect
+@Result.collect_value
 def new_account(cursor: Cursor, owner: Owner) -> Collect[Optional[Password]]:
     """
     Create a MySQL user account for a given member or society.
@@ -157,7 +157,7 @@ def drop_account(cursor: Cursor, owner: Owner) -> Collect[None]:
     yield mysql.drop_user(cursor, user)
 
 
-@Result.collect
+@Result.collect_value
 def create_database(cursor: Cursor, owner: Owner, suffix: Optional[str] = None) -> Collect[str]:
     """
     Create a new MySQL database for the owner, either the primary name or a suffixed alternative.
@@ -167,7 +167,7 @@ def create_database(cursor: Cursor, owner: Owner, suffix: Optional[str] = None) 
     return name
 
 
-@Result.collect
+@Result.collect_value
 def drop_database(cursor: Cursor, owner: Owner, suffix: Optional[str] = None) -> Collect[str]:
     """
     Drop either the primary or a suffixed secondary MySQL database belonging to the owner.
@@ -186,7 +186,7 @@ def drop_all_databases(cursor: Cursor, owner: Owner) -> Collect[None]:
         yield mysql.drop_database(cursor, database)
 
 
-@Result.collect
+@Result.collect_value
 def create_account(cursor: Cursor, owner: Owner) -> Collect[Tuple[Optional[Password], str]]:
     """
     Create a MySQL user account and initial database for a member or society.
