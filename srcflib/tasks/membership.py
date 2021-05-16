@@ -288,7 +288,6 @@ def update_society_description(society: Society, description: str) -> Collect[So
     with bespoke.context() as sess:
         res_record = yield from bespoke.ensure_society(sess=sess, name=society.society,
                                                        description=description,
-                                                       admins=society.admin_crsids,
                                                        role_email=society.role_email)
         society = res_record.value
     user = unix.get_user(society.society)
