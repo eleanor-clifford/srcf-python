@@ -101,6 +101,7 @@ def ensure_list(name: str, owner: str) -> Collect[Optional[Password]]:
         return res_create.value
     else:
         yield set_owner(mlist, owner)
+        return None
 
 
 @require_host(hosts.LIST)

@@ -116,13 +116,13 @@ def ensure_user(cursor: Cursor, name: str) -> Result[Optional[Password]]:
     Create a MySQL user with a random password, if a user with that name doesn't already exist.
     """
     if get_users(cursor, name):
-        return Result(State.unchanged)
+        return Result(State.unchanged, None)
     passwd = Password.new()
     try:
         query(cursor, "CREATE USER %s@%s IDENTIFIED BY %s", name, HOST, passwd)
     except DatabaseError as ex:
         if ex.args[0] == ER.CANNOT_USER:
-            return Result(State.unchanged)
+            return Result(State.unchanged, None)
         else:
             raise
     return Result(State.created, passwd)
