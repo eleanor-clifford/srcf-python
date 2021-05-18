@@ -51,6 +51,7 @@ def entrypoint(fn: Callable[..., Any]) -> Callable[..., Any]:
             opts = docopt(doc)
         # Detect resolvable-typed arguments and fill in their values.
         sig = signature(fn)
+        ok = True
         for param in islice(sig.parameters.values(), 1, None):
             name = param.name
             cls = param.annotation
@@ -68,8 +69,12 @@ def entrypoint(fn: Callable[..., Any]) -> Callable[..., Any]:
                 else:
                     raise RuntimeError("Bad parameter {!r} type {!r}".format(name, cls))
             except KeyError:
+                ok = False
                 error("{!r} is not valid for parameter {!r}".format(value, name), colour="1")
-        return fn(opts, **extra)
+        if ok:
+            return fn(opts, **extra)
+        else:
+            sys.exit(1)
     wrap.__doc__ = wrap.__doc__.format(script=fn.__name__)
     # Create a console script line for setup.
     target = "{}:{}".format(fn.__module__, fn.__qualname__)

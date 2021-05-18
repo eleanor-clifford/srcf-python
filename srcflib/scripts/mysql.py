@@ -29,7 +29,7 @@ def create(opts: DocOptArgs, owner: Owner):
         if database:
             print("Created default database {!r}".format(database))
         if suffix:
-            result = mysql.create_database(owner, suffix)
+            result = mysql.create_database(cursor, owner, suffix)
             if result:
                 print("Created database {!r}".format(result.value))
 
