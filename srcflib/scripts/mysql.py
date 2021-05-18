@@ -35,6 +35,20 @@ def create(opts: DocOptArgs, owner: Owner):
 
 
 @entrypoint
+def passwd(opts: DocOptArgs, owner: Owner):
+    """
+    Reset a MySQL user's password.
+
+    Usage: {script} OWNER
+    """
+    name = mysql._user_name(owner)
+    confirm("Reset {}'s password?".format(name))
+    with mysql.context() as cursor:
+        mysql.reset_password(cursor, owner)
+        print("Password changed")
+
+
+@entrypoint
 def drop(opts: DocOptArgs, owner: Owner):
     """
     Drop a MySQL user and all their databases.

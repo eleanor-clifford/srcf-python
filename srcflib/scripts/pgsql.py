@@ -43,6 +43,20 @@ def create(opts: DocOptArgs, owner: Owner):
 
 
 @entrypoint
+def passwd(opts: DocOptArgs, owner: Owner):
+    """
+    Reset a PostgreSQL user's password.
+
+    Usage: {script} OWNER
+    """
+    name = owner_name(owner)
+    confirm("Reset {}'s password?".format(name))
+    with pgsql.context() as cursor:
+        pgsql.reset_password(cursor, owner)
+        print("Password changed")
+
+
+@entrypoint
 def drop(opts: DocOptArgs, owner: Owner):
     """
     Drop a PostgreSQL user and all their databases.

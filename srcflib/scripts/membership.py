@@ -9,6 +9,18 @@ from ..tasks import membership
 
 
 @entrypoint
+def passwd(opts: DocOptArgs, member: Member):
+    """
+    Reset a user's SRCF password.
+
+    Usage: {script} MEMBER
+    """
+    confirm("Reset {}'s password?".format(member.crsid))
+    membership.reset_password(member)
+    print("Password changed")
+
+
+@entrypoint
 def grant(opts: DocOptArgs, member: Member, society: Society):
     """
     Add a member to a society account's admins.
@@ -19,6 +31,7 @@ def grant(opts: DocOptArgs, member: Member, society: Society):
         error("Warning: {} is already an admin of {}".format(member.crsid, society.society))
     confirm("Add {} to {}?".format(member.name, society.description))
     membership.add_society_admin(member, society)
+
 
 @entrypoint
 def revoke(opts: DocOptArgs, member: Member, society: Society):
