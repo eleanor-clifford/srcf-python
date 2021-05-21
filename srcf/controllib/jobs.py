@@ -71,7 +71,6 @@ def srcflib_call(job, desc, meth, *args, **kwargs):
     job.log(desc)
     result = meth(*args, **kwargs)
     job.log(desc, "output", raw=str(result))
-    return result.value
 
 
 def make_public_dir(job, root, user, dirname, uid, gid):
