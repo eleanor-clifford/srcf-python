@@ -34,11 +34,10 @@ def create_member(crsid: str, preferred_name: str, surname: str, email: str,
     new_user = res_user.state == State.created
     user = res_user.value
     yield unix.ensure_group(crsid, gid=member.gid, system=True)
+    passwd = None
     if new_user or new_passwd:
         res_passwd = yield from unix.reset_password(user)
         passwd = res_passwd.value
-    else:
-        passwd = None
     if res_user or passwd:
         yield bespoke.update_nis(new_user)
     yield unix.create_home(user, os.path.join("/public/home", crsid), True)
@@ -56,7 +55,7 @@ def create_member(crsid: str, preferred_name: str, surname: str, email: str,
             yield bespoke.queue_list_subscription(member, "social")
     if res_record:
         yield bespoke.export_members()
-    if new_user:
+    if passwd:
         send(member, "/tasks/member_create.j2", {"password": passwd})
     return (member, passwd)
 
