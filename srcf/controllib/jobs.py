@@ -373,14 +373,7 @@ class ResetUserPassword(Job):
         return cls.create(member, {}, require_approval)
 
     def run(self, sess):
-        crsid = self.owner.crsid
-        password = make_pwd()
-
-        subproc_call(self, "Change UNIX password for {0}".format(crsid), ["/usr/sbin/chpasswd"], (crsid + ":" + password).encode("utf-8"))
-        update_nis(self)
-
-        self.log("Send new password")
-        mail_users(self.owner, "Password reset", "srcf-password", password=password)
+        srcflib_call(self, "Reset password", membership.reset_password, self.owner)
 
     def __repr__(self): return "<ResetUserPassword {0.owner_crsid}>".format(self)
     def __str__(self): return "Reset user password: {0.owner.crsid} ({0.owner.name})".format(self)
