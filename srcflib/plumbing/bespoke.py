@@ -272,9 +272,9 @@ def create_forwarding_file(owner: Owner) -> Result[Unset]:
 def create_legacy_mailbox(member: Member) -> Result[Unset]:
     if os.path.exists(os.path.join("/home", member.crsid, "mbox")):
         return Result(State.unchanged)
-    send((member.name, "real-{}@srcf.net".format(member.crsid)),
+    res_send = send((member.name, "real-{}@srcf.net".format(member.crsid)),
          "plumbing/legacy_mailbox.j2", {"target": member})
-    return Result(State.created)
+    return Result(State.created, parts=(res_send,))
 
 
 def update_quotas() -> Result[Unset]:

@@ -56,7 +56,7 @@ def create_member(crsid: str, preferred_name: str, surname: str, email: str,
     if res_record:
         yield bespoke.export_members()
     if passwd:
-        send(member, "/tasks/member_create.j2", {"password": passwd})
+        yield send(member, "/tasks/member_create.j2", {"password": passwd})
     return (member, passwd)
 
 
@@ -99,7 +99,7 @@ def reset_password(member: Member) -> Collect[Password]:
     res_passwd = yield from unix.reset_password(user)
     passwd = res_passwd.value
     yield from bespoke.update_nis()
-    send(member, "/tasks/member_password.j2", {"password": passwd})
+    yield send(member, "/tasks/member_password.j2", {"password": passwd})
     return passwd
 
 
@@ -121,7 +121,7 @@ def update_member_name(member: Member, preferred_name: str, surname: str) -> Col
     res_name = yield from unix.set_real_name(user, member.name)
     if res_name:
         yield bespoke.update_nis()
-        send(member, "tasks/member_rename.j2")
+        yield send(member, "tasks/member_rename.j2")
     return member
 
 
@@ -186,7 +186,7 @@ def create_society(name: str, description: str, admins: Set[str],
     if res_record:
         yield bespoke.export_members()
     if new_user:
-        send(society, "tasks/society_create.j2")
+        yield send(society, "tasks/society_create.j2")
     return society
 
 
@@ -208,9 +208,9 @@ def add_society_admin(member: Member, society: Society) -> Collect[None]:
     if res_add:
         # Temporarily remove the new admin when emailing the short notification.
         society.admins.remove(member)
-        send(society, "tasks/society_admin_add.j2", {"member": member})
+        yield send(society, "tasks/society_admin_add.j2", {"member": member})
         society.admins.add(member)
-        send(member, "tasks/society_admin_join.j2", {"society": society})
+        yield send(member, "tasks/society_admin_join.j2", {"society": society})
 
 
 @Result.collect
@@ -229,8 +229,8 @@ def remove_society_admin(member: Member, society: Society) -> Collect[None]:
     with pgsql.context() as cursor:
         yield pgsql.sync_society_roles(cursor, society)
     if res_remove:
-        send(society, "tasks/society_admin_remove.j2", {"member": member})
-        send(member, "tasks/society_admin_leave.j2", {"society": society})
+        yield send(society, "tasks/society_admin_remove.j2", {"member": member})
+        yield send(member, "tasks/society_admin_leave.j2", {"society": society})
 
 
 def _scrub_society_user(society: Society) -> Result[Unset]:
@@ -293,5 +293,5 @@ def update_society_description(society: Society, description: str) -> Collect[So
     res_name = yield from unix.set_real_name(user, society.description)
     if res_name:
         yield bespoke.update_nis()
-        send(society, "tasks/society_rename.j2")
+        yield send(society, "tasks/society_rename.j2")
     return society

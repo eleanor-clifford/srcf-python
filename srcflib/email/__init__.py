@@ -24,7 +24,7 @@ from sqlalchemy.orm import Session as SQLASession
 from srcf.database import Member, Society
 from srcf.mail import send_mail
 
-from ..plumbing.common import Owner, owner_desc, owner_name, owner_website
+from ..plumbing.common import Owner, owner_desc, owner_name, owner_website, Result, State, Unset
 
 
 LOG = logging.getLogger(__name__)
@@ -95,7 +95,7 @@ class EmailWrapper:
         return out
 
     def send(self, target: Recipient, template: str, context: Optional[Mapping[str, Any]] = None,
-             session: Optional[SQLASession] = None):
+             session: Optional[SQLASession] = None) -> Result[Unset]:
         """
         Render and send an email to the target member or society, or a specific email address.
         """
@@ -105,6 +105,7 @@ class EmailWrapper:
         recipient = _make_recipient(target)
         LOG.debug("Sending email %r to %s", template, recipient)
         send_mail(recipient, subject, body, copy_sysadmins=False, session=session)
+        return Result(State.success)
 
     def __enter__(self):
         global CURRENT_WRAPPER
@@ -132,9 +133,9 @@ class SuppressEmails(EmailWrapper):
 
 
 def send(target: Recipient, template: str, context: Optional[Mapping[str, Any]] = None,
-         session: Optional[SQLASession] = None):
+         session: Optional[SQLASession] = None) -> Result[Unset]:
     """
     Render and send an email using the currently-enabled email wrapper -- see `EmailWrapper.send`.
     """
     wrapper = CURRENT_WRAPPER or DEFAULT_WRAPPER
-    wrapper.send(target, template, context, session)
+    return wrapper.send(target, template, context, session)

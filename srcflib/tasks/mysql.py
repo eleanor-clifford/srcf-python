@@ -128,14 +128,15 @@ def sync_society_roles(cursor: Cursor, society: Society) -> Collect[None]:
     yield from _sync_roles(cursor, current, needed)
 
 
-def reset_password(cursor: Cursor, owner: Owner) -> Result[Password]:
+@Result.collect_value
+def reset_password(cursor: Cursor, owner: Owner) -> Collect[Password]:
     """
     Reset the password of a member's or society's MySQL user account.
     """
-    result = mysql.reset_password(cursor, _user_name(owner))
-    send(owner, "tasks/mysql_password.j2", {"username": _user_name(owner),
-                                            "password": result.value})
-    return result
+    res_passwd = yield from mysql.reset_password(cursor, _user_name(owner))
+    yield send(owner, "tasks/mysql_password.j2", {"username": _user_name(owner),
+                                                  "password": res_passwd.value})
+    return res_passwd.value
 
 
 @Result.collect
@@ -194,7 +195,7 @@ def create_account(cursor: Cursor, owner: Owner) -> Collect[Tuple[Optional[Passw
     res_account = yield from new_account(cursor, owner)
     res_db = yield from create_database(cursor, owner)
     if res_account.state == State.created:
-        send(owner, "tasks/mysql_create.j2", {"username": _user_name(owner),
-                                              "password": res_account.value,
-                                              "database": res_db.value})
+        yield send(owner, "tasks/mysql_create.j2", {"username": _user_name(owner),
+                                                    "password": res_account.value,
+                                                    "database": res_db.value})
     return (res_account.value, res_db.value)
