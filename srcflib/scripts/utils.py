@@ -75,7 +75,7 @@ def entrypoint(fn: Callable[..., Any]) -> Callable[..., Any]:
             return fn(opts, **extra)
         else:
             sys.exit(1)
-    wrap.__doc__ = wrap.__doc__.format(script=fn.__name__)
+    wrap.__doc__ = wrap.__doc__.format(script=label)
     # Create a console script line for setup.
     target = "{}:{}".format(fn.__module__, fn.__qualname__)
     ENTRYPOINTS.append("{}={}".format(label, target))
