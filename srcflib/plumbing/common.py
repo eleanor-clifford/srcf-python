@@ -3,7 +3,7 @@ Shared helper methods and base classes.
 """
 
 from enum import Enum
-from functools import wraps
+from functools import total_ordering, wraps
 import inspect
 import logging
 import platform
@@ -102,6 +102,7 @@ def get_members(sess: SQLASession, *crsids: str) -> Set[Member]:
         return set(users)
 
 
+@total_ordering
 class State(Enum):
     """
     Enumeration used by `Result` to declare whether the action happened.
@@ -122,6 +123,9 @@ class State(Enum):
 
     def __bool__(self):
         return bool(self.value)
+    
+    def __lt__(self, other: "State"):
+        return self.value < other.value if isinstance(other, State) else NotImplemented
 
 
 class Result(Generic[T]):
@@ -225,11 +229,8 @@ class Result(Generic[T]):
         """
         if self._state:
             return self._state
-        elif any(self.parts):
-            if State.created in self.parts:
-                return State.created
-            else:
-                return State.success
+        elif self.parts:
+            return max(result.state for result in self.parts)
         else:
             return State.unchanged
 
