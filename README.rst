@@ -12,8 +12,11 @@ Local setup commands
     make venv
     make venv2  # directory suffixes also supported
 
-    # Generates HTML documentation (requires pdoc3):
+    # Generate HTML documentation (requires pdoc3):
     make docs
+
+    # Run all tests:
+    python3 -m unittest
 
     # Build bdist and wheel packages:
     make dist           # automatic versioning (revision count + timestamp)
