@@ -6,7 +6,7 @@ from functools import wraps
 from inspect import cleandoc, signature
 from itertools import islice
 import sys
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, cast, Dict, List, Optional, Union
 
 from docopt import docopt
 
@@ -56,15 +56,15 @@ def entrypoint(fn: Callable[..., Any]) -> Callable[..., Any]:
             name = param.name
             cls = param.annotation
             try:
-                value = opts[name.upper()]
+                value = cast(str, opts[name.upper()])
             except KeyError:
-                raise RuntimeError("Missing parameter {!r}".format(name))
+                raise RuntimeError("Missing argument {!r}".format(name))
             try:
-                if cls in (Member, "Member"):
+                if cls is Member:
                     extra[name] = get_member(value)
-                elif cls in (Society, "Society"):
+                elif cls is Society:
                     extra[name] = get_society(value)
-                elif cls in (Owner, "Owner"):
+                elif cls is Owner:
                     extra[name] = get_member_or_society(value)
                 else:
                     raise RuntimeError("Bad parameter {!r} type {!r}".format(name, cls))
