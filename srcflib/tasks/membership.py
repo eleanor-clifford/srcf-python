@@ -200,7 +200,7 @@ def add_society_admin(member: Member, society: Society) -> Collect[None]:
         member = get_member(member.crsid, sess)
         society = get_society(society.society, sess)
         group = unix.get_group(society.society)
-        res_add = yield _add_society_admin(sess, member, society, group)
+        res_add = yield from _add_society_admin(sess, member, society, group)
     with mysql.context() as cursor:
         yield mysql.sync_society_roles(cursor, society)
     with pgsql.context() as cursor:
@@ -223,7 +223,7 @@ def remove_society_admin(member: Member, society: Society) -> Collect[None]:
         member = get_member(member.crsid, sess)
         society = get_society(society.society, sess)
         group = unix.get_group(society.society)
-        res_remove = yield _remove_society_admin(sess, member, society, group)
+        res_remove = yield from _remove_society_admin(sess, member, society, group)
     with mysql.context() as cursor:
         yield mysql.sync_society_roles(cursor, society)
     with pgsql.context() as cursor:
