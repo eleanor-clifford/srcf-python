@@ -44,7 +44,7 @@ def get_group(username: str) -> Group:
 
 @require_host(hosts.USER)
 def _create_user(username: str, uid: Optional[int] = None, system: bool = False,
-                 active: bool = True, home_dir: Optional[str] = None,
+                 gid: Optional[int] = None, active: bool = True, home_dir: Optional[str] = None,
                  real_name: str = "") -> Result[User]:
     """
     Create a new user account.  System users are created with an empty home directory, whereas
@@ -62,13 +62,14 @@ def _create_user(username: str, uid: Optional[int] = None, system: bool = False,
         try:
             user = pwd.getpwuid(uid)
         except KeyError:
-            # Don't set --gid, this implies an existing group -- uid == gid by default.
             args[-1:-1] = ["--uid", str(uid)]
         else:
             raise ValueError("UID {} is already in use by {!r}".format(uid, user.pw_name))
     if system:
         # Don't auto-create home directory as it will clone from /etc/skel.
         args[-1:-1] = ["--system"]
+    if gid:
+        args[-1:-1] = ["--gid", str(gid)]
     if home_dir:
         args[-1:-1] = ["--home", home_dir]
     if real_name:
@@ -79,6 +80,21 @@ def _create_user(username: str, uid: Optional[int] = None, system: bool = False,
     if system and home_dir:
         create_home(user, home_dir)
     return Result(State.created, user)
+
+
+@require_host(hosts.USER)
+def set_default_group(user: User, gid: int):
+    """
+    Change the primary group for this user.
+    """
+    if user.pw_gid == gid:
+        return Result(State.unchanged)
+    try:
+        grp.getgrgid(gid)
+    except KeyError:
+        raise ValueError("No group with GID {!r} exists".format(gid))
+    command(["/usr/sbin/usermod", "--gid", str(gid), user.pw_name])
+    return Result(State.success)
 
 
 @require_host(hosts.USER)
@@ -165,7 +181,7 @@ def create_home(user: User, path: str, world_read: bool = False) -> Result[Unset
 
 @Result.collect_value
 def ensure_user(username: str, uid: Optional[int] = None, system: bool = False,
-                active: bool = True, home_dir: Optional[str] = None,
+                gid: Optional[int] = None, active: bool = True, home_dir: Optional[str] = None,
                 real_name: str = "") -> Collect[User]:
     """
     Create a new user account, or enable/disable an existing one.
@@ -178,6 +194,8 @@ def ensure_user(username: str, uid: Optional[int] = None, system: bool = False,
     else:
         if uid and user.pw_uid != uid:
             raise ValueError("User {!r} has UID {}, expected {}".format(username, user.pw_uid, uid))
+        if gid:
+            yield set_default_group(user, gid)
         yield enable_user(user, active)
         if home_dir:
             yield set_home_dir(user, home_dir)

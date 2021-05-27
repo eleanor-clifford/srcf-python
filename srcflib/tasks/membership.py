@@ -28,12 +28,12 @@ def create_member(crsid: str, preferred_name: str, surname: str, email: str,
         res_record = yield from bespoke.ensure_member(sess, crsid, preferred_name, surname, email,
                                                       mail_handler, is_member, is_user)
         member = res_record.value
-    res_user = yield from unix.ensure_user(crsid, uid=member.uid, system=True,
+    yield unix.ensure_group(crsid, gid=member.gid, system=True)
+    res_user = yield from unix.ensure_user(crsid, uid=member.uid, system=True, gid=member.gid,
                                            home_dir=os.path.join("/home", crsid),
                                            real_name=member.name)
     new_user = res_user.state == State.created
     user = res_user.value
-    yield unix.ensure_group(crsid, gid=member.gid, system=True)
     passwd = None
     if new_user or new_passwd:
         res_passwd = yield from unix.reset_password(user)
@@ -69,7 +69,9 @@ def create_sysadmin(member: Member, new_passwd: bool = False) -> Collect[Optiona
         raise ValueError("{!r} is not an active user")
     username = "{}-adm".format(member.crsid)
     real_name = "{} (Sysadmin Account)".format(member.name)
-    res_user = yield from unix.ensure_user(username, real_name=real_name)
+    res_group = yield from unix.ensure_group(username)
+    group = res_group.value
+    res_user = yield from unix.ensure_user(username, gid=group.gr_gid, real_name=real_name)
     new_user = res_user.state == State.created
     user = res_user.value
     if new_user or new_passwd:
@@ -167,12 +169,13 @@ def create_society(name: str, description: str, admins: Set[str],
     with bespoke.context() as sess:
         res_record = yield from bespoke.ensure_society(sess, name, description, role_email)
         society = res_record.value
-        res_user = yield from unix.ensure_user(name, uid=society.uid, system=True, active=False,
+        yield unix.ensure_group(name, gid=society.gid, system=True)
+        res_user = yield from unix.ensure_user(name, uid=society.uid, system=True,
+                                               gid=society.gid, active=False,
                                                home_dir=os.path.join("/societies", name),
                                                real_name=description)
         new_user = res_user.state == State.created
         user = res_user.value
-        yield unix.ensure_group(name, gid=society.gid, system=True)
         if res_user:
             yield bespoke.update_nis(res_user.state == State.created)
         yield unix.create_home(user, os.path.join("/public/societies", name), True)
