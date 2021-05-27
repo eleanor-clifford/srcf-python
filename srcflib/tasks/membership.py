@@ -43,6 +43,7 @@ def create_member(crsid: str, preferred_name: str, surname: str, email: str,
     yield unix.create_home(user, os.path.join("/public/home", crsid), True)
     yield bespoke.set_home_exim_acl(member)
     yield bespoke.populate_home_dir(member)
+    yield bespoke.create_public_html(member)
     if res_record:
         yield bespoke.update_quotas()
     if mail_handler == MailHandler.pip:
@@ -180,6 +181,7 @@ def create_society(name: str, description: str, admins: Set[str],
             yield bespoke.update_nis(res_user.state == State.created)
         yield unix.create_home(user, os.path.join("/public/societies", name), True)
         yield bespoke.set_home_exim_acl(society)
+        yield bespoke.create_public_html(society)
         res_admins = yield _sync_society_admins(sess, society, admins)
     if res_record:
         yield bespoke.update_quotas()

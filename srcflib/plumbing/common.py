@@ -6,6 +6,7 @@ from enum import Enum
 from functools import total_ordering, wraps
 import inspect
 import logging
+import os
 import platform
 import subprocess
 from typing import Any, Callable, Generator, Generic, Iterable, List, Optional, Set, TypeVar, Union
@@ -75,6 +76,21 @@ def owner_desc(owner: Owner, admins: bool = False) -> str:
             return owner.description
     else:
         raise TypeError(owner)
+
+
+def owner_home(owner: Owner, public: bool = False) -> str:
+    """
+    Return a `Member` or `Society` home directory path, either private or public.
+    """
+    if isinstance(owner, Member):
+        path = os.path.join("/home", owner.crsid)
+    elif isinstance(owner, Society):
+        path = os.path.join("/societies", owner.society)
+    else:
+        raise TypeError(owner)
+    if public:
+        path = "/public{}".format(path)
+    return path
 
 
 def owner_website(owner: Owner):

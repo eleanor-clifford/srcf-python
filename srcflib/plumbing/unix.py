@@ -28,6 +28,55 @@ Group = NewType("Group", grp.struct_group)
 _NOLOGIN_SHELLS = ("/bin/false", "/usr/sbin/nologin")
 
 
+def mkdir(target: str, user: User, mode: int = 0o2775) -> Result[Unset]:
+    """
+    Ensure a directory exists, owned by the given user and using the given mode on creation.
+    """
+    state = State.unchanged
+    try:
+        os.mkdir(target, mode)
+    except FileExistsError:
+        pass
+    else:
+        LOG.debug("Created directory: %r", target)
+        state = State.created
+    stat = os.stat(target)
+    if stat.st_uid != user.pw_uid or stat.st_gid != user.pw_gid:
+        nfs_aware_chown(target, user.pw_uid, user.pw_gid)
+        LOG.debug("Set directory user/group: %r %r", user, target)
+        state = state or State.success
+    return Result(state)
+
+
+def symlink(link: str, target: str, needed: bool = True):
+    """
+    Conditionally create or remove a symlink.
+    """
+    try:
+        current = os.readlink(link)
+    except OSError:
+        current = None
+    valid = current == target
+    state = State.unchanged
+    if valid == needed:
+        # Includes the case where the link isn't needed, but something other than the link exists
+        # where we're expecting one, in which case we leave it be.
+        pass
+    elif needed:
+        try:
+            os.symlink(target, link)
+        except FileExistsError:
+            LOG.warning("Not overwriting existing file %r", link)
+        else:
+            LOG.debug("Created symlink: %r", link)
+            state = State.success
+    else:
+        os.unlink(link)
+        LOG.debug("Deleted symlink: %r", link)
+        state = State.success
+    return Result(state)
+
+
 def get_user(username: str) -> User:
     """
     Look up an existing user by name.
@@ -159,24 +208,12 @@ def set_home_dir(user: User, home: str) -> Result[Unset]:
     return Result(State.success)
 
 
-def create_home(user: User, path: str, world_read: bool = False) -> Result[Unset]:
+@Result.collect
+def create_home(user: User, path: str, world_read: bool = False) -> Collect[None]:
     """
     Create an empty home directory owned by the given user.
     """
-    state = State.unchanged
-    try:
-        os.mkdir(path, 0o2775 if world_read else 0o2770)
-    except FileExistsError:
-        pass
-    else:
-        state = State.created
-        LOG.debug("Created UNIX user home directory: %r %r", user, path)
-    stat = os.stat(path)
-    if stat.st_uid != user.pw_uid or stat.st_gid != user.pw_gid:
-        nfs_aware_chown(path, user.pw_uid, user.pw_gid)
-        LOG.debug("Set UNIX home directory owner/group: %r %r", user, path)
-        state = state or State.success
-    return Result(state)
+    yield mkdir(path, user, 0o2775 if world_read else 0o2770)
 
 
 @Result.collect_value

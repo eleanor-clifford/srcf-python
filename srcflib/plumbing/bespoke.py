@@ -22,7 +22,8 @@ from srcf.database import Domain, HTTPSCert, MailHandler, Member, Session, Socie
 from srcf.database.queries import get_member, get_society
 from srcf.database.summarise import summarise_society
 
-from .common import Collect, command, Owner, owner_name, require_host, Result, State, Unset
+from .common import (Collect, command, Owner, owner_home, owner_name, require_host, Result, State,
+                     Unset)
 from .mailman import MailList
 from . import hosts, unix
 from ..email import send
@@ -197,51 +198,34 @@ def populate_home_dir(member: Member) -> Result[Unset]:
 
     This must be done before creating anything else in the directory.
     """
-    target = os.path.join("/home", member.crsid)
+    target = owner_home(member)
     if os.listdir(target):
         # Avoid potentially clobbering existing files.
         return Result(State.unchanged)
-    unix.copytree_chown_chmod("/etc/skel", os.path.join("/home", member.crsid),
-                              member.uid, member.gid)
+    unix.copytree_chown_chmod("/etc/skel", target, member.uid, member.gid)
     return Result(State.success)
 
 
-def link_soc_home_dir(member: Member, society: Society) -> Result[Unset]:
+@Result.collect
+def create_public_html(owner: Owner) -> Collect[None]:
+    """
+    Create a user's public_html directory, and a symlink to it in their home directory.
+    """
+    user = unix.get_user(owner_name(owner))
+    link = os.path.join(owner_home(owner), "public_html")
+    target = os.path.join(owner_home(owner, True), "public_html")
+    yield unix.mkdir(target, user)
+    yield unix.symlink(link, target)
+
+
+@Result.collect
+def link_soc_home_dir(member: Member, society: Society) -> Collect[None]:
     """
     Add or remove a user's society symlink based on their admin membership.
     """
-    link = os.path.join("/home", member.crsid, society.society)
-    target = os.path.join("/societies", society.society)
-    try:
-        current = os.readlink(link)
-    except OSError:
-        current = None
-    valid = current == target
-    needed = member in society.admins
-    state = State.unchanged
-    if valid == needed:
-        # Includes if they're no longer an admin, and something other than the usual link exists
-        # where we'd normally put this link, in which case we leave it be.
-        pass
-    elif needed:
-        try:
-            os.symlink(target, link)
-        except FileExistsError:
-            LOG.warning("Not overwriting existing file %r", link)
-        except OSError:
-            LOG.warning("Couldn't symlink %r", link, exc_info=True)
-        else:
-            LOG.debug("Created society symlink: %r", link)
-            state = State.success
-    else:
-        try:
-            os.unlink(link)
-        except OSError:
-            LOG.warning("Couldn't remove symlink %r", link, exc_info=True)
-        else:
-            LOG.debug("Deleted society symlink: %r", link)
-            state = State.success
-    return Result(state)
+    link = os.path.join(owner_home(member), society.society)
+    target = owner_home(society)
+    yield unix.symlink(link, target, member in society.admins)
 
 
 @Result.collect
@@ -249,21 +233,19 @@ def set_home_exim_acl(owner: Owner) -> Collect[None]:
     """
     Grant access to the user's ``.forward`` file for Exim.
     """
-    name = owner_name(owner)
-    path = pwd.getpwnam(name).pw_dir
-    yield unix.set_nfs_acl(path, "Debian-exim@srcf.net", "RX")
+    yield unix.set_nfs_acl(owner_home(owner), "Debian-exim@srcf.net", "RX")
 
 
 def create_forwarding_file(owner: Owner) -> Result[Unset]:
     """
     Write a default ``.forward`` file matching the user's external email address.
     """
-    user = pwd.getpwnam(owner_name(owner))
-    path = os.path.join(user.pw_dir, ".forward")
+    path = os.path.join(owner_home(owner), ".forward")
     if os.path.exists(path):
         return Result(State.unchanged)
     with open(path, "w") as f:
         f.write("{}\n".format(owner.email))
+    user = pwd.getpwnam(owner_name(owner))
     os.chown(path, user.pw_uid, user.pw_gid)
     LOG.debug("Created forwarding file: %r", path)
     return Result(State.created)
@@ -478,8 +460,8 @@ def archive_society_files(society: Society) -> Result[str]:
     """
     Create a backup of the society under /archive/societies.
     """
-    home = os.path.join("/societies", society.society)
-    public = os.path.join("/public/societies", society.society)
+    home = owner_home(society)
+    public = owner_home(society, True)
     root = os.path.join("/archive/societies", society.society)
     os.mkdir(root)
     tar = os.path.join(root, "soc-{}-{}.tar.bz2".format(society.society,
@@ -502,8 +484,8 @@ def delete_society_files(society: Society) -> Collect[None]:
     """
     Remove all public and private files of a society in /home.
     """
-    home = os.path.join("/societies", society.society)
-    public = os.path.join("/public/societies", society.society)
+    home = owner_home(society)
+    public = owner_home(society, True)
     for path in (home, public):
         if os.path.exists(path):
             shutil.rmtree(home)
