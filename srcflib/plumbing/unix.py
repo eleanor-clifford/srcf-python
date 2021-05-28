@@ -226,7 +226,7 @@ def ensure_user(username: str, uid: Optional[int] = None, system: bool = False,
     try:
         user = get_user(username)
     except KeyError:
-        res_user = yield from _create_user(username, uid, system, active, home_dir, real_name)
+        res_user = yield from _create_user(username, uid, system, gid, active, home_dir, real_name)
         return res_user.value
     else:
         if uid and user.pw_uid != uid:
