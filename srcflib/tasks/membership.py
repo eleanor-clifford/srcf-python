@@ -146,6 +146,7 @@ def _remove_society_admin(sess: SQLASession, member: Member, society: Society,
 
 @Result.collect
 def _sync_society_admins(sess: SQLASession, society: Society, admins: Set[str]) -> Collect[None]:
+    society = get_society(society.society, sess)
     if society.admin_crsids == admins:
         return
     group = unix.get_group(society.society)
@@ -169,19 +170,20 @@ def create_society(name: str, description: str, admins: Set[str],
     """
     with bespoke.context() as sess:
         res_record = yield from bespoke.ensure_society(sess, name, description, role_email)
-        society = res_record.value
-        yield unix.ensure_group(name, gid=society.gid, system=True)
-        res_user = yield from unix.ensure_user(name, uid=society.uid, system=True,
-                                               gid=society.gid, active=False,
-                                               home_dir=os.path.join("/societies", name),
-                                               real_name=description)
-        new_user = res_user.state == State.created
-        user = res_user.value
-        if res_user:
-            yield bespoke.update_nis(res_user.state == State.created)
-        yield unix.create_home(user, os.path.join("/public/societies", name), True)
-        yield bespoke.set_home_exim_acl(society)
-        yield bespoke.create_public_html(society)
+    society = res_record.value
+    yield unix.ensure_group(name, gid=society.gid, system=True)
+    res_user = yield from unix.ensure_user(name, uid=society.uid, system=True,
+                                           gid=society.gid, active=False,
+                                           home_dir=os.path.join("/societies", name),
+                                           real_name=description)
+    new_user = res_user.state == State.created
+    user = res_user.value
+    if res_user:
+        yield bespoke.update_nis(res_user.state == State.created)
+    yield unix.create_home(user, os.path.join("/public/societies", name), True)
+    yield bespoke.set_home_exim_acl(society)
+    yield bespoke.create_public_html(society)
+    with bespoke.context() as sess:
         res_admins = yield _sync_society_admins(sess, society, admins)
     if res_record:
         yield bespoke.update_quotas()
