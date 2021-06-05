@@ -12,7 +12,7 @@ from srcf.database.queries import get_member, get_society
 
 from ..email import send
 from ..plumbing import bespoke, pgsql as pgsql_p, unix
-from ..plumbing.common import Collect, Password, Result, State, Unset
+from ..plumbing.common import Collect, Password, Result, State, Unset, owner_home
 from . import mailman, mysql, pgsql
 
 
@@ -40,9 +40,10 @@ def create_member(crsid: str, preferred_name: str, surname: str, email: str,
         passwd = res_passwd.value
     if res_user or passwd:
         yield bespoke.update_nis(new_user)
-    yield unix.create_home(user, os.path.join("/public/home", crsid), True)
-    yield bespoke.set_home_exim_acl(member)
+    yield unix.create_home(user, owner_home(member))
+    yield unix.create_home(user, owner_home(member, True), True)
     yield bespoke.populate_home_dir(member)
+    yield bespoke.set_home_exim_acl(member)
     yield bespoke.create_public_html(member)
     if res_record:
         yield bespoke.update_quotas()
@@ -82,6 +83,9 @@ def create_sysadmin(member: Member, new_passwd: bool = False) -> Collect[Optiona
         passwd = None
     if res_user or passwd:
         yield bespoke.update_nis(new_user)
+    yield unix.create_home(user, os.path.join("/home", username))
+    yield unix.create_home(user, os.path.join("/public/home", username), True)
+    yield bespoke.populate_home_dir(member)
     yield unix.add_to_group(user, unix.get_group("sysadmins"))
     yield unix.add_to_group(user, unix.get_group("adm"))
     yield unix.grant_netgroup(user, "sysadmins")
@@ -180,7 +184,8 @@ def create_society(name: str, description: str, admins: Set[str],
     user = res_user.value
     if res_user:
         yield bespoke.update_nis(res_user.state == State.created)
-    yield unix.create_home(user, os.path.join("/public/societies", name), True)
+    yield unix.create_home(user, owner_home(society))
+    yield unix.create_home(user, owner_home(society, True), True)
     yield bespoke.set_home_exim_acl(society)
     yield bespoke.create_public_html(society)
     with bespoke.context() as sess:

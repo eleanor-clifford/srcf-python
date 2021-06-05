@@ -126,8 +126,6 @@ def _create_user(username: str, uid: Optional[int] = None, system: bool = False,
     command(args)
     user = get_user(username)
     LOG.debug("Created UNIX user: %r", user)
-    if system and home_dir:
-        create_home(user, home_dir)
     return Result(State.created, user)
 
 
