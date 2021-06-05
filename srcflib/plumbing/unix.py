@@ -34,13 +34,18 @@ def mkdir(target: str, user: User, mode: int = 0o2775) -> Result[Unset]:
     """
     state = State.unchanged
     try:
-        os.mkdir(target, mode)
+        os.mkdir(target)
     except FileExistsError:
         pass
     else:
         LOG.debug("Created directory: %r", target)
         state = State.created
     stat = os.stat(target)
+    # os.mkdir() obeys umask, and also ignores higher set-* bits, so chmod manually afterwards.
+    if stat.st_mode != mode:
+        os.chmod(target, mode)
+        LOG.debug("Set directory mode: %o", mode)
+        state = state or State.success
     if stat.st_uid != user.pw_uid or stat.st_gid != user.pw_gid:
         nfs_aware_chown(target, user.pw_uid, user.pw_gid)
         LOG.debug("Set directory user/group: %r %r", user, target)
