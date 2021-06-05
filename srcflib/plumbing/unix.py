@@ -263,7 +263,7 @@ def _create_group(username: str, gid: Optional[int] = None, system: bool = False
         args[-1:-1] = ["--system"]
     command(args)
     group = get_group(username)
-    LOG.debug("Created UNIX group: %r %r", group)
+    LOG.debug("Created UNIX group: %r", group)
     return Result(State.created, group)
 
 
@@ -365,7 +365,7 @@ def set_nfs_acl(path: str, user: str, perms: str) -> Result[Unset]:
 
 def grant_netgroup(user: User, group: str) -> Result[Unset]:
     """
-    Grant netgroup privileges for a user account. 
+    Grant netgroup privileges for a user account.
     """
     entry = "(,{},)".format(user.pw_name)
     path = "/etc/netgroup"
