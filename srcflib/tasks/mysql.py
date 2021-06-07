@@ -146,8 +146,6 @@ def drop_account(cursor: Cursor, owner: Owner) -> Collect[None]:
 
     For members, grants are removed from all society databases for which they are a member.
     """
-    if get_owned_databases(cursor, owner):
-        raise ValueError("Drop databases for {} first".format(owner))
     user = _user_name(owner)
     yield mysql.revoke_database(cursor, user, _database_name(owner))
     yield mysql.revoke_database(cursor, user, _database_name(owner, "%"))

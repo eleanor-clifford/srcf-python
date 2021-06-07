@@ -131,8 +131,6 @@ def drop_account(cursor: Cursor, owner: Owner) -> Result[Unset]:
     """
     Drop a PostgreSQL user account for a given member or society.
     """
-    if get_owned_databases(cursor, owner):
-        raise ValueError("Drop databases for {} first".format(owner))
     return pgsql.drop_user(cursor, owner_name(owner))
 
 

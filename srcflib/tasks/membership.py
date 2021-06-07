@@ -2,6 +2,7 @@
 Creation and management of member and society accounts.
 """
 
+from datetime import datetime
 import os
 from typing import Optional, Set, Tuple
 
@@ -12,7 +13,7 @@ from srcf.database.queries import get_member, get_society
 
 from ..email import send
 from ..plumbing import bespoke, pgsql as pgsql_p, unix
-from ..plumbing.common import Collect, Password, Result, State, Unset, owner_home
+from ..plumbing.common import Collect, Owner, Password, Result, State, Unset, owner_home, owner_name
 from . import mailman, mysql, pgsql
 
 
@@ -245,22 +246,78 @@ def remove_society_admin(member: Member, society: Society) -> Collect[None]:
         yield send(member, "tasks/society_admin_leave.j2", {"society": society})
 
 
-def _scrub_society_user(society: Society) -> Result[Unset]:
+@Result.collect
+def _scrub_user(owner: Owner) -> Collect[None]:
     try:
-        user = unix.get_user(society.society)
+        user = unix.get_user(owner_name(owner))
+    except KeyError:
+        return
+    else:
+        cls = "soc" if isinstance(owner, Society) else "user"
+        yield unix.set_real_name(user, "")
+        yield unix.rename_user(user, "ex{}{}".format(cls, owner.uid))
+
+
+def _scrub_group(owner: Owner) -> Result[Unset]:
+    try:
+        group = unix.get_group(owner_name(owner))
     except KeyError:
         return Result(State.unchanged)
     else:
-        return unix.rename_user(user, "exsoc{}".format(society.uid))
+        cls = "soc" if isinstance(owner, Society) else "user"
+        return unix.rename_group(group, "ex{}{}".format(cls, owner.gid))
 
 
-def _scrub_society_group(society: Society) -> Result[Unset]:
-    try:
-        group = unix.get_group(society.society)
-    except KeyError:
-        return Result(State.unchanged)
-    else:
-        return unix.rename_group(group, "exsoc{}".format(society.gid))
+@Result.collect
+def cancel_member(member: Member, keep_groups: bool = False) -> Collect[None]:
+    """
+    Suspend the user account of a member.
+    """
+    user = unix.get_user(member.crsid)
+    yield unix.enable_user(user, False)
+    yield bespoke.slay_user(member)
+    yield bespoke.clear_crontab(member)
+    # TODO: for server in {"cavein", "doom", "sinkhole"}:
+    #   bespoke.slay_user(member); bespoke.clear_crontab(member)
+    with bespoke.context() as sess:
+        yield bespoke.ensure_member(sess, member.crsid, member.preferred_name, member.surname,
+                                    member.email, MailHandler[member.mail_handler], member.member,
+                                    False)
+    with mysql.context() as cursor:
+        yield mysql.drop_account(cursor, member)
+    with pgsql.context() as cursor:
+        yield pgsql.drop_account(cursor, member)
+    if not keep_groups:
+        for society in member.societies:
+            yield remove_society_admin(member, society)
+
+
+@Result.collect
+def delete_member(member: Member) -> Collect[None]:
+    """
+    Delete all traces of a member account.
+    """
+    yield cancel_member(member)
+    with bespoke.context() as sess:
+        res_member = yield from bespoke.ensure_member(sess, member.crsid, None, None, None,
+                                                      MailHandler[member.mail_handler], False,
+                                                      False)
+        member = res_member.value
+        note = "User account erased: {}".format(datetime.now().strftime("%Y-%m-%d %H:%M"))
+        if member.notes:
+            member.notes = "{}\n{}".format(member.notes, note)
+        else:
+            member.notes = note
+    with mysql.context() as cursor:
+        yield mysql.drop_all_databases(cursor, member)
+    with pgsql.context() as cursor:
+        yield pgsql.drop_all_databases(cursor, member)
+    for mlist in mailman.get_list_suffixes(member):
+        yield mailman.remove_list(member, mlist, True)
+    # TODO: pip/hades mail
+    yield _scrub_user(member)
+    yield _scrub_group(member)
+    yield bespoke.delete_files(member)
 
 
 @Result.collect
@@ -271,9 +328,11 @@ def delete_society(society: Society) -> Collect[None]:
     with bespoke.context() as sess:
         yield _sync_society_admins(sess, society, set())
     yield bespoke.slay_user(society)
-    # TODO: for server in {"cavein", "doom", "sinkhole"}: bespoke.slay_user(society)
+    yield bespoke.clear_crontab(society)
+    # TODO: for server in {"cavein", "doom", "sinkhole"}:
+    #   bespoke.slay_user(society); bespoke.clear_crontab(society)
     yield bespoke.archive_society_files(society)
-    yield bespoke.delete_society_files(society)
+    yield bespoke.delete_files(society)
     with mysql.context() as cursor:
         yield mysql.drop_all_databases(cursor, society)
         yield mysql.drop_account(cursor, society)
@@ -282,8 +341,8 @@ def delete_society(society: Society) -> Collect[None]:
         yield pgsql.drop_account(cursor, society)
     for mlist in mailman.get_list_suffixes(society):
         yield mailman.remove_list(society, mlist)
-    yield _scrub_society_user(society)
-    yield _scrub_society_group(society)
+    yield _scrub_user(society)
+    yield _scrub_group(society)
     with bespoke.context() as sess:
         for domain in bespoke.get_custom_domains(sess, society):
             yield bespoke.remove_custom_domain(sess, society, domain.domain)

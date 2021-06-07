@@ -78,6 +78,16 @@ def get_crontab(owner: Owner) -> Optional[str]:
     return proc.stdout.decode("utf-8") if proc.stdout else None
 
 
+def clear_crontab(owner: Owner) -> Result[Unset]:
+    """
+    Clear the owning user's crontab, if one exists on the current server.
+    """
+    if not get_crontab(owner):
+        return Result(State.unchanged)
+    proc = command(["/usr/bin/crontab", "-u", owner_name(owner), "-r"])
+    return Result(State.success)
+
+
 def get_mailman_lists(owner: Owner, sess: RequestsSession = RequestsSession()) -> List[MailList]:
     """
     Query mailing lists owned by the given member or society.
@@ -87,7 +97,8 @@ def get_mailman_lists(owner: Owner, sess: RequestsSession = RequestsSession()) -
     return [MailList(name) for name in resp.text.splitlines()]
 
 
-def _create_member(sess: SQLASession, crsid: str, preferred_name: str, surname: str, email: str,
+def _create_member(sess: SQLASession, crsid: str, preferred_name: Optional[str],
+                   surname: Optional[str], email: Optional[str],
                    mail_handler: MailHandler = MailHandler.forward, is_member: bool = True,
                    is_user: bool = True) -> Result[Member]:
     member = Member(crsid=crsid,
@@ -102,8 +113,9 @@ def _create_member(sess: SQLASession, crsid: str, preferred_name: str, surname: 
     return Result(State.created, member)
 
 
-def _update_member(sess: SQLASession, member: Member, preferred_name: str, surname: str,
-                   email: str, mail_handler: MailHandler = MailHandler.forward,
+def _update_member(sess: SQLASession, member: Member, preferred_name: Optional[str],
+                   surname: Optional[str], email: Optional[str],
+                   mail_handler: MailHandler = MailHandler.forward,
                    is_member: bool = True, is_user: bool = True) -> Result[Unset]:
     member.preferred_name = preferred_name
     member.surname = surname
@@ -118,7 +130,8 @@ def _update_member(sess: SQLASession, member: Member, preferred_name: str, surna
 
 
 @Result.collect_value
-def ensure_member(sess: SQLASession, crsid: str, preferred_name: str, surname: str, email: str,
+def ensure_member(sess: SQLASession, crsid: str, preferred_name: Optional[str],
+                  surname: Optional[str], email: Optional[str],
                   mail_handler: MailHandler = MailHandler.forward, is_member: bool = True,
                   is_user: bool = True) -> Collect[Member]:
     """
@@ -499,12 +512,12 @@ def archive_society_files(society: Society) -> Result[str]:
 
 
 @Result.collect
-def delete_society_files(society: Society) -> Collect[None]:
+def delete_files(owner: Owner) -> Collect[None]:
     """
-    Remove all public and private files of a society in /home.
+    Remove all public and private files of a member or society.
     """
-    home = owner_home(society)
-    public = owner_home(society, True)
+    home = owner_home(owner)
+    public = owner_home(owner, True)
     for path in (home, public):
         if os.path.exists(path):
             shutil.rmtree(home)
