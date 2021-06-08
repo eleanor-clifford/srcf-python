@@ -3,18 +3,23 @@ Creation and management of member and society accounts.
 """
 
 from datetime import datetime
+import logging
 import os
 from typing import Optional, Set, Tuple
 
 from sqlalchemy.orm import Session as SQLASession
 
-from srcf.database import MailHandler, Member, Society
+from srcf.controllib import jobs
+from srcf.database import Job, MailHandler, Member, Society
 from srcf.database.queries import get_member, get_society
 
 from ..email import send
 from ..plumbing import bespoke, pgsql as pgsql_p, unix
 from ..plumbing.common import Collect, Owner, Password, Result, State, Unset, owner_home, owner_name
 from . import mailman, mysql, pgsql
+
+
+LOG = logging.getLogger(__name__)
 
 
 @Result.collect_value
@@ -268,6 +273,29 @@ def _scrub_group(owner: Owner) -> Result[Unset]:
         return unix.rename_group(group, "ex{}{}".format(cls, owner.gid))
 
 
+def _scrub_member_jobs(sess: SQLASession, owner: Owner) -> Result[Unset]:
+    state = State.unchanged
+    query = sess.query(Job)
+    if isinstance(owner, Member):
+        query = query.filter((Job.owner_crsid == owner.crsid) |
+                             ((Job.type == jobs.Signup.JOB_TYPE) &
+                              (Job.args.contains({"crsid": owner.crsid}))))
+    elif isinstance(owner, Society):
+        query = query.filter(Job.args.contains({"society": owner.society}))
+    else:
+        raise TypeError(owner)
+    for job in query:
+        cls = jobs.all_jobs[job.type]
+        if cls not in jobs.SENSITIVE_ARGS:
+            continue
+        for field in jobs.SENSITIVE_ARGS[cls]:
+            if job.args.get(field):
+                LOG.debug("Scrubbing job #%d (%s), field %r", job.job_id, job.type, field)
+                job.args[field] = "<redacted>"
+                state = State.success
+    return Result(state)
+
+
 @Result.collect
 def cancel_member(member: Member, keep_groups: bool = False) -> Collect[None]:
     """
@@ -308,6 +336,7 @@ def delete_member(member: Member) -> Collect[None]:
             member.notes = "{}\n{}".format(member.notes, note)
         else:
             member.notes = note
+        yield _scrub_member_jobs(sess, member)
     with mysql.context() as cursor:
         yield mysql.drop_all_databases(cursor, member)
     with pgsql.context() as cursor:

@@ -1169,3 +1169,26 @@ class RemoveSocietyVhost(SocietyJob):
 
         self.log("Send confirmation")
         mail_users(self.society, "Custom domain removed", "remove-vhost", domain=self.domain_text)
+
+
+SENSITIVE_ARGS = {
+    # Members
+    Signup: ("preferred_name", "surname", "email"),
+    Reactivate: ("preferred_name", "surname", "email"),
+    UpdateName: ("preferred_name", "surname"),
+    UpdateEmailAddress: ("email",),
+    CreateUserMailingList: ("listname",),
+    ResetUserMailingListPassword: ("listname",),
+    AddUserVhost: ("domain", "root"),
+    ChangeUserVhostDocroot: ("domain", "root"),
+    RemoveUserVhost: ("domain",),
+    # Societies
+    CreateSociety: ("description"),
+    UpdateSocietyDescription: ("description",),
+    UpdateSocietyRoleEmail: ("email",),
+    CreateSocietyMailingList: ("listname",),
+    ResetSocietyMailingListPassword: ("listname",),
+    AddSocietyVhost: ("domain", "root"),
+    ChangeSocietyVhostDocroot: ("domain", "root"),
+    RemoveSocietyVhost: ("domain",),
+}
