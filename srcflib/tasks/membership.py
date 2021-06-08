@@ -303,10 +303,11 @@ def cancel_member(member: Member, keep_groups: bool = False) -> Collect[None]:
     """
     user = unix.get_user(member.crsid)
     yield unix.enable_user(user, False)
-    yield bespoke.slay_user(member)
     yield bespoke.clear_crontab(member)
+    yield bespoke.slay_user(member)
     # TODO: for server in {"cavein", "doom", "sinkhole"}:
-    #   bespoke.slay_user(member); bespoke.clear_crontab(member)
+    #   bespoke.clear_crontab(member); bespoke.slay_user(member)
+    yield bespoke.archive_website(member)
     with bespoke.context() as sess:
         yield bespoke.ensure_member(sess, member.crsid, member.preferred_name, member.surname,
                                     member.email, MailHandler[member.mail_handler], member.member,
@@ -356,10 +357,10 @@ def delete_society(society: Society) -> Collect[None]:
     """
     with bespoke.context() as sess:
         yield _sync_society_admins(sess, society, set())
-    yield bespoke.slay_user(society)
     yield bespoke.clear_crontab(society)
+    yield bespoke.slay_user(society)
     # TODO: for server in {"cavein", "doom", "sinkhole"}:
-    #   bespoke.slay_user(society); bespoke.clear_crontab(society)
+    #   bespoke.clear_crontab(society); bespoke.slay_user(society)
     yield bespoke.archive_society_files(society)
     yield bespoke.delete_files(society)
     with mysql.context() as cursor:

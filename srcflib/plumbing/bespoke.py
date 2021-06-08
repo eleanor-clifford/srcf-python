@@ -5,7 +5,7 @@ Most methods identify users and groups using the `Member` and `Society` database
 """
 
 from contextlib import contextmanager
-from datetime import date
+from datetime import date, datetime
 import logging
 import os
 import pwd
@@ -486,6 +486,18 @@ def generate_mailman_aliases() -> Result[Unset]:
     # TODO: Port to SRCFLib, replace with entrypoint.
     command(["/usr/local/sbin/srcf-generate-mailman-aliases"])
     return Result(State.success)
+
+
+def archive_website(owner: Owner) -> Result[Optional[str]]:
+    """
+    Rename the web root of a user or society with a timestamp to archive it locally.
+    """
+    public_html = os.path.join(owner_home(owner, True), "public_html")
+    if not os.path.exists(public_html):
+        return Result(State.unchanged, None)
+    target = "{}_{}".format(public_html, datetime.now().strftime("%Y-%m-%d-%H%M%S"))
+    os.rename(public_html, target)
+    return Result(State.success, target)
 
 
 def archive_society_files(society: Society) -> Result[str]:
