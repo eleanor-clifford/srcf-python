@@ -22,6 +22,9 @@ MODULES = $(NAME) srcflib srcfmail srcfmailmanwrapper
 check:
 	$(FLAKE8) $(MODULES)
 
+test:
+	$(PYTHON) -m unittest discover
+
 install:
 	$(PIP) install --upgrade pip setuptools wheel
 	$(PIP) install pdoc3 stdeb  # build dependencies

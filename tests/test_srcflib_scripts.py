@@ -1,6 +1,5 @@
 from inspect import cleandoc
 import unittest
-from unittest.mock import Mock
 
 from srcf.database import Member, Society, queries
 
@@ -33,26 +32,26 @@ from .scripts import no_args, with_member_society, with_owner
 
 
 class TestScripts(unittest.TestCase):
-    
+
     def test_entrypoints(self):
         self.assertIn("srcflib-scripts-no-args=tests.scripts:no_args", ENTRYPOINTS)
-        
+
     def test_doc(self):
         self.assertEqual(cleandoc(no_args.__doc__), "Usage: srcflib-scripts-no-args")
-        
+
     def test_args_member_society(self):
         member, society = with_member_society({"MEMBER": "spqr2", "SOCIETY": "test"})
         self.assertEqual(member, _member)
         self.assertEqual(society, _society)
-        
+
     def test_args_owner_member(self):
         member = with_owner({"OWNER": "spqr2"})
         self.assertEqual(member, _member)
-        
+
     def test_args_owner_society(self):
         society = with_owner({"OWNER": "test"})
         self.assertEqual(society, _society)
-        
+
 
 if __name__ == "__main__":
     unittest.main()

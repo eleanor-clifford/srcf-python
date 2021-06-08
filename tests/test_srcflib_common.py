@@ -86,7 +86,7 @@ class TestResult(unittest.TestCase):
 
     def test_truthy_created(self):
         self.assertTrue(created())
-        
+
     def test_collect(self):
         result = collect_pair()
         self.assertEqual(result.parts[0].caller, "tests.plumbing:unchanged")
@@ -103,29 +103,29 @@ class TestResult(unittest.TestCase):
 
 
 class TestPassword(unittest.TestCase):
-    
+
     def test_str(self):
         self.assertEqual(str(Password("test")), "test")
-    
+
     def test_repr(self):
         self.assertEqual(repr(Password("test")), "<Password: '***'>")
-        
+
     def test_template_str(self):
         self.assertEqual(str(Password("test", "prefix:{}")), "prefix:test")
-    
+
     def test_template_repr(self):
         self.assertEqual(repr(Password("test", "prefix:{}")), "<Password: 'prefix:***'>")
-    
+
     def test_template_wrap(self):
         self.assertEqual(str(Password("test").wrap("prefix:{}")), "prefix:test")
 
 
 class TestHost(unittest.TestCase):
-    
+
     def test_match(self):
         platform.node = Mock(return_value="here")
         self.assertEqual(require_here().state, State.success)
-    
+
     def test_mismatch(self):
         platform.node = Mock(return_value="not-here")
         with self.assertRaises(RuntimeError):
@@ -133,16 +133,16 @@ class TestHost(unittest.TestCase):
 
 
 class TestCommand(unittest.TestCase):
-    
+
     def test_args(self):
         self.assertEqual(command(["echo", "left", "right"], output=True).stdout, b"left right\n")
-    
+
     def test_input(self):
         self.assertEqual(command(["cat"], input_="input", output=True).stdout, b"input")
-    
+
     def test_input_password(self):
         self.assertEqual(command(["cat"], input_=Password("secret"), output=True).stdout, b"secret")
-        
+
 
 if __name__ == "__main__":
     unittest.main()

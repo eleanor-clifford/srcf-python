@@ -9,6 +9,7 @@ import grp
 import logging
 import os
 import pwd
+import stat
 from typing import NewType, Optional, Set
 
 # Expose these here for now, so that other parts of SRCFLib can reference them locally, but keep a
@@ -50,19 +51,19 @@ def mkdir(target: str, user: User, mode: int = 0o2775) -> Result[Unset]:
     """
     state = State.unchanged
     try:
-        os.mkdir(target)
+        os.mkdir(target, 0o700)
     except FileExistsError:
         pass
     else:
         LOG.debug("Created directory: %r", target)
         state = State.created
-    stat = os.stat(target)
+    stats = os.stat(target)
     # os.mkdir() obeys umask, and also ignores higher set-* bits, so chmod manually afterwards.
-    if stat.st_mode != mode:
+    if stat.S_IMODE(stats.st_mode) != mode:
         os.chmod(target, mode)
         LOG.debug("Set directory mode: %o", mode)
         state = state or State.success
-    if stat.st_uid != user.pw_uid or stat.st_gid != user.pw_gid:
+    if stats.st_uid != user.pw_uid or stats.st_gid != user.pw_gid:
         nfs_aware_chown(target, user.pw_uid, user.pw_gid)
         LOG.debug("Set directory user/group: %r %r", user, target)
         state = state or State.success
@@ -90,7 +91,7 @@ def symlink(link: str, target: str, needed: bool = True):
             LOG.warning("Not overwriting existing file %r", link)
         else:
             LOG.debug("Created symlink: %r", link)
-            state = State.success
+            state = State.created
     else:
         os.unlink(link)
         LOG.debug("Deleted symlink: %r", link)
