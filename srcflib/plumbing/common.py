@@ -37,10 +37,10 @@ class Unset:
     """
     Constructor of generic default values for optional but nullable parameters.
     """
-    
+
     def __bool__(self):
         return False
-    
+
     def __repr__(self):
         return "UNSET"
 
@@ -139,7 +139,7 @@ class State(Enum):
 
     def __bool__(self):
         return bool(self.value)
-    
+
     def __lt__(self, other: "State"):
         return self.value < other.value if isinstance(other, State) else NotImplemented
 
@@ -208,7 +208,7 @@ class Result(Generic[T]):
         """
         Decorator: variant of `Result.collect_value` with no return value parsing, producing
         results with unset values.
-        
+
         Note that the inner function's return type should be `Collect[None]`, not `Collect[Unset]`.
         """
         @wraps(fn)

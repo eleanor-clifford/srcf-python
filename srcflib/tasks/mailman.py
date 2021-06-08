@@ -27,7 +27,8 @@ def get_list_suffixes(owner: Owner) -> List[Optional[str]]:
 
 
 @Result.collect_value
-def create_list(owner: Owner, suffix: Optional[str] = None) -> Collect[Tuple[str, Optional[Password]]]:
+def create_list(owner: Owner,
+                suffix: Optional[str] = None) -> Collect[Tuple[str, Optional[Password]]]:
     """
     Create a new mailing list for a user or society.
     """
@@ -58,7 +59,8 @@ def reset_owner_password(owner: Owner, suffix: Optional[str] = None) -> Collect[
 
 
 @Result.collect
-def remove_list(owner: Owner, suffix: Optional[str] = None, remove_archive: bool = False) -> Collect[None]:
+def remove_list(owner: Owner, suffix: Optional[str] = None,
+                remove_archive: bool = False) -> Collect[None]:
     """
     Delete an existing mailing list, and optionally its message archives.
     """
