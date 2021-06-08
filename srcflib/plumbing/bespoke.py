@@ -11,7 +11,7 @@ import os
 import pwd
 import shutil
 import time
-from typing import Generator, List, Optional
+from typing import Generator, List, Optional, overload
 
 from requests import Session as RequestsSession
 
@@ -49,6 +49,25 @@ def context(sess: Optional[SQLASession] = None) -> Generator[SQLASession, None, 
         raise
     finally:
         sess.commit()
+
+
+@overload
+def refetch(sess: Session, owner: Member) -> Member: ...
+@overload
+def refetch(sess: Session, owner: Society) -> Society: ...
+
+def refetch(sess: Session, owner: Owner) -> Owner:
+    """
+    Retrieve a foreign database object under the current session.
+    """
+    if SQLASession.object_session(owner) is sess:
+        return owner
+    elif isinstance(owner, Member):
+        return get_member(owner.crsid, sess)
+    elif isinstance(owner, Society):
+        return get_society(owner.society, sess)
+    else:
+        raise TypeError(owner)
 
 
 def get_crontab(owner: Owner) -> Optional[str]:

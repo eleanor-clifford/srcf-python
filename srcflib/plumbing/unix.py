@@ -4,6 +4,7 @@ Unix user management.
 Most methods identify users and groups using the `pwd` and `grp` module structs.
 """
 
+from contextlib import contextmanager
 import grp
 import logging
 import os
@@ -26,6 +27,21 @@ User = NewType("User", pwd.struct_passwd)
 Group = NewType("Group", grp.struct_group)
 
 _NOLOGIN_SHELLS = ("/bin/false", "/usr/sbin/nologin")
+
+
+@contextmanager
+def umask(mask: int):
+    """
+    Temporarily change the current process' umask:
+    
+        with umask(0):
+            os.mkdir(path, 0o775)
+    """
+    old = os.umask(mask)
+    LOG.debug("Changed umask from %o to %o", old, mask)
+    yield
+    os.umask(old)
+    LOG.debug("Reverted umask to %o from %o", old, mask)
 
 
 def mkdir(target: str, user: User, mode: int = 0o2775) -> Result[Unset]:
