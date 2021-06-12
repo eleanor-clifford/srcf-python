@@ -138,7 +138,7 @@ def ensure_member(sess: SQLASession, crsid: str, preferred_name: Optional[str],
     Register or update a member in the database.
     """
     try:
-        member = get_member(crsid, sess)
+        member = get_member(crsid, sess, include_non_members=True)
     except KeyError:
         res_record = yield from _create_member(sess, crsid, preferred_name, surname, email,
                                                mail_handler, is_member, is_user)

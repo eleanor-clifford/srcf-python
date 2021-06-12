@@ -48,18 +48,24 @@ def disable_automatic_session(and_use_this_one_instead=None):
     _auto_create_global_session = False
 
 
-def list_members(session=None):
+def list_members(session=None, include_non_members=False):
     with _sess(session) as sess:
-        return sess.query(Member)
+        query = sess.query(Member)
+        if include_non_members:
+            return query
+        else:
+            return query.filter(Member.member == True)
 
 
-def get_member(crsid, session=None):
+def get_member(crsid, session=None, include_non_members=False):
     with _sess(session) as sess:
         m = sess.query(Member).get(crsid)
-        if m:
-            return m
-        else:
+        if not m:
             raise KeyError(crsid)
+        elif not (m.member or include_non_members):
+            raise KeyError(crsid)
+        else:
+            return m
 
 
 def list_users(session=None):
@@ -97,15 +103,12 @@ def get_member_or_society(name, session=None):
 
 
 def dict_users(session=None):
-    with _sess(session) as sess:
-        return {m.crsid: m for m in sess.query(Member).filter(Member.user == True)}
+    return {m.crsid: m for m in list_users(session)}
 
 
-def dict_members(session=None):
-    with _sess(session) as sess:
-        return {m.crsid: m for m in sess.query(Member)}
+def dict_members(session=None, include_non_members=False):
+    return {m.crsid: m for m in list_members(session, include_non_members)}
 
 
 def dict_societies(session=None):
-    with _sess(session) as sess:
-        return {m.society: m for m in sess.query(Society)}
+    return {m.society: m for m in list_societies(session)}
