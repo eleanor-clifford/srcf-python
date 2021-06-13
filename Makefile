@@ -5,7 +5,7 @@ PDOC = pdoc3
 
 INSTALL_ARGS = -e
 DPKG_ARGS = -us -uc
-LINTIAN_ARGS = --pedantic --suppress-tags new-package-should-close-itp-bug
+LINTIAN_ARGS = --pedantic --suppress-tags binary-without-manpage
 DEBUILD_ARGS = $(DPKG_ARGS) --lintian-opts $(LINTIAN_ARGS)
 PDOC_ARGS = --html --force --config show_type_annotations=True --config lunr_search={}
 
