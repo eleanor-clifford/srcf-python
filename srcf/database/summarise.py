@@ -20,7 +20,7 @@ def summarise_member(member):
 
     private = []
     if not RESTRICTED:
-        private = ([member.email,
+        private = ([member.email or '<no email>',
                     'Mail handler: %s' % member.mail_handler,
                     'Member: %s' % member.member,
                     'User: %s' % member.user,
@@ -33,7 +33,7 @@ def summarise_member(member):
                    _format_domains(member.domains))
 
     lines = (
-        ['%s (%s)' % (member.name, member.crsid)]
+        ['%s (%s)' % (member.name or '<no name>', member.crsid)]
         + private
         + socs
     )
@@ -91,7 +91,7 @@ def _pretty_thing_list(things):
         if isinstance(thing, Society):
             return thing.description, thing.society
         elif isinstance(thing, Member):
-            return thing.name, thing.crsid
+            return thing.name or '<no name>', thing.crsid
         else:
             raise TypeError("things should contain Societies and Members")
 

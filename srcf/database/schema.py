@@ -145,7 +145,10 @@ class Member(Base, MemberCompat):
     @hybrid_property
     def name(self):
         """Joins :attr:`preferred_name` and :attr:`surname`"""
-        return self.preferred_name + " " + self.surname
+        if self.preferred_name and self.surname:
+            return self.preferred_name + " " + self.surname
+        else:
+            return self.preferred_name or self.surname or None
 
 
 society_admins = Table(
