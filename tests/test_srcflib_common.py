@@ -12,9 +12,6 @@ from .plumbing import (collect_all, collect_pair, created, default, require_here
                        success_value, unchanged)
 
 
-from .plumbing import require_here
-
-
 class TestOwnerInfo(unittest.TestCase):
 
     def test_name_member(self):
