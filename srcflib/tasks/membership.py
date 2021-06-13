@@ -215,7 +215,8 @@ def add_society_admin(member: Member, society: Society) -> Collect[None]:
 
 
 @Result.collect
-def remove_society_admin(member: Member, society: Society) -> Collect[None]:
+def remove_society_admin(member: Member, society: Society,
+                         notify_removed: bool = True) -> Collect[None]:
     """
     Demote a member from a society account's list of admins.
     """
@@ -231,7 +232,8 @@ def remove_society_admin(member: Member, society: Society) -> Collect[None]:
         yield pgsql.sync_society_roles(cursor, society)
     if res_remove:
         yield send(society, "tasks/society_admin_remove.j2", {"member": member})
-        yield send(member, "tasks/society_admin_leave.j2", {"society": society})
+        if notify_removed:
+            yield send(member, "tasks/society_admin_leave.j2", {"society": society})
 
 
 @Result.collect
@@ -256,7 +258,7 @@ def cancel_member(member: Member, keep_groups: bool = False) -> Collect[None]:
         yield pgsql.drop_account(cursor, member)
     if not keep_groups:
         for society in member.societies:
-            yield remove_society_admin(member, society)
+            yield remove_society_admin(member, society, False)
 
 
 @Result.collect
