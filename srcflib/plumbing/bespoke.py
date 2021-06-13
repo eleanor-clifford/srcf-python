@@ -18,7 +18,8 @@ from requests import Session as RequestsSession
 from sqlalchemy.orm import Session as SQLASession
 from sqlalchemy.orm.exc import NoResultFound
 
-from srcf.database import Domain, HTTPSCert, MailHandler, Member, Session, Society
+from srcf.controllib import jobs
+from srcf.database import Domain, HTTPSCert, Job, MailHandler, Member, Session, Society
 from srcf.database.queries import get_member, get_society
 from srcf.database.summarise import summarise_society
 
@@ -200,10 +201,7 @@ def ensure_society(sess: SQLASession, name: str, description: str,
     return society
 
 
-def add_to_society(sess: SQLASession, member: Member, society: Society) -> Result[Unset]:
-    """
-    Add a new admin to a society account.
-    """
+def _add_to_society(sess: SQLASession, member: Member, society: Society) -> Result[Unset]:
     if member in society.admins:
         return Result(State.unchanged)
     society.admins.add(member)
@@ -212,16 +210,35 @@ def add_to_society(sess: SQLASession, member: Member, society: Society) -> Resul
     return Result(State.success)
 
 
-def remove_from_society(sess: SQLASession, member: Member, society: Society) -> Result[Unset]:
-    """
-    Remove an existing admin from a society account.
-    """
+def _remove_from_society(sess: SQLASession, member: Member, society: Society) -> Result[Unset]:
     if member not in society.admins:
         return Result(State.unchanged)
     society.admins.remove(member)
     sess.add(society)
     LOG.debug("Removed society admin: %r %r", member, society)
     return Result(State.success)
+
+
+@Result.collect
+def add_society_admin(sess: SQLASession, member: Member, society: Society,
+                       group: unix.Group) -> Collect[None]:
+    """
+    Add a new admin to a society account.
+    """
+    yield _add_to_society(sess, member, society)
+    yield unix.add_to_group(unix.get_user(member.crsid), group)
+    yield link_soc_home_dir(member, society)
+
+
+@Result.collect
+def remove_society_admin(sess: SQLASession, member: Member, society: Society,
+                          group: unix.Group) -> Collect[None]:
+    """
+    Remove an existing admin from a society account.
+    """
+    yield _remove_from_society(sess, member, society)
+    yield unix.remove_from_group(unix.get_user(member.crsid), group)
+    yield link_soc_home_dir(member, society)
 
 
 def populate_home_dir(member: Member) -> Result[Unset]:
@@ -284,11 +301,68 @@ def create_forwarding_file(owner: Owner) -> Result[Unset]:
 
 
 def create_legacy_mailbox(member: Member) -> Result[Unset]:
+    """
+    Send an email to a user's legacy mailbox.
+    """
     if os.path.exists(os.path.join("/var/spool/mail", member.crsid)):
         return Result(State.unchanged)
     res_send = send((member.name, "real-{}@srcf.net".format(member.crsid)),
-         "plumbing/legacy_mailbox.j2", {"target": member})
+                    "plumbing/legacy_mailbox.j2", {"target": member})
     return Result(State.created, parts=(res_send,))
+
+
+@Result.collect
+def scrub_user(owner: Owner) -> Collect[None]:
+    """
+    Anonymise the Unix user of a member or society.
+    """
+    try:
+        user = unix.get_user(owner_name(owner))
+    except KeyError:
+        return
+    else:
+        cls = "soc" if isinstance(owner, Society) else "user"
+        yield unix.set_real_name(user, "")
+        yield unix.rename_user(user, "ex{}{}".format(cls, owner.uid))
+
+
+def scrub_group(owner: Owner) -> Result[Unset]:
+    """
+    Anonymise the Unix group of a member or society.
+    """
+    try:
+        group = unix.get_group(owner_name(owner))
+    except KeyError:
+        return Result(State.unchanged)
+    else:
+        cls = "soc" if isinstance(owner, Society) else "user"
+        return unix.rename_group(group, "ex{}{}".format(cls, owner.gid))
+
+
+def scrub_member_jobs(sess: SQLASession, owner: Owner) -> Result[Unset]:
+    """
+    Erase sensitive fields of all jobs submitted to the Control Panel by this member or society.
+    """
+    state = State.unchanged
+    query = sess.query(Job)
+    if isinstance(owner, Member):
+        query = query.filter((Job.owner_crsid == owner.crsid) |
+                             ((Job.type == jobs.Signup.JOB_TYPE) &
+                              (Job.args.contains({"crsid": owner.crsid}))))
+    elif isinstance(owner, Society):
+        query = query.filter(Job.args.contains({"society": owner.society}))
+    else:
+        raise TypeError(owner)
+    for job in query:
+        cls = jobs.all_jobs[job.type]
+        if cls not in jobs.SENSITIVE_ARGS:
+            continue
+        for field in jobs.SENSITIVE_ARGS[cls]:
+            if job.args.get(field):
+                LOG.debug("Scrubbing job #%d (%s), field %r", job.job_id, job.type, field)
+                job.args[field] = "<redacted>"
+                state = State.success
+    return Result(state)
 
 
 def update_quotas() -> Result[Unset]:

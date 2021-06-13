@@ -9,13 +9,12 @@ from typing import Optional, Set, Tuple
 
 from sqlalchemy.orm import Session as SQLASession
 
-from srcf.controllib import jobs
-from srcf.database import Job, MailHandler, Member, Society
+from srcf.database import MailHandler, Member, Society
 from srcf.database.queries import get_member, get_society
 
 from ..email import send
 from ..plumbing import bespoke, pgsql as pgsql_p, unix
-from ..plumbing.common import Collect, Owner, Password, Result, State, Unset, owner_home, owner_name
+from ..plumbing.common import Collect, Password, Result, State, owner_home
 from . import mailman, mysql, pgsql
 
 
@@ -139,22 +138,6 @@ def update_member_name(member: Member, preferred_name: str, surname: str) -> Col
 
 
 @Result.collect
-def _add_society_admin(sess: SQLASession, member: Member, society: Society,
-                       group: unix.Group) -> Collect[None]:
-    yield bespoke.add_to_society(sess, member, society)
-    yield unix.add_to_group(unix.get_user(member.crsid), group)
-    yield bespoke.link_soc_home_dir(member, society)
-
-
-@Result.collect
-def _remove_society_admin(sess: SQLASession, member: Member, society: Society,
-                          group: unix.Group) -> Collect[None]:
-    yield bespoke.remove_from_society(sess, member, society)
-    yield unix.remove_from_group(unix.get_user(member.crsid), group)
-    yield bespoke.link_soc_home_dir(member, society)
-
-
-@Result.collect
 def _sync_society_admins(sess: SQLASession, society: Society, admins: Set[str]) -> Collect[None]:
     society = get_society(society.society, sess)
     if society.admin_crsids == admins:
@@ -162,10 +145,10 @@ def _sync_society_admins(sess: SQLASession, society: Society, admins: Set[str]) 
     group = unix.get_group(society.society)
     for crsid in admins - society.admin_crsids:
         member = get_member(crsid, sess)
-        yield _add_society_admin(sess, member, society, group)
+        yield bespoke.add_society_admin(sess, member, society, group)
     for crsid in society.admin_crsids - admins:
         member = get_member(crsid, sess)
-        yield _remove_society_admin(sess, member, society, group)
+        yield bespoke.remove_society_admin(sess, member, society, group)
     with mysql.context() as cursor:
         yield mysql.sync_society_roles(cursor, society)
     with pgsql.context() as cursor:
@@ -241,7 +224,7 @@ def remove_society_admin(member: Member, society: Society) -> Collect[None]:
         member = get_member(member.crsid, sess)
         society = get_society(society.society, sess)
         group = unix.get_group(society.society)
-        res_remove = yield from _remove_society_admin(sess, member, society, group)
+        res_remove = yield from bespoke.remove_society_admin(sess, member, society, group)
     with mysql.context() as cursor:
         yield mysql.sync_society_roles(cursor, society)
     with pgsql.context() as cursor:
@@ -249,51 +232,6 @@ def remove_society_admin(member: Member, society: Society) -> Collect[None]:
     if res_remove:
         yield send(society, "tasks/society_admin_remove.j2", {"member": member})
         yield send(member, "tasks/society_admin_leave.j2", {"society": society})
-
-
-@Result.collect
-def _scrub_user(owner: Owner) -> Collect[None]:
-    try:
-        user = unix.get_user(owner_name(owner))
-    except KeyError:
-        return
-    else:
-        cls = "soc" if isinstance(owner, Society) else "user"
-        yield unix.set_real_name(user, "")
-        yield unix.rename_user(user, "ex{}{}".format(cls, owner.uid))
-
-
-def _scrub_group(owner: Owner) -> Result[Unset]:
-    try:
-        group = unix.get_group(owner_name(owner))
-    except KeyError:
-        return Result(State.unchanged)
-    else:
-        cls = "soc" if isinstance(owner, Society) else "user"
-        return unix.rename_group(group, "ex{}{}".format(cls, owner.gid))
-
-
-def _scrub_member_jobs(sess: SQLASession, owner: Owner) -> Result[Unset]:
-    state = State.unchanged
-    query = sess.query(Job)
-    if isinstance(owner, Member):
-        query = query.filter((Job.owner_crsid == owner.crsid) |
-                             ((Job.type == jobs.Signup.JOB_TYPE) &
-                              (Job.args.contains({"crsid": owner.crsid}))))
-    elif isinstance(owner, Society):
-        query = query.filter(Job.args.contains({"society": owner.society}))
-    else:
-        raise TypeError(owner)
-    for job in query:
-        cls = jobs.all_jobs[job.type]
-        if cls not in jobs.SENSITIVE_ARGS:
-            continue
-        for field in jobs.SENSITIVE_ARGS[cls]:
-            if job.args.get(field):
-                LOG.debug("Scrubbing job #%d (%s), field %r", job.job_id, job.type, field)
-                job.args[field] = "<redacted>"
-                state = State.success
-    return Result(state)
 
 
 @Result.collect
@@ -337,7 +275,7 @@ def delete_member(member: Member) -> Collect[None]:
             member.notes = "{}\n{}".format(member.notes, note)
         else:
             member.notes = note
-        yield _scrub_member_jobs(sess, member)
+        yield bespoke.scrub_member_jobs(sess, member)
     with mysql.context() as cursor:
         yield mysql.drop_all_databases(cursor, member)
     with pgsql.context() as cursor:
@@ -345,8 +283,8 @@ def delete_member(member: Member) -> Collect[None]:
     for mlist in mailman.get_list_suffixes(member):
         yield mailman.remove_list(member, mlist, True)
     # TODO: pip/hades mail
-    yield _scrub_user(member)
-    yield _scrub_group(member)
+    yield bespoke.scrub_user(member)
+    yield bespoke.scrub_group(member)
     yield bespoke.delete_files(member)
 
 
@@ -371,8 +309,8 @@ def delete_society(society: Society) -> Collect[None]:
         yield pgsql.drop_account(cursor, society)
     for mlist in mailman.get_list_suffixes(society):
         yield mailman.remove_list(society, mlist)
-    yield _scrub_user(society)
-    yield _scrub_group(society)
+    yield bespoke.scrub_user(society)
+    yield bespoke.scrub_group(society)
     with bespoke.context() as sess:
         for domain in bespoke.get_custom_domains(sess, society):
             yield bespoke.remove_custom_domain(sess, society, domain.domain)
