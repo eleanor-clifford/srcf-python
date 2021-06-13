@@ -73,7 +73,13 @@ def get_user_grants(cursor: Cursor, user: str) -> List[str]:
     """
     Look up all grants that the given user has.
     """
-    query(cursor, "SHOW GRANTS FOR %s@%s", user, HOST)
+    try:
+        query(cursor, "SHOW GRANTS FOR %s@%s", user, HOST)
+    except DatabaseError as ex:
+        if ex.args[0] == ER.NONEXISTING_GRANT:
+            return []
+        else:
+            raise
     databases: List[str] = []
     for grant in cursor.fetchall():
         match = re.match(r"GRANT (.+) ON (?:\*|(['`\"])(.*?)\2)\.\*", grant[0])
