@@ -14,6 +14,7 @@ from sqlalchemy.schema import Table, FetchedValue, CheckConstraint, ForeignKey, 
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.ext.mutable import MutableDict
 
 from .compat import MemberCompat, SocietyCompat, AdminsSetCompat
 
@@ -293,7 +294,7 @@ if is_root or is_webapp:
         state_message = Column(Text)
         created_at = Column(DateTime)
         type = Column(String(100), nullable=False)
-        args = Column(HSTORE, nullable=False)
+        args = Column(MutableDict.as_mutable(HSTORE), nullable=False)
         environment = Column(Text)
 
     class JobLog(Base):

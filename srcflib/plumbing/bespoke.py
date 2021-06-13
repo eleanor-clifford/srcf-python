@@ -380,7 +380,8 @@ def scrub_member_jobs(sess: SQLASession, owner: Owner) -> Result[Unset]:
         if cls not in jobs.SENSITIVE_ARGS:
             continue
         for field in jobs.SENSITIVE_ARGS[cls]:
-            if job.args.get(field):
+            value = job.args.get(field)
+            if value and value != "<redacted>":
                 LOG.debug("Scrubbing job #%d (%s), field %r", job.job_id, job.type, field)
                 job.args[field] = "<redacted>"
                 state = State.success
