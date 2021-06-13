@@ -172,11 +172,11 @@ def enable_user(user: User, active: bool = True) -> Result[Unset]:
     Change the default shell for this user, using a no-login shell to disable, and bash to enable.
     """
     login = user.pw_shell not in _NOLOGIN_SHELLS
-    if login and not active:
+    if active and not login:
         command(["/usr/bin/chsh", "--shell", "/bin/bash", user.pw_name])
         LOG.debug("Enabled UNIX user: %r", user)
         return Result(State.success)
-    elif active and not login:
+    elif login and not active:
         command(["/usr/bin/chsh", "--shell", _NOLOGIN_SHELLS[0], user.pw_name])
         LOG.debug("Disabled UNIX user: %r", user)
         return Result(State.success)
