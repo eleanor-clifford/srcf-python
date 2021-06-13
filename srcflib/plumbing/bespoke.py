@@ -629,7 +629,7 @@ def delete_files(owner: Owner) -> Collect[None]:
     for path in (home, public):
         if os.path.exists(path):
             shutil.rmtree(home)
-            LOG.debug("Deleted society files: %r", path)
+            LOG.debug("Deleted files: %r", path)
             yield Result(State.success)
         else:
             yield Result(State.unchanged)
@@ -639,5 +639,12 @@ def slay_user(owner: Owner) -> Result[Unset]:
     """
     Kill all processes belonging to the given account.
     """
-    proc = command(["/usr/local/sbin/srcf-slay", owner_name(owner)], output=True)
-    return Result(State.success if proc.stdout else State.unchanged)
+    try:
+        proc = command(["/usr/local/sbin/srcf-slay", owner_name(owner)], output=True)
+    except CalledProcessError as ex:
+        if ex.returncode == 2:  # User not found.
+            return Result(State.unchanged)
+        else:
+            raise
+    else:
+        return Result(State.success if proc.stdout else State.unchanged)
