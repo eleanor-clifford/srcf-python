@@ -214,7 +214,7 @@ def rename_user(user: User, username: str) -> Result[Unset]:
     """
     if user.pw_name == username:
         return Result(State.unchanged)
-    command(["/usr/bin/usermod", "--login", username, user.pw_name])
+    command(["/usr/sbin/usermod", "--login", username, user.pw_name])
     LOG.debug("Renamed UNIX user: %r %r", user, username)
     return Result(State.success)
 
@@ -223,7 +223,7 @@ def rename_user(user: User, username: str) -> Result[Unset]:
 def set_home_dir(user: User, home: str) -> Result[Unset]:
     if user.pw_dir == home:
         return Result(State.unchanged)
-    command(["/usr/bin/usermod", "--home", home, user.pw_name])
+    command(["/usr/sbin/usermod", "--home", home, user.pw_name])
     LOG.debug("Updated UNIX user home directory: %r %r", user, home)
     return Result(State.success)
 
@@ -319,7 +319,7 @@ def rename_group(group: Group, username: str) -> Result[Unset]:
     """
     if group.gr_name == username:
         return Result(State.unchanged)
-    command(["/usr/bin/groupmod", "--new-name", username, group.gr_name])
+    command(["/usr/sbin/groupmod", "--new-name", username, group.gr_name])
     LOG.debug("Renamed UNIX group: %r %r", group, username)
     return Result(State.success)
 
