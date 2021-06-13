@@ -627,12 +627,13 @@ def delete_files(owner: Owner) -> Collect[None]:
     home = owner_home(owner)
     public = owner_home(owner, True)
     for path in (home, public):
-        if os.path.exists(path):
+        try:
             shutil.rmtree(home)
+        except FileNotFoundError:
+            yield Result(State.unchanged)
+        else:
             LOG.debug("Deleted files: %r", path)
             yield Result(State.success)
-        else:
-            yield Result(State.unchanged)
 
 
 def slay_user(owner: Owner) -> Result[Unset]:
