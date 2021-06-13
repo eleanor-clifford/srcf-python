@@ -10,6 +10,7 @@ import logging
 import os
 import pwd
 import shutil
+from subprocess import CalledProcessError
 import time
 from typing import Generator, List, Optional, overload
 
@@ -75,8 +76,14 @@ def get_crontab(owner: Owner) -> Optional[str]:
     """
     Fetch the owning user's crontab, if one exists on the current server.
     """
-    proc = command(["/usr/bin/crontab", "-u", owner_name(owner), "-l"], output=True)
-    return proc.stdout.decode("utf-8") if proc.stdout else None
+    try:
+        proc = command(["/usr/bin/crontab", "-u", owner_name(owner), "-l"], output=True)
+    except CalledProcessError:
+        return None
+    if proc.stdout:
+        return proc.stdout.decode("utf-8")
+    else:
+        return None
 
 
 def clear_crontab(owner: Owner) -> Result[Unset]:
