@@ -284,7 +284,8 @@ def delete_member(member: Member) -> Collect[None]:
         yield pgsql.drop_all_databases(cursor, member)
     for mlist in mailman.get_list_suffixes(member):
         yield mailman.remove_list(member, mlist, True)
-    # TODO: pip/hades mail
+    yield bespoke.empty_legacy_mailbox(member)
+    # TODO: hades mail
     yield bespoke.scrub_user(member)
     yield bespoke.scrub_group(member)
     yield bespoke.delete_files(member)

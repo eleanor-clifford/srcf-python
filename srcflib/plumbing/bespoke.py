@@ -304,11 +304,26 @@ def create_legacy_mailbox(member: Member) -> Result[Unset]:
     """
     Send an email to a user's legacy mailbox.
     """
-    if os.path.exists(os.path.join("/var/spool/mail", member.crsid)):
+    if os.path.exists(os.path.join("/var/mail", member.crsid)):
         return Result(State.unchanged)
     res_send = send((member.name, "real-{}@srcf.net".format(member.crsid)),
                     "plumbing/legacy_mailbox.j2", {"target": member})
     return Result(State.created, parts=(res_send,))
+
+
+def empty_legacy_mailbox(member: Member) -> Result[Unset]:
+    """
+    Delete all messages inside a user's legacy mailbox.
+    """
+    path = os.path.join("/var/mail", member.crsid)
+    try:
+        stats = os.stat(path)
+    except FileNotFoundError:
+        return Result(State.unchanged)
+    if stats.st_size == 0:
+        return Result(State.unchanged)
+    os.truncate(path, 0)
+    return Result(State.success)
 
 
 @Result.collect
