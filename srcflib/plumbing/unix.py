@@ -10,7 +10,7 @@ import logging
 import os
 import pwd
 import stat
-from typing import NewType, Optional, Set
+from typing import NewType, Optional, Set, Union
 
 # Expose these here for now, so that other parts of SRCFLib can reference them locally, but keep a
 # single implementation in case it needs revising.  TODO: Move here as part of control migration.
@@ -99,18 +99,30 @@ def symlink(link: str, target: str, needed: bool = True):
     return Result(state)
 
 
-def get_user(username: str) -> User:
+def get_user(name_or_id: Union[str, int]) -> User:
     """
     Look up an existing user by name.
     """
-    return User(pwd.getpwnam(username))
+    if isinstance(name_or_id, str):
+        user = pwd.getpwnam(name_or_id)
+    elif isinstance(name_or_id, int):
+        user = pwd.getpwuid(name_or_id)
+    else:
+        raise TypeError(name_or_id)
+    return User(user)
 
 
-def get_group(username: str) -> Group:
+def get_group(name_or_id: Union[str, int]) -> Group:
     """
     Look up an existing group by name.
     """
-    return Group(grp.getgrnam(username))
+    if isinstance(name_or_id, str):
+        group = grp.getgrnam(name_or_id)
+    elif isinstance(name_or_id, int):
+        group = grp.getgrgid(name_or_id)
+    else:
+        raise TypeError(name_or_id)
+    return Group(group)
 
 
 @require_host(hosts.USER)

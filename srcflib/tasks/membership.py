@@ -241,7 +241,7 @@ def cancel_member(member: Member, keep_groups: bool = False) -> Collect[None]:
     """
     Suspend the user account of a member.
     """
-    user = unix.get_user(member.crsid)
+    user = unix.get_user(member.uid)
     yield unix.enable_user(user, False)
     yield bespoke.clear_crontab(member)
     yield bespoke.slay_user(member)
