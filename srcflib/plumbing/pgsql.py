@@ -133,7 +133,11 @@ def drop_user(cursor: Cursor, name: str) -> Result[Unset]:
     """
     Drop a PostgreSQL user and all of its grants.
     """
-    query(cursor, _format("DROP USER IF EXISTS {}", name))
+    try:
+        get_role(cursor, name)
+    except KeyError:
+        return Result(State.unchanged)
+    query(cursor, _format("DROP USER {}", name))
     return Result(State.success)
 
 
