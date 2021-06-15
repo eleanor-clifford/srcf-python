@@ -43,7 +43,7 @@ def create(opts: DocOptArgs, owner: Owner):
 
 
 @entrypoint
-def passwd(opts: DocOptArgs, owner: Owner):
+def passwd(owner: Owner):
     """
     Reset a PostgreSQL user's password.
 
@@ -57,7 +57,7 @@ def passwd(opts: DocOptArgs, owner: Owner):
 
 
 @entrypoint
-def drop(opts: DocOptArgs, owner: Owner):
+def drop(owner: Owner):
     """
     Drop a PostgreSQL user and all their databases.
 

@@ -35,7 +35,7 @@ def create(opts: DocOptArgs, owner: Owner):
 
 
 @entrypoint
-def passwd(opts: DocOptArgs, owner: Owner):
+def passwd(owner: Owner):
     """
     Reset a MySQL user's password.
 
@@ -49,7 +49,7 @@ def passwd(opts: DocOptArgs, owner: Owner):
 
 
 @entrypoint
-def drop(opts: DocOptArgs, owner: Owner):
+def drop(owner: Owner):
     """
     Drop a MySQL user and all their databases.
 

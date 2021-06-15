@@ -4,7 +4,6 @@ SRCF-specific tools.
 Most methods identify users and groups using the `Member` and `Society` database models.
 """
 
-from contextlib import contextmanager
 from datetime import date, datetime
 import logging
 import os
@@ -12,7 +11,7 @@ import pwd
 import shutil
 from subprocess import CalledProcessError
 import time
-from typing import Generator, List, Optional, overload
+from typing import List, Optional
 
 from requests import Session as RequestsSession
 
@@ -20,7 +19,7 @@ from sqlalchemy.orm import Session as SQLASession
 from sqlalchemy.orm.exc import NoResultFound
 
 from srcf.controllib import jobs
-from srcf.database import Domain, HTTPSCert, Job, MailHandler, Member, Session, Society
+from srcf.database import Domain, HTTPSCert, Job, MailHandler, Member, Society
 from srcf.database.queries import get_member, get_society
 from srcf.database.summarise import summarise_society
 
@@ -32,44 +31,6 @@ from ..email import send
 
 
 LOG = logging.getLogger(__name__)
-
-
-@contextmanager
-def context(sess: Optional[SQLASession] = None) -> Generator[SQLASession, None, None]:
-    """
-    Run multiple database commands and commit at the end:
-
-        with context() as sess:
-            for ... in data:
-                create_member(sess, ...)
-    """
-    sess = sess or Session()
-    try:
-        yield sess
-    except Exception:
-        sess.rollback()
-        raise
-    finally:
-        sess.commit()
-
-
-@overload
-def refetch(sess: Session, owner: Member) -> Member: ...
-@overload
-def refetch(sess: Session, owner: Society) -> Society: ...
-
-def refetch(sess: Session, owner: Owner) -> Owner:
-    """
-    Retrieve a foreign database object under the current session.
-    """
-    if SQLASession.object_session(owner) is sess:
-        return owner
-    elif isinstance(owner, Member):
-        return get_member(owner.crsid, sess)
-    elif isinstance(owner, Society):
-        return get_society(owner.society, sess)
-    else:
-        raise TypeError(owner)
 
 
 def get_crontab(owner: Owner) -> Optional[str]:
@@ -92,7 +53,7 @@ def clear_crontab(owner: Owner) -> Result[Unset]:
     """
     if not get_crontab(owner):
         return Result(State.unchanged)
-    proc = command(["/usr/bin/crontab", "-u", owner_name(owner), "-r"])
+    command(["/usr/bin/crontab", "-u", owner_name(owner), "-r"])
     return Result(State.success)
 
 

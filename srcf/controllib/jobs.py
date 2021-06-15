@@ -304,7 +304,7 @@ class Signup(Job):
     social = property(lambda s: s.row.args["social"] == "y")
 
     def run(self, sess):
-        srcflib_call(self, "Create member", membership.create_member,
+        srcflib_call(self, "Create member", membership.create_member, sess,
                      self.crsid, self.preferred_name, self.surname, self.email, self.mail_handler, social=self.social)
 
     def __repr__(self): return "<Signup {0.crsid}>".format(self)
@@ -401,7 +401,8 @@ class UpdateName(Job):
     def __str__(self): return "Update name: {0.owner.crsid} ({0.name})".format(self)
 
     def run(self, sess):
-        srcflib_call(self, "Update name", membership.update_member_name, self.owner, self.preferred_name, self.surname)
+        srcflib_call(self, "Update name", membership.update_member_name, sess,
+                     self.owner, self.preferred_name, self.surname)
 
 
 @add_job
@@ -667,7 +668,7 @@ class CreateSociety(SocietyJob):
     admin_crsids = property(lambda s: set(s.row.args["admins"].split(",")))
 
     def run(self, sess):
-        srcflib_call(self, "Create society", membership.create_society,
+        srcflib_call(self, "Create society", membership.create_society, sess,
                      self.society_society, self.description, self.admin_crsids)
 
     def __repr__(self): return "<CreateSociety {0.society_society}>".format(self)
@@ -696,7 +697,8 @@ class UpdateSocietyDescription(SocietyJob):
     def __str__(self): return "Update society description: {0.society_society} ({0.description})".format(self)
 
     def run(self, sess):
-        srcflib_call(self, "Update description", membership.update_society_description, self.society, self.description)
+        srcflib_call(self, "Update description", membership.update_society_description, sess,
+                     self.society, self.description)
 
 
 @add_job
@@ -777,13 +779,13 @@ class ChangeSocietyAdmin(SocietyJob):
         if not self.target_member.user:
             raise JobFailed("{0.target_member.crsid} is not a SRCF user".format(self))
 
-        srcflib_call(self, "Add admin", membership.add_society_admin, self.target_member, self.society)
+        srcflib_call(self, "Add admin", membership.add_society_admin, sess, self.target_member, self.society)
 
     def rm_admin(self, sess):
         if len(self.society.admins) == 1:
             raise JobFailed("Removing all admins not implemented")
 
-        srcflib_call(self, "Remove admin", membership.remove_society_admin, self.target_member, self.society)
+        srcflib_call(self, "Remove admin", membership.remove_society_admin, sess, self.target_member, self.society)
 
     def run(self, sess):
         if self.owner not in self.society.admins:

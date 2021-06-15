@@ -4,13 +4,13 @@ Helpers for converting methods into scripts, and filling in arguments with datab
 
 from functools import wraps
 from inspect import cleandoc, signature
-from itertools import islice
 import sys
 from typing import Any, Callable, cast, Dict, List, Optional, Union
 
 from docopt import docopt
+from sqlalchemy.orm import Session as SQLASession
 
-from srcf.database import Member, Society
+from srcf.database import Member, Session, Society
 from srcf.database.queries import get_member, get_member_or_society, get_society
 
 from ..plumbing.common import Owner
@@ -22,6 +22,9 @@ DocOptArgs = Dict[str, Union[bool, str, List[str]]]
 ENTRYPOINTS: List[str] = []
 
 
+sess = Session()
+
+
 def entrypoint(fn: Callable[..., Any]) -> Callable[..., Any]:
     """
     Decorator to make an entrypoint out of a generic function.
@@ -29,12 +32,19 @@ def entrypoint(fn: Callable[..., Any]) -> Callable[..., Any]:
     This uses `docopt` to parse arguments according to the method docstring, and will be formatted
     with `{script}` set to the script name.  At minimum, it should contain `Usage: {script}`.
 
-    The function being decorated should accept at least one argument, a `dict` of input parameters.
-    Additional arguments must be type-annotated, and will be filled in by looking up objects of the
-    corresponding types (`Member`, `Society`, or `Owner`).  For example:
+    Functions may optionally accept arguments, but they must be annotated with a recognised type in
+    order to be filled in.  The following types are fixed and always available:
+    
+        - `DocOptArgs` (a `dict` of input parameters parsed from the usage line)
+        - `Session` (a SQLAlchemy session)
+      
+    The types `Member`, `Society`, or `Owner` will be used to try and look up a corresponding object
+    based on an input parameter matching the variable name (the name must be declared in )
+    
+    An example function:
 
         @entrypoint
-        def grant(opts: DocOptArgs, member: Member, society: Society):
+        def grant(opts: DocOptArgs, sess: Session, member: Member, society: Society):
             \"""
             Add the member to the society.
 
@@ -52,11 +62,20 @@ def entrypoint(fn: Callable[..., Any]) -> Callable[..., Any]:
         # Detect resolvable-typed arguments and fill in their values.
         sig = signature(fn)
         ok = True
-        for param in islice(sig.parameters.values(), 1, None):
+        for param in sig.parameters.values():
             name = param.name
             cls = param.annotation
+            if cls is DocOptArgs:
+                extra[name] = opts
+                continue
+            elif cls is SQLASession:
+                extra[name] = sess
+                continue
             try:
-                value = cast(str, opts[name.upper()])
+                try:
+                    value = cast(str, opts[name.upper()])
+                except KeyError:
+                    value = cast(str, opts["<{}>".format(name)])
             except KeyError:
                 raise RuntimeError("Missing argument {!r}".format(name))
             try:
@@ -72,7 +91,7 @@ def entrypoint(fn: Callable[..., Any]) -> Callable[..., Any]:
                 ok = False
                 error("{!r} is not valid for parameter {!r}".format(value, name), colour="1")
         if ok:
-            return fn(opts, **extra)
+            return fn(**extra)
         else:
             sys.exit(1)
     wrap.__doc__ = wrap.__doc__.format(script=label)
