@@ -51,7 +51,7 @@ deb-src: dist
 	$(DEBPKG) -S $(DEBUILD_ARGS)
 
 docs:
-	$(DOCS) $(MODULES)
+	$(DOCS) $(MODULES) tests
 
 venv:
 	$(PYTHON) -m venv venv
