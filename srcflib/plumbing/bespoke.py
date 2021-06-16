@@ -189,7 +189,7 @@ def _remove_from_society(sess: SQLASession, member: Member, society: Society) ->
 
 @Result.collect
 def add_society_admin(sess: SQLASession, member: Member, society: Society,
-                       group: unix.Group) -> Collect[None]:
+                      group: unix.Group) -> Collect[None]:
     """
     Add a new admin to a society account.
     """
@@ -200,7 +200,7 @@ def add_society_admin(sess: SQLASession, member: Member, society: Society,
 
 @Result.collect
 def remove_society_admin(sess: SQLASession, member: Member, society: Society,
-                          group: unix.Group) -> Collect[None]:
+                         group: unix.Group) -> Collect[None]:
     """
     Remove an existing admin from a society account.
     """

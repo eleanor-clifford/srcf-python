@@ -34,13 +34,13 @@ def entrypoint(fn: Callable[..., Any]) -> Callable[..., Any]:
 
     Functions may optionally accept arguments, but they must be annotated with a recognised type in
     order to be filled in.  The following types are fixed and always available:
-    
+
         - `DocOptArgs` (a `dict` of input parameters parsed from the usage line)
         - `Session` (a SQLAlchemy session)
-      
+
     The types `Member`, `Society`, or `Owner` will be used to try and look up a corresponding object
     based on an input parameter matching the variable name (the name must be declared in )
-    
+
     An example function:
 
         @entrypoint

@@ -1,0 +1,6 @@
+[run]
+source =
+    srcf
+    srcflib
+    srcfmailmanwrapper
+    srcfmail.py

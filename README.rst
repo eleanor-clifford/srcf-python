@@ -15,8 +15,12 @@ Local setup commands
     # Generate HTML documentation (requires pdoc3):
     make docs
 
-    # Run all tests:
-    python3 -m unittest
+    # Run linting and unit tests:
+    make check
+    make test
+    make MODULE_FILES=srcflib/ check  # lint just SRCFLib (which should pass)
+    make UNITTEST_PYTHON="python3-coverage run" test  # unit tests with code coverage
+                                                      # (use `coverage3` in a venv)
 
     # Build bdist and wheel packages:
     make dist           # automatic versioning (revision count + timestamp)

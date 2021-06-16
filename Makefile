@@ -2,7 +2,10 @@ PYTHON = python3
 PIP = pip3
 FLAKE8 = flake8
 PDOC = pdoc3
+UNITTEST_PYTHON = fakeroot $(PYTHON)
+UNITTEST = $(UNITTEST_PYTHON) -m unittest
 
+UNITTEST_ARGS = discover
 INSTALL_ARGS = -e
 DPKG_ARGS = -us -uc
 LINTIAN_ARGS = --pedantic --suppress-tags binary-without-manpage
@@ -17,17 +20,18 @@ DEBPKG = FAKEROOTDONTTRYCHOWN=1 debuild -e FAKEROOTDONTTRYCHOWN
 DOCS = $(PDOC) $(PDOC_ARGS)
 
 NAME = srcf
-MODULES = $(NAME) srcflib srcfmail srcfmailmanwrapper
+MODULES = srcf srcflib srcfmail srcfmailmanwrapper
+MODULE_FILES = srcf/ srcflib/ srcfmail.py srcfmailmanwrapper/
 
 check:
-	$(FLAKE8) $(MODULES)
+	$(FLAKE8) $(MODULE_FILES)
 
 test:
-	$(PYTHON) -m unittest discover
+	$(UNITTEST) $(UNITTEST_ARGS)
 
 install:
 	$(PIP) install --upgrade pip setuptools wheel
-	$(PIP) install pdoc3 stdeb  # build dependencies
+	$(PIP) install coverage pdoc3 stdeb  # build dependencies
 	$(PIP) install $(INSTALL_ARGS) .
 
 dist-build:

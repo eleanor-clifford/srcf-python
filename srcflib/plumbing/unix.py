@@ -34,7 +34,7 @@ _NOLOGIN_SHELLS = ("/bin/false", "/usr/sbin/nologin")
 def umask(mask: int):
     """
     Temporarily change the current process' umask:
-    
+
         with umask(0):
             os.mkdir(path, 0o775)
     """
@@ -140,7 +140,8 @@ def _create_user(username: str, uid: Optional[int] = None, system: bool = False,
     else:
         raise ValueError("Username {!r} is already in use".format(username))
     shell = "/bin/bash" if active else _NOLOGIN_SHELLS[0]
-    args = ["/usr/sbin/adduser", "--disabled-password", "--no-create-home", "--shell", shell, username]
+    args = ["/usr/sbin/adduser", "--disabled-password", "--no-create-home",
+            "--shell", shell, username]
     if uid:
         try:
             user = pwd.getpwuid(uid)
