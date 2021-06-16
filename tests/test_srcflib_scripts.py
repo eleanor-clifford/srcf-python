@@ -26,7 +26,7 @@ class TestScripts(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.mem = queries.get_member("spqr2", sess)
-        cls.soc = queries.get_society("srcf", sess)
+        cls.soc = queries.get_society("unittest", sess)
 
     def test_entrypoints(self):
         self.assertIn("srcflib-scripts-no-args=tests.scripts:no_args", ENTRYPOINTS)

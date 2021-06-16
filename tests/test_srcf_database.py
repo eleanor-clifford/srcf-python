@@ -22,6 +22,10 @@ class TestDatabase(unittest.TestCase):
     
     def setUp(self):
         self.now = datetime.now().strftime("%Y%m%d%H%M%S")
+        sess.begin()
+        
+    def tearDown(self):
+        sess.rollback()
 
     def test_create_member(self):
         crsid = "spqr3"
@@ -31,21 +35,13 @@ class TestDatabase(unittest.TestCase):
         mem = Member(crsid=crsid, preferred_name=preferred_name, surname=surname, email=email,
                      mail_handler=MailHandler.forward.name, member=True, user=True)
         sess.add(mem)
-        sess.commit()
-        try:
-            got = queries.get_member(crsid, sess)
-            self.assertEqual(mem.preferred_name, got.preferred_name)
-            self.assertEqual(mem.surname, got.surname)
-            self.assertEqual(mem.email, got.email)
-            self.assertIsNotNone(got.uid)
-            self.assertIsNotNone(got.gid)
-            self.assertTrue(got.member)
-            self.assertTrue(got.user)
-        finally:
-            sess.delete(mem)
-            sess.commit()
-            with self.assertRaises(KeyError):
-                queries.get_member(crsid, sess)
+        sess.flush()
+        got = queries.get_member(crsid, sess)
+        self.assertIs(mem, got)
+        self.assertIsNotNone(mem.uid)
+        self.assertIsNotNone(mem.gid)
+        self.assertTrue(mem.member)
+        self.assertTrue(mem.user)
 
     def test_create_society(self):
         name = "test"
@@ -53,16 +49,11 @@ class TestDatabase(unittest.TestCase):
         role_email = "sysadmins-python-unittest-{}@srcf.net".format(self.now)
         soc = Society(society=name, description=description, role_email=role_email)
         sess.add(soc)
-        sess.commit()
-        try:
-            got = queries.get_society(name, sess)
-            self.assertEqual(soc.description, got.description)
-            self.assertEqual(soc.role_email, got.role_email)
-        finally:
-            sess.delete(soc)
-            sess.commit()
-            with self.assertRaises(KeyError):
-                queries.get_society(name, sess)
+        sess.flush()
+        got = queries.get_society(name, sess)
+        self.assertIs(soc, got)
+        self.assertIsInstance(soc.uid, int)
+        self.assertIsInstance(soc.gid, int)
 
 
 if __name__ == "__main__":
