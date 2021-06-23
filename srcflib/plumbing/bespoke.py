@@ -78,6 +78,8 @@ def _create_member(sess: SQLASession, crsid: str, preferred_name: Optional[str],
                     member=is_member,
                     user=is_user)
     sess.add(member)
+    # Populate UID and GID from the database.
+    sess.flush()
     LOG.debug("Created member record: %r", member)
     return Result(State.created, member)
 
@@ -124,6 +126,8 @@ def _create_society(sess: SQLASession, name: str, description: str,
                       description=description,
                       role_email=role_email)
     sess.add(society)
+    # Populate UID and GID from the database.
+    sess.flush()
     LOG.debug("Created society record: %r", society)
     return Result(State.created, society)
 
@@ -173,7 +177,6 @@ def _add_to_society(sess: SQLASession, member: Member, society: Society) -> Resu
     if member in society.admins:
         return Result(State.unchanged)
     society.admins.add(member)
-    sess.add(society)
     LOG.debug("Added society admin: %r %r", member, society)
     return Result(State.success)
 
@@ -182,7 +185,6 @@ def _remove_from_society(sess: SQLASession, member: Member, society: Society) ->
     if member not in society.admins:
         return Result(State.unchanged)
     society.admins.remove(member)
-    sess.add(society)
     LOG.debug("Removed society admin: %r %r", member, society)
     return Result(State.success)
 

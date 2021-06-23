@@ -31,8 +31,6 @@ def create_member(sess: SQLASession, crsid: str, preferred_name: str, surname: s
     """
     res_record = yield from bespoke.ensure_member(sess, crsid, preferred_name, surname, email,
                                                   mail_handler, is_member, is_user)
-    # Manual flush in order to populate UID/GID from the database.
-    sess.flush()
     member = res_record.value
     yield unix.ensure_group(crsid, gid=member.gid, system=True)
     res_user = yield from unix.ensure_user(crsid, uid=member.uid, system=True, gid=member.gid,
@@ -164,8 +162,6 @@ def create_society(sess: SQLASession, name: str, description: str, admins: Set[s
     Register a new SRCF society account.
     """
     res_record = yield from bespoke.ensure_society(sess, name, description, role_email)
-    # Manual flush in order to populate UID/GID from the database.
-    sess.flush()
     society = res_record.value
     yield unix.ensure_group(name, gid=society.gid, system=True)
     res_user = yield from unix.ensure_user(name, uid=society.uid, system=True,
@@ -205,10 +201,7 @@ def add_society_admin(sess: SQLASession, member: Member, society: Society) -> Co
     with pgsql.context() as cursor:
         yield pgsql.sync_society_roles(cursor, society)
     if res_add:
-        # Temporarily remove the new admin when emailing the short notification.
-        society.admins.remove(member)
         yield send(society, "tasks/society_admin_add.j2", {"member": member})
-        society.admins.add(member)
         yield send(member, "tasks/society_admin_join.j2", {"society": society})
 
 
