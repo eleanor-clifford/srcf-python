@@ -196,7 +196,7 @@ def add_society_admin(sess: SQLASession, member: Member, society: Society,
     Add a new admin to a society account.
     """
     yield _add_to_society(sess, member, society)
-    yield unix.add_to_group(unix.get_user(member.crsid), group)
+    yield unix.add_to_group(unix.get_user(member.uid), group)
     yield link_soc_home_dir(member, society)
 
 
@@ -207,7 +207,7 @@ def remove_society_admin(sess: SQLASession, member: Member, society: Society,
     Remove an existing admin from a society account.
     """
     yield _remove_from_society(sess, member, society)
-    yield unix.remove_from_group(unix.get_user(member.crsid), group)
+    yield unix.remove_from_group(unix.get_user(member.uid), group)
     yield link_soc_home_dir(member, society)
 
 
@@ -230,7 +230,7 @@ def create_public_html(owner: Owner) -> Collect[None]:
     """
     Create a user's public_html directory, and a symlink to it in their home directory.
     """
-    user = unix.get_user(owner_name(owner))
+    user = unix.get_user(owner.uid)
     link = os.path.join(owner_home(owner), "public_html")
     target = os.path.join(owner_home(owner, True), "public_html")
     yield unix.mkdir(target, user)
@@ -302,7 +302,7 @@ def scrub_user(owner: Owner) -> Collect[None]:
     Anonymise the Unix user of a member or society.
     """
     try:
-        user = unix.get_user(owner_name(owner))
+        user = unix.get_user(owner.uid)
     except KeyError:
         return
     else:
@@ -316,7 +316,7 @@ def scrub_group(owner: Owner) -> Result[Unset]:
     Anonymise the Unix group of a member or society.
     """
     try:
-        group = unix.get_group(owner_name(owner))
+        group = unix.get_group(owner.uid)
     except KeyError:
         return Result(State.unchanged)
     else:

@@ -107,7 +107,7 @@ def reset_password(member: Member) -> Collect[Password]:
     """
     Reset the password of a member's shell account.
     """
-    user = unix.get_user(member.crsid)
+    user = unix.get_user(member.uid)
     res_passwd = yield from unix.reset_password(user)
     passwd = res_passwd.value
     yield from bespoke.update_nis()
@@ -129,7 +129,7 @@ def update_member_name(sess: SQLASession, member: Member,
                                                   is_member=member.member,
                                                   is_user=member.user)
     member = res_record.value
-    user = unix.get_user(member.crsid)
+    user = unix.get_user(member.uid)
     res_name = yield from unix.set_real_name(user, member.name)
     if res_name:
         yield bespoke.update_nis()
@@ -142,7 +142,7 @@ def _sync_society_admins(sess: SQLASession, society: Society, admins: Set[str]) 
     society = get_society(society.society, sess)
     if society.admin_crsids == admins:
         return
-    group = unix.get_group(society.society)
+    group = unix.get_group(society.gid)
     for crsid in admins - society.admin_crsids:
         member = get_member(crsid, sess)
         yield bespoke.add_society_admin(sess, member, society, group)
@@ -194,7 +194,7 @@ def add_society_admin(sess: SQLASession, member: Member, society: Society) -> Co
     """
     Promote a member to a society account admin.
     """
-    group = unix.get_group(society.society)
+    group = unix.get_group(society.gid)
     res_add = yield from bespoke.add_society_admin(sess, member, society, group)
     with mysql.context() as cursor:
         yield mysql.sync_society_roles(cursor, society)
@@ -211,7 +211,7 @@ def remove_society_admin(sess: SQLASession, member: Member, society: Society,
     """
     Demote a member from a society account's list of admins.
     """
-    group = unix.get_group(society.society)
+    group = unix.get_group(society.gid)
     res_remove = yield from bespoke.remove_society_admin(sess, member, society, group)
     with mysql.context() as cursor:
         yield mysql.sync_society_roles(cursor, society)
@@ -313,7 +313,7 @@ def update_society_description(sess: SQLASession, society: Society,
                                                    description=description,
                                                    role_email=society.role_email)
     society = res_record.value
-    user = unix.get_user(society.society)
+    user = unix.get_user(society.uid)
     res_name = yield from unix.set_real_name(user, society.description)
     if res_name:
         yield bespoke.update_nis()
