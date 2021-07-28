@@ -299,6 +299,9 @@ def delete_society(sess: SQLASession, society: Society) -> Collect[None]:
     yield bespoke.scrub_group(society)
     for domain in bespoke.get_custom_domains(sess, society):
         yield bespoke.remove_custom_domain(sess, society, domain.domain)
+    group = unix.get_group(society.gid)
+    for member in set(society.admins):
+        yield bespoke.remove_society_admin(sess, member, society, group)
     yield bespoke.delete_society(sess, society)
     yield bespoke.export_members()
 
