@@ -80,11 +80,11 @@ def entrypoint(fn: Callable[..., Any]) -> Callable[..., Any]:
                 raise RuntimeError("Missing argument {!r}".format(name))
             try:
                 if cls is Member:
-                    extra[name] = get_member(value)
+                    extra[name] = get_member(value, sess)
                 elif cls is Society:
-                    extra[name] = get_society(value)
+                    extra[name] = get_society(value, sess)
                 elif cls is Owner:
-                    extra[name] = get_member_or_society(value)
+                    extra[name] = get_member_or_society(value, sess)
                 else:
                     raise RuntimeError("Bad parameter {!r} type {!r}".format(name, cls))
             except KeyError:
