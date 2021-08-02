@@ -560,27 +560,46 @@ def archive_website(owner: Owner) -> Result[Optional[str]]:
     return Result(State.success, target)
 
 
-def archive_society_files(society: Society) -> Result[str]:
+def _archive_files(society: Society, root: str) -> Result[Optional[str]]:
+    home = owner_home(society)
+    public = owner_home(society, True)
+    try:
+        os.mkdir(root)
+    except FileExistsError:
+        pass
+    name = "soc-{}-{}.tar.bz2".format(society.society, date.today().strftime("%Y%m%d"))
+    target = os.path.join(root, name)
+    paths = filter(os.path.exists, (home, public))
+    if not paths:
+        return Result(State.unchanged, None)
+    if os.path.exists(target):
+        raise FileExistsError(target)
+    command(["/bin/tar", "cjf", target, *paths])
+    LOG.debug("Archived society files: %r", paths)
+    return Result(State.success, target)
+
+
+def _archive_crontab(society: Society, root: str) -> Result[Optional[str]]:
+    crontab = get_crontab(society)
+    if not crontab:
+        return Result(State.unchanged, None)
+    target = os.path.join(root, "crontab")
+    with open(target, "w") as f:
+        f.write(crontab)
+    LOG.debug("Archived crontab: %r", society.society)
+    # TOOD: for host in {"cavein", "sinkhole"}: get_crontab(society)
+    return Result(State.success, target)
+
+
+def archive_society_files(society: Society) -> Collect[None]:
     """
     Create a backup of the society under /archive/societies.
     """
-    home = owner_home(society)
-    public = owner_home(society, True)
     root = os.path.join("/archive/societies", society.society)
-    os.mkdir(root)
-    tar = os.path.join(root, "soc-{}-{}.tar.bz2".format(society.society,
-                                                        date.today().strftime("%Y%m%d")))
-    command(["/bin/tar", "cjf", tar, home, public])
-    LOG.debug("Archived society files: %r %r", home, public)
-    crontab = get_crontab(society)
-    if crontab:
-        with open(os.path.join(root, "crontab"), "w") as f:
-            f.write(crontab)
-        LOG.debug("Archived crontab: %r", society.society)
-    # TOOD: for host in {"cavein", "sinkhole"}: get_crontab(society)
+    yield _archive_files(society, root)
+    yield _archive_crontab(society, root)
     with open(os.path.join(root, "society_info"), "w") as f:
         f.write(summarise_society(society))
-    return Result(State.success, tar)
 
 
 @Result.collect
