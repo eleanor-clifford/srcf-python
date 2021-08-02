@@ -90,10 +90,14 @@ def entrypoint(fn: Callable[..., Any]) -> Callable[..., Any]:
             except KeyError:
                 ok = False
                 error("{!r} is not valid for parameter {!r}".format(value, name), colour="1")
-        if ok:
-            return fn(**extra)
-        else:
+        if not ok:
             sys.exit(1)
+        try:
+            fn(**extra)
+        except Exception:
+            sess.rollback()
+        else:
+            sess.commit()
     wrap.__doc__ = wrap.__doc__.format(script=label)
     # Create a console script line for setup.
     target = "{}:{}".format(fn.__module__, fn.__qualname__)
