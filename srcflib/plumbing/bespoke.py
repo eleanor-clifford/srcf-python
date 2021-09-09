@@ -591,6 +591,7 @@ def _archive_crontab(society: Society, root: str) -> Result[Optional[str]]:
     return Result(State.success, target)
 
 
+@Result.collect
 def archive_society_files(society: Society) -> Collect[None]:
     """
     Create a backup of the society under /archive/societies.
