@@ -300,12 +300,13 @@ class Signup(Job):
     preferred_name = property(lambda s: s.row.args["preferred_name"])
     surname = property(lambda s: s.row.args["surname"])
     email = property(lambda s: s.row.args["email"])
-    mail_handler = property(lambda s: MailHandler[s.row.args["mail_handler"]])
+    mail_handler = property(lambda s: s.row.args["mail_handler"])
     social = property(lambda s: s.row.args["social"] == "y")
 
     def run(self, sess):
         srcflib_call(self, "Create member", membership.create_member, sess,
-                     self.crsid, self.preferred_name, self.surname, self.email, self.mail_handler, social=self.social)
+                     self.crsid, self.preferred_name, self.surname, self.email,
+                     MailHandler[self.mail_handler], social=self.social)
 
     def __repr__(self): return "<Signup {0.crsid}>".format(self)
     def __str__(self): return "Signup: {0.crsid} ({0.preferred_name} {0.surname}, {0.email}, {0.mail_handler} mail)".format(self)
