@@ -1,3 +1,4 @@
+from enum import Enum
 import subprocess
 import re
 import logging
@@ -126,6 +127,28 @@ class JobFailed(Exception):
         self.raw = raw
 
 
+class JobActionInvalid(Exception):
+
+    def __init__(self, action, state=None):
+        super().__init__("Can't {} {}job, must be in {} state".format(
+            action.name, "{} ".format(state) if state else "", action.old_state))
+
+
+class JobAction(Enum):
+
+    def __init__(self, past_label, old_state, new_state):
+        self.past_label = past_label
+        self.old_state = old_state
+        self.new_state = new_state
+
+    reject = ("rejected", "unapproved", "withdrawn")
+    approve = ("approved", "unapproved", "queued")
+    cancel = ("cancelled", "queued", "failed")
+    abort = ("aborted", "running", "failed")
+    repeat = ("repeated", "done", "queued")
+    retry = ("retried", "failed", "queued")
+
+
 class Job(object):
     def __init__(self, row):
         self.row = row
@@ -220,6 +243,13 @@ class Job(object):
     def state(s, n): s.row.state = n
     @state_message.setter
     def state_message(s, n): s.row.state_message = n
+
+    def transition(self, action, message=None):
+        if self.state != action.old_state:
+            raise JobActionInvalid(action, self.state)
+        if action.new_state in ("failed", "withdrawn") and not message:
+            message = "Job {} by sysadmins".format(action.past_desc)
+        self.set_state(action.new_state, message or self.state_message)
 
     def set_state(self, state, message=None):
         self.state = state
