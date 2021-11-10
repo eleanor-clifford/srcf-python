@@ -125,7 +125,8 @@ def ensure_user(cursor: Cursor, name: str) -> Result[Optional[Password]]:
         return Result(State.unchanged, None)
     passwd = Password.new()
     try:
-        query(cursor, "CREATE USER %s@%s IDENTIFIED BY %s", name, HOST, passwd)
+        query(cursor, "CREATE USER %s@%s IDENTIFIED WITH mysql_native_password BY %s",
+              name, HOST, passwd)
     except DatabaseError as ex:
         if ex.args[0] == ER.CANNOT_USER:
             return Result(State.unchanged, None)
@@ -140,7 +141,8 @@ def reset_password(cursor: Cursor, name: str) -> Result[Password]:
     """
     passwd = Password.new()
     # Always returns zero rows; does nothing if the user doesn't exist.
-    query(cursor, "SET PASSWORD FOR %s@%s = %s", name, HOST, passwd)
+    query(cursor, "ALTER USER %s@%s IDENTIFIED WITH mysql_native_password BY %s",
+          name, HOST, passwd)
     return Result(State.success, passwd)
 
 
