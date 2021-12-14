@@ -248,7 +248,7 @@ class Job(object):
         if self.state != action.old_state:
             raise JobActionInvalid(action, self.state)
         if action.new_state in ("failed", "withdrawn") and not message:
-            message = "Job {} by sysadmins".format(action.past_desc)
+            message = "Job {} by sysadmins".format(action.past_label)
         self.set_state(action.new_state, message or self.state_message)
 
     def set_state(self, state, message=None):
