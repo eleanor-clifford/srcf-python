@@ -14,17 +14,19 @@ __all__ = ["email_re", "ldapsearch", "is_admin", "mysql_conn"]
 email_re = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z][A-Za-z]+$")
 
 
+UCAM_LOOKUP = Server('ldap.lookup.cam.ac.uk', get_info=ALL)
+
+
 # LDAP helper
 def ldapsearch(crsid):
-    server = Server('ldap.lookup.cam.ac.uk', get_info=ALL)
-    conn = Connection(server, auto_bind=True)
-    conn.search('ou=people, o=University of Cambridge,dc=cam,dc=ac,dc=uk',
-                '(uid={0})'.format(crsid), attributes=ALL_ATTRIBUTES)
-    r = conn.entries
+    with Connection(UCAM_LOOKUP) as conn:
+        conn.search('ou=people, o=University of Cambridge,dc=cam,dc=ac,dc=uk',
+                    '(uid={0})'.format(crsid), attributes=ALL_ATTRIBUTES)
+        results = conn.entries
 
-    if len(r) != 1:
+    if len(results) != 1:
         raise KeyError(crsid)
-    return r[0]
+    return results[0]
 
 
 def is_admin(member):
