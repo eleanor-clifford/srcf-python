@@ -109,7 +109,11 @@ def confirm(msg: str = "Are you sure?"):
     """
     Prompt for confirmation before destructive actions.
     """
-    yn = input("\033[96m{} [yN]\033[0m ".format(msg))
+    try:
+        yn = input("\033[96m{} [yN]\033[0m ".format(msg))
+    except (KeyboardInterrupt, EOFError):
+        print()
+        yn = "n"
     if yn.lower() not in ("y", "yes"):
         error("Aborted!", exit=1)
 
