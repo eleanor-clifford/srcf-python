@@ -243,7 +243,8 @@ def cancel_member(sess: SQLASession, member: Member, keep_groups: bool = False) 
     with pgsql.context() as cursor:
         yield pgsql.drop_account(cursor, member)
     if not keep_groups:
-        for society in member.societies:
+        societies = set(member.societies)
+        for society in societies:
             yield remove_society_admin(sess, member, society, False)
 
 
