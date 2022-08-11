@@ -1,3 +1,38 @@
+python3-srcf (0.0.12~rc1) UNRELEASED; urgency=medium
+
+  * Update wiki references in email templates
+  * Fix attribute name on JobAction usage
+  * Don't leak sockets doing LDAP searches
+  * Fix bug in user cancellation
+  * Fix validation when unsetting role email
+  * Handle Ctrl-C on script prompts
+
+ -- SRCF Sysadmins <sysadmins@srcf.net>  Thu, 11 Aug 2022 19:00:00 +0100
+
+python3-srcf (0.0.11) UNRELEASED; urgency=medium
+
+  * Add script to delete group accounts
+  * Migrate job state transition logic
+  * Force use of mysql_native_password
+
+ -- SRCF Sysadmins <sysadmins@srcf.net>  Thu, 11 Nov 2021 20:39:00 +0000
+
+python3-srcf (0.0.10) UNRELEASED; urgency=medium
+
+  * Add tasks for cancellation of users and deletion of members
+  * Require explicit session handling and pass-through
+
+ -- SRCF Sysadmins <sysadmins@srcf.net>  Sun, 13 Jun 2021 11:51:00 +0100
+
+python3-srcf (0.0.9) UNRELEASED; urgency=medium
+
+  * Assorted SRCFLib refactors
+  * Introducing SRCFLib sbin scripts
+  * Post-Ubuntu-upgrade fixes
+  * Use SRCFLib for control panel jobs in srcf.controllib
+
+ -- SRCF Sysadmins <sysadmins@srcf.net>  Sat, 5 Jun 2021 22:42:55 +0100
+
 python3-srcf (0.0.8) UNRELEASED; urgency=medium
 
   [ Richard Allitt ]
@@ -9,6 +44,15 @@ python3-srcf (0.0.8) UNRELEASED; urgency=medium
   * Tighten email template package inclusion
   * Fixes to whitespace, typos, session type case
   * Add safe log renderer for potentially raw bytes
+  * Drop python-ldap3 from requirements
+  * Add withdrawn state to jobs
+  * Add jobs for member/group renames
+  * Fix up plumbing for member/group renames
+  * Sync and bug-fix new member/soc tasks from control
+  * Reduce redundancy in name change emails
+  * Return updated member/society on name change
+  * Add danger flags to job classes
+  * Add group creation jobs to user job history
 
   [ Charlie Jonas ]
   * Bump copyright year in license file (#3)
