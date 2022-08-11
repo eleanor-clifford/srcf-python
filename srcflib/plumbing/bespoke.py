@@ -33,6 +33,16 @@ from ..email import send
 LOG = logging.getLogger(__name__)
 
 
+def log_to_file(path: str, message: str) -> Result[Unset]:
+    """
+    Write a timestamped line to a log file.
+    """
+    with open(path, "a") as log:
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        log.write("{} -- {}\n".format(now, message))
+    return Result(State.success)
+
+
 def get_crontab(owner: Owner) -> Optional[str]:
     """
     Fetch the owning user's crontab, if one exists on the current server.

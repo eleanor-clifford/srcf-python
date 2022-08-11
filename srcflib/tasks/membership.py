@@ -21,6 +21,9 @@ from . import mailman, mysql, pgsql
 
 LOG = logging.getLogger(__name__)
 
+MEMBER_LOG = "/var/log/admin/users.log"
+SOCIETY_LOG = "/var/log/admin/socs.log"
+
 
 @Result.collect_value
 def create_member(sess: SQLASession, crsid: str, preferred_name: str, surname: str,
@@ -203,6 +206,8 @@ def add_society_admin(sess: SQLASession, member: Member, society: Society,
     with pgsql.context() as cursor:
         yield pgsql.sync_society_roles(cursor, society)
     if res_add:
+        yield bespoke.log_to_file(SOCIETY_LOG, "{} added to {} operator list"
+                                               .format(member.crsid, society.society))
         yield send(society, "tasks/society_admin_add.j2", {"member": member, "actor": actor})
         yield send(member, "tasks/society_admin_join.j2", {"society": society, "actor": actor})
 
@@ -221,6 +226,8 @@ def remove_society_admin(sess: SQLASession, member: Member, society: Society,
     with pgsql.context() as cursor:
         yield pgsql.sync_society_roles(cursor, society)
     if res_remove:
+        yield bespoke.log_to_file(SOCIETY_LOG, "{} removed from {} operator list"
+                                               .format(member.crsid, society.society))
         yield send(society, "tasks/society_admin_remove.j2", {"member": member, "actor": actor})
         if notify_removed:
             yield send(member, "tasks/society_admin_leave.j2", {"society": society, "actor": actor})
@@ -249,6 +256,7 @@ def cancel_member(sess: SQLASession, member: Member, keep_groups: bool = False) 
         societies = set(member.societies)
         for society in societies:
             yield remove_society_admin(sess, member, society, False)
+    yield bespoke.log_to_file(MEMBER_LOG, "{} user account cancelled".format(member.crsid))
     yield send(SYSADMINS, "tasks/member_cancel.j2", {"member": member})
 
 
@@ -280,6 +288,7 @@ def delete_member(sess: SQLASession, member: Member) -> Collect[None]:
     if res_user or res_group:
         yield bespoke.update_nis()
     yield bespoke.delete_files(member)
+    yield bespoke.log_to_file(MEMBER_LOG, "{} user account deleted".format(member.crsid))
     yield send(SYSADMINS, "tasks/member_delete.j2", {"member": member})
 
 
@@ -314,6 +323,7 @@ def delete_society(sess: SQLASession, society: Society) -> Collect[None]:
         yield bespoke.remove_society_admin(sess, member, society, group)
     yield bespoke.delete_society(sess, society)
     yield bespoke.export_members()
+    yield bespoke.log_to_file(SOCIETY_LOG, "{} group account deleted".format(society.society))
     yield send(SYSADMINS, "tasks/society_delete.j2", {"society": society})
 
 
