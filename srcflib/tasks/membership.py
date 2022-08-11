@@ -228,7 +228,8 @@ def remove_society_admin(sess: SQLASession, member: Member, society: Society,
     if res_remove:
         yield bespoke.log_to_file(SOCIETY_LOG, "{} removed from {} operator list"
                                                .format(member.crsid, society.society))
-        yield send(society, "tasks/society_admin_remove.j2", {"member": member, "actor": actor})
+        if society.admins:
+            yield send(society, "tasks/society_admin_remove.j2", {"member": member, "actor": actor})
         if notify_removed:
             yield send(member, "tasks/society_admin_leave.j2", {"society": society, "actor": actor})
 
