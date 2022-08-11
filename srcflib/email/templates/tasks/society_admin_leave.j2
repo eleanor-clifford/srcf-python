@@ -5,7 +5,7 @@
 {% endblock %}
 
 {% block body %}
-You have been removed from the '{{ society.society }}' shared account on the SRCF.
+You have been removed from the '{{ society.society }}' shared account on the SRCF{% if actor == target %} at your request{% elif actor %} at the request of {{ actor.name }} ({{ actor.crsid }}){% endif %}.
 
 If you believe this to be incorrect, please contact the sysadmins for assistance:
 

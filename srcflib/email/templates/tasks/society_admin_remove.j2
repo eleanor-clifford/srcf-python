@@ -5,7 +5,7 @@ Group account access removed
 {% endblock %}
 
 {% block body %}
-{{ member.name }} ({{ member.crsid }}) has been removed from the '{{ target.society }}' shared account.
+{{ member.name }} ({{ member.crsid }}) has been removed from the '{{ target.society }}' shared account{% if actor == member %} at their own request{% elif actor %} at the request of {{ actor.name }} ({{ actor.crsid }}){% endif %}.
 
 The updated list of administrators is as follows:
 

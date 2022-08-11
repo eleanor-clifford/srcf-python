@@ -813,13 +813,13 @@ class ChangeSocietyAdmin(SocietyJob):
         if not self.target_member.user:
             raise JobFailed("{0.target_member.crsid} is not a SRCF user".format(self))
 
-        srcflib_call(self, "Add admin", membership.add_society_admin, sess, self.target_member, self.society)
+        srcflib_call(self, "Add admin", membership.add_society_admin, sess, self.target_member, self.society, actor=self.owner)
 
     def rm_admin(self, sess):
         if len(self.society.admins) == 1:
             raise JobFailed("Removing all admins not implemented")
 
-        srcflib_call(self, "Remove admin", membership.remove_society_admin, sess, self.target_member, self.society)
+        srcflib_call(self, "Remove admin", membership.remove_society_admin, sess, self.target_member, self.society, actor=self.owner)
 
     def run(self, sess):
         if self.owner not in self.society.admins:

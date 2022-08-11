@@ -5,7 +5,7 @@
 {% endblock %}
 
 {% block body %}
-You have been granted access to the '{{ society.society }}' shared account on the SRCF.  A link to this account has been added to your home folder.  Inside, you will find a public_html and a cgi_bin folder -- you can upload web content here, which will appear at the following address:
+You have been granted access to the '{{ society.society }}' shared account on the SRCF{% if actor %} at the request of {{ actor.name }} ({{ actor.crsid }}){% endif %}.  A link to this account has been added to your home folder.  Inside, you will find a public_html and a cgi_bin folder -- you can upload web content here, which will appear at the following address:
 
     {{ society | owner_website }}
 

@@ -190,7 +190,8 @@ def create_society(sess: SQLASession, name: str, description: str, admins: Set[s
 
 
 @Result.collect
-def add_society_admin(sess: SQLASession, member: Member, society: Society) -> Collect[None]:
+def add_society_admin(sess: SQLASession, member: Member, society: Society,
+                      actor: Optional[Member] = None) -> Collect[None]:
     """
     Promote a member to a society account admin.
     """
@@ -201,13 +202,14 @@ def add_society_admin(sess: SQLASession, member: Member, society: Society) -> Co
     with pgsql.context() as cursor:
         yield pgsql.sync_society_roles(cursor, society)
     if res_add:
-        yield send(society, "tasks/society_admin_add.j2", {"member": member})
-        yield send(member, "tasks/society_admin_join.j2", {"society": society})
+        yield send(society, "tasks/society_admin_add.j2", {"member": member, "actor": actor})
+        yield send(member, "tasks/society_admin_join.j2", {"society": society, "actor": actor})
 
 
 @Result.collect
 def remove_society_admin(sess: SQLASession, member: Member, society: Society,
-                         notify_removed: bool = True) -> Collect[None]:
+                         notify_removed: bool = True,
+                         actor: Optional[Member] = None) -> Collect[None]:
     """
     Demote a member from a society account's list of admins.
     """
@@ -218,9 +220,9 @@ def remove_society_admin(sess: SQLASession, member: Member, society: Society,
     with pgsql.context() as cursor:
         yield pgsql.sync_society_roles(cursor, society)
     if res_remove:
-        yield send(society, "tasks/society_admin_remove.j2", {"member": member})
+        yield send(society, "tasks/society_admin_remove.j2", {"member": member, "actor": actor})
         if notify_removed:
-            yield send(member, "tasks/society_admin_leave.j2", {"society": society})
+            yield send(member, "tasks/society_admin_leave.j2", {"society": society, "actor": actor})
 
 
 @Result.collect

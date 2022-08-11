@@ -5,7 +5,7 @@ Group account access granted
 {% endblock %}
 
 {% block body %}
-{{ member.name }} ({{ member.crsid }}) has been granted access to the '{{ target.society }}' shared account.
+{{ member.name }} ({{ member.crsid }}) has been granted access to the '{{ target.society }}' shared account{% if actor %} at the request of {{ actor.name }} ({{ actor.crsid }}){% endif %}.
 
 The complete list of administrators is as follows:
 
