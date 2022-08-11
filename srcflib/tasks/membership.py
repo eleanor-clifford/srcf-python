@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session as SQLASession
 
 from srcf.database import MailHandler, Member, Society
 from srcf.database.queries import get_member, get_society
+from srcf.mail import SYSADMINS
 
 from ..email import send
 from ..plumbing import bespoke, pgsql as pgsql_p, unix
@@ -248,6 +249,7 @@ def cancel_member(sess: SQLASession, member: Member, keep_groups: bool = False) 
         societies = set(member.societies)
         for society in societies:
             yield remove_society_admin(sess, member, society, False)
+    yield send(SYSADMINS, "tasks/member_cancel.j2", {"member": member})
 
 
 @Result.collect
@@ -278,6 +280,7 @@ def delete_member(sess: SQLASession, member: Member) -> Collect[None]:
     if res_user or res_group:
         yield bespoke.update_nis()
     yield bespoke.delete_files(member)
+    yield send(SYSADMINS, "tasks/member_delete.j2", {"member": member})
 
 
 @Result.collect
@@ -311,6 +314,7 @@ def delete_society(sess: SQLASession, society: Society) -> Collect[None]:
         yield bespoke.remove_society_admin(sess, member, society, group)
     yield bespoke.delete_society(sess, society)
     yield bespoke.export_members()
+    yield send(SYSADMINS, "tasks/society_delete.j2", {"society": society})
 
 
 @Result.collect_value
