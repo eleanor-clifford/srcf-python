@@ -96,6 +96,7 @@ def entrypoint(fn: Callable[..., Any]) -> Callable[..., Any]:
             fn(**extra)
         except Exception:
             sess.rollback()
+            raise
         else:
             sess.commit()
     wrap.__doc__ = wrap.__doc__.format(script=label)
