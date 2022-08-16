@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session as SQLASession
 from srcf.database import Member, Session, Society
 from srcf.database.queries import get_member, get_member_or_society, get_society
 
+from ..email import EmailWrapper
 from ..plumbing.common import Owner
 
 
@@ -39,7 +40,8 @@ def entrypoint(fn: Callable[..., Any]) -> Callable[..., Any]:
         - `Session` (a SQLAlchemy session)
 
     The types `Member`, `Society`, or `Owner` will be used to try and look up a corresponding object
-    based on an input parameter matching the variable name (the name must be declared in )
+    based on an input parameter matching the variable name (the name must be declared in the usage
+    line, either in upper case or surrounded by arrow brackets, e.g. `MEMBER` or `<member>`).
 
     An example function:
 
@@ -93,7 +95,8 @@ def entrypoint(fn: Callable[..., Any]) -> Callable[..., Any]:
         if not ok:
             sys.exit(1)
         try:
-            fn(**extra)
+            with EmailWrapper("[{}]".format(label)):
+                fn(**extra)
         except Exception:
             sess.rollback()
             raise
