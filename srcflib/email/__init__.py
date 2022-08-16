@@ -127,9 +127,10 @@ class SuppressEmails(EmailWrapper):
     """
 
     def send(self, target: Recipient, template: str, context: Optional[Mapping[str, Any]] = None,
-             session: Optional[SQLASession] = None):
+             session: Optional[SQLASession] = None) -> Result[Unset]:
         recipient = _make_recipient(target)
         LOG.debug("Suppressing email %r to %r", template, recipient)
+        return Result(State.unchanged)
 
 
 def send(target: Recipient, template: str, context: Optional[Mapping[str, Any]] = None,
