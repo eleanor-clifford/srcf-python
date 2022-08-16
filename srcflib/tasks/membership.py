@@ -240,15 +240,16 @@ def cancel_member(sess: SQLASession, member: Member, keep_groups: bool = False) 
     Suspend the user account of a member.
     """
     user = unix.get_user(member.uid)
-    yield unix.enable_user(user, False)
+    res_user = yield from unix.enable_user(user, False)
     yield bespoke.clear_crontab(member)
     yield bespoke.slay_user(member)
     # TODO: for server in {"cavein", "doom", "sinkhole"}:
     #   bespoke.clear_crontab(member); bespoke.slay_user(member)
     yield bespoke.archive_website(member)
-    yield bespoke.ensure_member(sess, member.crsid, member.preferred_name, member.surname,
-                                member.email, MailHandler[member.mail_handler],
-                                member.member, False)
+    res_member = yield from bespoke.ensure_member(sess, member.crsid,
+                                                  member.preferred_name, member.surname,
+                                                  member.email, MailHandler[member.mail_handler],
+                                                  member.member, False)
     with mysql.context() as cursor:
         yield mysql.drop_account(cursor, member)
     with pgsql.context() as cursor:
@@ -257,8 +258,9 @@ def cancel_member(sess: SQLASession, member: Member, keep_groups: bool = False) 
         societies = set(member.societies)
         for society in societies:
             yield remove_society_admin(sess, member, society, False)
-    yield bespoke.log_to_file(MEMBER_LOG, "{} user account cancelled".format(member.crsid))
-    yield send(SYSADMINS, "tasks/member_cancel.j2", {"member": member})
+    if res_user or res_member:
+        yield bespoke.log_to_file(MEMBER_LOG, "{} user account cancelled".format(member.crsid))
+        yield send(SYSADMINS, "tasks/member_cancel.j2", {"member": member})
 
 
 @Result.collect
