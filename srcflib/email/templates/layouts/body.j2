@@ -1,5 +1,8 @@
+{% if self.body() %}
+{% if target %}
 Dear {{ target | owner_desc(true) }},
 
+{% endif %}
 {% block body %}{% endblock %}
 
 Best wishes,
@@ -8,4 +11,5 @@ The SRCF sysadmins
 
 -- 
 {{ footer }}
+{% endif %}
 {% endif %}
