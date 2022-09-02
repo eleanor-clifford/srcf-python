@@ -1,4 +1,13 @@
-python3-srcf (0.0.12~rc1) UNRELEASED; urgency=medium
+python3-srcf (0.0.13) UNRELEASED; urgency=medium
+
+  * Log group admin changes and member/group deletions
+  * Email sysadmins on member/society cancellations
+  * Track requesting user of group admin changes
+  * Assorted fixes for script and email helpers
+
+ -- SRCF Sysadmins <sysadmins@srcf.net>  Fri, 2 Sep 2022 19:39:00 +0100
+
+python3-srcf (0.0.12) UNRELEASED; urgency=medium
 
   * Update wiki references in email templates
   * Fix attribute name on JobAction usage
