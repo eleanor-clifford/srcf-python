@@ -5,8 +5,10 @@ Scripts to manage groups and their membership.
 from sqlalchemy.orm import Session
 
 from srcf.database.schema import Member, Society
+from srcf.mail import SYSADMINS
 
 from .utils import confirm, entrypoint, error
+from ..email import send
 from ..tasks import membership
 
 
@@ -20,7 +22,8 @@ def grant(sess: Session, member: Member, society: Society):
     if member.crsid in society.admin_crsids:
         error("Warning: {} is already an admin of {}".format(member.crsid, society.society))
     confirm("Add {} to {}?".format(member.name, society.description))
-    membership.add_society_admin(sess, member, society)
+    if membership.add_society_admin(sess, member, society):
+        send(SYSADMINS, "scripts/group_grant.j2", {"member": member, "society": society})
 
 
 @entrypoint
@@ -35,7 +38,8 @@ def revoke(sess: Session, member: Member, society: Society):
     elif society.admin_crsids == {member.crsid}:
         error("Warning: removing the only remaining admin")
     confirm("Remove {} from {}?".format(member.name, society.description))
-    membership.remove_society_admin(sess, member, society)
+    if membership.remove_society_admin(sess, member, society):
+        send(SYSADMINS, "scripts/group_revoke.j2", {"member": member, "society": society})
 
 
 @entrypoint
