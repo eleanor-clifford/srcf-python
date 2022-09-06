@@ -24,7 +24,7 @@ DocOptArgs = Dict[str, Union[bool, str, List[str]]]
 ENTRYPOINTS: List[str] = []
 
 
-sess = Session()
+sess = Session(autocommit=True)
 
 
 def entrypoint(fn: Callable[..., Any]) -> Callable[..., Any]:
