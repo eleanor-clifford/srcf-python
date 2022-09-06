@@ -5,15 +5,16 @@ Helpers for converting methods into scripts, and filling in arguments with datab
 from functools import wraps
 from inspect import cleandoc, signature
 import sys
-from typing import Any, Callable, cast, Dict, List, Optional, Union
+from typing import Any, Callable, cast, Dict, List, Mapping, Optional, Union
 
 from docopt import docopt
 from sqlalchemy.orm import Session as SQLASession
 
 from srcf.database import Member, Session, Society
 from srcf.database.queries import get_member, get_member_or_society, get_society
+from srcf.mail import SYSADMINS
 
-from ..email import EmailWrapper
+from ..email import EmailWrapper, Layout, Recipient
 from ..plumbing.common import Owner
 
 
@@ -95,7 +96,7 @@ def entrypoint(fn: Callable[..., Any]) -> Callable[..., Any]:
         if not ok:
             sys.exit(1)
         try:
-            with EmailWrapper("[{}]".format(label)):
+            with ScriptEmailWrapper("[{}]".format(label)):
                 fn(**extra)
         except Exception:
             sess.rollback()
@@ -107,6 +108,22 @@ def entrypoint(fn: Callable[..., Any]) -> Callable[..., Any]:
     target = "{}:{}".format(fn.__module__, fn.__qualname__)
     ENTRYPOINTS.append("{}={}".format(label, target))
     return wrap
+
+
+class ScriptEmailWrapper(EmailWrapper):
+    """
+    Wrapper that uses the script name in email subjects when notifying sysadmins.
+    """
+
+    def __init__(self, label: str):
+        super().__init__()
+        self._label = label
+
+    def render(self, template: str, layout: Layout, target: Optional[Owner], recipient: Recipient,
+               extra_context: Optional[Mapping[str, Any]] = None) -> str:
+        if recipient == SYSADMINS:
+            extra_context = dict(extra_context or (), prefix="[{}]".format(self._label))
+        return super().render(template, layout, target, recipient, extra_context)
 
 
 def confirm(msg: str = "Are you sure?"):

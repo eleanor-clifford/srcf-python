@@ -80,7 +80,7 @@ class EmailWrapper:
         self._prefix = prefix
         self._footer = footer
 
-    def render(self, template: str, layout: Layout, target: Optional[Owner],
+    def render(self, template: str, layout: Layout, target: Optional[Owner], recipient: Recipient,
                extra_context: Optional[Mapping[str, Any]] = None) -> str:
         """
         Render an email template with Jinja using the provided context.
@@ -100,7 +100,7 @@ class EmailWrapper:
         Render and send an email to the target member or society, or a specific email address.
         """
         owner = target if isinstance(target, (Member, Society)) else None
-        subject = self.render(template, Layout.subject, owner, context)
+        subject = self.render(template, Layout.subject, owner, target, context)
         body = self.render(template, Layout.body, owner, context)
         recipient = _make_recipient(target)
         LOG.debug("Sending email %r to %s", template, recipient)
