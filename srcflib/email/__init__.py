@@ -101,7 +101,7 @@ class EmailWrapper:
         """
         owner = target if isinstance(target, (Member, Society)) else None
         subject = self.render(template, Layout.subject, owner, target, context)
-        body = self.render(template, Layout.body, owner, context)
+        body = self.render(template, Layout.body, owner, target, context)
         recipient = _make_recipient(target)
         LOG.debug("Sending email %r to %s", template, recipient)
         send_mail(recipient, subject, body, copy_sysadmins=False, session=session)
