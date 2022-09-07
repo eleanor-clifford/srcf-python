@@ -9,6 +9,7 @@ from typing import Any, Callable, cast, Dict, List, Mapping, Optional, Union
 
 from docopt import docopt
 from sqlalchemy.orm import Session as SQLASession
+from typing_extensions import get_args, get_origin
 
 from srcf.database import Member, Session, Society
 from srcf.database.queries import get_member, get_member_or_society, get_society
@@ -19,6 +20,8 @@ from ..plumbing.common import Owner
 
 
 DocOptArgs = Dict[str, Union[bool, str, List[str]]]
+
+NoneType = type(None)
 
 
 ENTRYPOINTS: List[str] = []
@@ -37,8 +40,8 @@ def entrypoint(fn: Callable[..., Any]) -> Callable[..., Any]:
     Functions may optionally accept arguments, but they must be annotated with a recognised type in
     order to be filled in.  The following types are fixed and always available:
 
-        - `DocOptArgs` (a `dict` of input parameters parsed from the usage line)
-        - `Session` (a SQLAlchemy session)
+    - `DocOptArgs` (a `dict` of input parameters parsed from the usage line)
+    - `Session` (a SQLAlchemy session)
 
     The types `Member`, `Society`, or `Owner` will be used to try and look up a corresponding object
     based on an input parameter matching the variable name (the name must be declared in the usage
@@ -81,6 +84,17 @@ def entrypoint(fn: Callable[..., Any]) -> Callable[..., Any]:
                     value = cast(str, opts["<{}>".format(name)])
             except KeyError:
                 raise RuntimeError("Missing argument {!r}".format(name))
+            optional = False
+            # Unpick Optional[X] by reading the type object arguments and removing type(None).
+            if get_origin(cls) is Union:
+                cls_args = get_args(cls)
+                if NoneType in cls_args:
+                    optional = True
+                    # NB. Union[X] for a single type X automatically resolves to X.
+                    cls = Union[tuple(arg for arg in cls_args if arg is not NoneType)]
+            if value is None and optional:
+                extra[name] = None
+                continue
             try:
                 if cls is Member:
                     extra[name] = get_member(value, sess)
