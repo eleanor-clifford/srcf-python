@@ -52,7 +52,7 @@ def revoke(sess: Session, member: Member, society: Society, actor: Optional[Memb
     elif actor.crsid not in society.admin_crsids:
         error("Warning: actor {} is not an admin of {}".format(actor.crsid, society.society))
     confirm("Remove {} from {}?".format(member.name, society.description))
-    if membership.remove_society_admin(sess, member, society, actor):
+    if membership.remove_society_admin(sess, member, society, actor=actor):
         send(SYSADMINS, "scripts/group_revoke.j2", {"member": member, "society": society})
 
 

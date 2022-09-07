@@ -3,6 +3,7 @@ Creation and management of member and society accounts.
 """
 
 from datetime import datetime
+from enum import Enum, auto
 import logging
 import os
 from typing import Optional, Set, Tuple
@@ -23,6 +24,19 @@ LOG = logging.getLogger(__name__)
 
 MEMBER_LOG = "/var/log/admin/users.log"
 SOCIETY_LOG = "/var/log/admin/socs.log"
+
+
+class RemoveProcess(Enum):
+    """
+    Context of the removal of a user from a group's admins.
+    """
+
+    DEFAULT = auto()
+    """An explicit removal request."""
+    USER_CANCEL = auto()
+    """The user's personal account is being cancelled, removing them from all of their groups."""
+    GROUP_DELETE = auto()
+    """The group is being deleted, removing all admins from it."""
 
 
 @Result.collect_value
@@ -142,7 +156,8 @@ def update_member_name(sess: SQLASession, member: Member,
 
 
 @Result.collect
-def _sync_society_admins(sess: SQLASession, society: Society, admins: Set[str]) -> Collect[None]:
+def _sync_society_admins(sess: SQLASession, society: Society, admins: Set[str],
+                         process: RemoveProcess = RemoveProcess.DEFAULT) -> Collect[None]:
     society = get_society(society.society, sess)
     if society.admin_crsids == admins:
         return
@@ -214,10 +229,13 @@ def add_society_admin(sess: SQLASession, member: Member, society: Society,
 
 @Result.collect
 def remove_society_admin(sess: SQLASession, member: Member, society: Society,
-                         notify_removed: bool = True,
+                         process: RemoveProcess = RemoveProcess.DEFAULT,
                          actor: Optional[Member] = None) -> Collect[None]:
     """
     Demote a member from a society account's list of admins.
+
+    During user cancellation, the user is not notified of their group removal.  During group
+    deletion, no emails are sent to any admins.
     """
     group = unix.get_group(society.gid)
     res_remove = yield from bespoke.remove_society_admin(sess, member, society, group)
@@ -228,10 +246,11 @@ def remove_society_admin(sess: SQLASession, member: Member, society: Society,
     if res_remove:
         yield bespoke.log_to_file(SOCIETY_LOG, "{} removed from {} operator list"
                                                .format(member.crsid, society.society))
-        if society.admins:
-            yield send(society, "tasks/society_admin_remove.j2", {"member": member, "actor": actor})
-        if notify_removed:
-            yield send(member, "tasks/society_admin_leave.j2", {"society": society, "actor": actor})
+        context = {"actor": actor, "process": process, "RemoveProcess": RemoveProcess}
+        if society.admins and process is not RemoveProcess.GROUP_DELETE:
+            yield send(society, "tasks/society_admin_remove.j2", {"member": member, **context})
+        if process is RemoveProcess.DEFAULT:
+            yield send(member, "tasks/society_admin_leave.j2", {"society": society, **context})
 
 
 @Result.collect
@@ -257,7 +276,7 @@ def cancel_member(sess: SQLASession, member: Member, keep_groups: bool = False) 
     if not keep_groups:
         societies = set(member.societies)
         for society in societies:
-            yield remove_society_admin(sess, member, society, False)
+            yield remove_society_admin(sess, member, society, RemoveProcess.USER_CANCEL)
     if res_user or res_member:
         yield bespoke.log_to_file(MEMBER_LOG, "{} user account cancelled".format(member.crsid))
         yield send(SYSADMINS, "tasks/member_cancel.j2", {"member": member})
@@ -300,7 +319,7 @@ def delete_society(sess: SQLASession, society: Society) -> Collect[None]:
     """
     Archive and delete all traces of a society account.
     """
-    yield _sync_society_admins(sess, society, set())
+    yield _sync_society_admins(sess, society, set(), RemoveProcess.GROUP_DELETE)
     yield bespoke.clear_crontab(society)
     yield bespoke.slay_user(society)
     # TODO: for server in {"cavein", "doom", "sinkhole"}:
@@ -321,9 +340,6 @@ def delete_society(sess: SQLASession, society: Society) -> Collect[None]:
         yield bespoke.update_nis()
     for domain in bespoke.get_custom_domains(sess, society):
         yield bespoke.remove_custom_domain(sess, society, domain.domain)
-    group = unix.get_group(society.gid)
-    for member in set(society.admins):
-        yield bespoke.remove_society_admin(sess, member, society, group)
     yield bespoke.delete_society(sess, society)
     yield bespoke.export_members()
     yield bespoke.log_to_file(SOCIETY_LOG, "{} group account deleted".format(society.society))
