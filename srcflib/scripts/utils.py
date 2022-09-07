@@ -95,8 +95,11 @@ def entrypoint(fn: Callable[..., Any]) -> Callable[..., Any]:
                 error("{!r} is not valid for parameter {!r}".format(value, name), colour="1")
         if not ok:
             sys.exit(1)
-        with ScriptEmailWrapper(label):
-            fn(**extra)
+        try:
+            with ScriptEmailWrapper(label):
+                fn(**extra)
+        finally:
+            sess.flush()
     wrap.__doc__ = wrap.__doc__.format(script=label)
     # Create a console script line for setup.
     target = "{}:{}".format(fn.__module__, fn.__qualname__)
