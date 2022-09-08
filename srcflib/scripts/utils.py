@@ -9,7 +9,6 @@ from typing import Any, Callable, cast, Dict, List, Mapping, Optional, Union
 
 from docopt import docopt
 from sqlalchemy.orm import Session as SQLASession
-from typing_extensions import get_args, get_origin
 
 from srcf.database import Member, Session, Society
 from srcf.database.queries import get_member, get_member_or_society, get_society
@@ -86,8 +85,8 @@ def entrypoint(fn: Callable[..., Any]) -> Callable[..., Any]:
                 raise RuntimeError("Missing argument {!r}".format(name))
             optional = False
             # Unpick Optional[X] by reading the type object arguments and removing type(None).
-            if get_origin(cls) is Union:
-                cls_args = get_args(cls)
+            if getattr(cls, "__origin__", None) is Union:
+                cls_args = cls.__args__
                 if NoneType in cls_args:
                     optional = True
                     # NB. Union[X] for a single type X automatically resolves to X.
