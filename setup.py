@@ -1,5 +1,6 @@
 from glob import glob
 import os.path
+import re
 
 from setuptools import find_packages, setup
 
@@ -16,8 +17,14 @@ except ImportError:
 README = os.path.join(os.path.abspath(os.path.dirname(__file__)), "README.rst")
 
 
+def version():
+    with open("debian/changelog") as log:
+        first = next(l for l in log if l.strip())
+    return re.split("[()]", first)[1].replace("~", "")
+
+
 setup(name="srcf",
-      version="0.0.13",
+      version=version(),
       description="Database schemas and core functionality for the Student-Run Computing Facility.",
       long_description=open(README).read(),
       long_description_content_type="text/x-rst",
