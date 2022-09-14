@@ -272,7 +272,7 @@ def cancel_member(sess: SQLASession, member: Member, keep_groups: bool = False) 
     with mysql.context() as cursor:
         yield mysql.drop_account(cursor, member)
     with pgsql.context() as cursor:
-        yield pgsql.drop_account(cursor, member)
+        yield pgsql.disable_account(cursor, member)
     if not keep_groups:
         societies = set(member.societies)
         for society in societies:
@@ -301,6 +301,7 @@ def delete_member(sess: SQLASession, member: Member) -> Collect[None]:
         yield mysql.drop_all_databases(cursor, member)
     with pgsql.context() as cursor:
         yield pgsql.drop_all_databases(cursor, member)
+        yield pgsql.drop_account(cursor, member)
     for mlist in mailman.get_list_suffixes(member):
         yield mailman.remove_list(member, mlist, True)
     yield bespoke.empty_legacy_mailbox(member)

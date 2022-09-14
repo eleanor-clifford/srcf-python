@@ -127,6 +127,19 @@ def reset_password(cursor: Cursor, owner: Owner) -> Collect[Password]:
     return res_passwd.value
 
 
+def disable_account(cursor: Cursor, owner: Owner) -> Result[Unset]:
+    """
+    Disable a PostgreSQL user account for a given member or society if one exists.
+    """
+    try:
+        role = pgsql.get_role(cursor, owner_name(owner))
+    except KeyError:
+        return Result(State.unchanged)
+    if not role[1]:
+        return Result(State.unchanged)
+    return pgsql.disable_role(cursor, role)
+
+
 def drop_account(cursor: Cursor, owner: Owner) -> Result[Unset]:
     """
     Drop a PostgreSQL user account for a given member or society.
