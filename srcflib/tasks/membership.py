@@ -60,8 +60,7 @@ def create_member(sess: SQLASession, crsid: str, preferred_name: str, surname: s
     if new_user or new_passwd:
         res_passwd = yield from unix.reset_password(user)
         passwd = res_passwd.value
-    if res_user or passwd:
-        yield bespoke.update_nis(new_user)
+    yield bespoke.update_nis(new_user)
     yield unix.create_home(user, owner_home(member))
     yield unix.create_home(user, owner_home(member, True), True)
     yield bespoke.populate_home_dir(member)
@@ -104,8 +103,7 @@ def create_sysadmin(sess: SQLASession, member: Member,
         passwd = res_passwd.value
     else:
         passwd = None
-    if res_user or passwd:
-        yield bespoke.update_nis(new_user)
+    yield bespoke.update_nis(new_user)
     yield unix.create_home(user, os.path.join("/home", username))
     yield unix.create_home(user, os.path.join("/public/home", username), True)
     yield bespoke.populate_home_dir(member)
@@ -149,8 +147,8 @@ def update_member_name(sess: SQLASession, member: Member,
     member = res_record.value
     user = unix.get_user(member.uid)
     res_name = yield from unix.set_real_name(user, member.name)
+    yield bespoke.update_nis()
     if res_name:
-        yield bespoke.update_nis()
         yield send(member, "tasks/member_rename.j2")
     return member
 
@@ -189,8 +187,7 @@ def create_society(sess: SQLASession, name: str, description: str, admins: Set[s
                                            real_name=description)
     new_user = res_user.state == State.created
     user = res_user.value
-    if res_user:
-        yield bespoke.update_nis(res_user.state == State.created)
+    yield bespoke.update_nis(res_user.state == State.created)
     yield unix.create_home(user, owner_home(society))
     yield unix.create_home(user, owner_home(society, True), True)
     yield bespoke.set_home_exim_acl(society)
@@ -306,10 +303,9 @@ def delete_member(sess: SQLASession, member: Member) -> Collect[None]:
         yield mailman.remove_list(member, mlist, True)
     yield bespoke.empty_legacy_mailbox(member)
     # TODO: hades mail
-    res_user = yield bespoke.scrub_user(member)
-    res_group = yield bespoke.scrub_group(member)
-    if res_user or res_group:
-        yield bespoke.update_nis()
+    yield bespoke.scrub_user(member)
+    yield bespoke.scrub_group(member)
+    yield bespoke.update_nis()
     yield bespoke.delete_files(member)
     yield bespoke.log_to_file(MEMBER_LOG, "{} user account deleted".format(member.crsid))
     yield send(SYSADMINS, "tasks/member_delete.j2", {"member": member})
@@ -335,10 +331,9 @@ def delete_society(sess: SQLASession, society: Society) -> Collect[None]:
         yield pgsql.drop_account(cursor, society)
     for mlist in mailman.get_list_suffixes(society):
         yield mailman.remove_list(society, mlist)
-    res_user = yield bespoke.scrub_user(society)
-    res_group = yield bespoke.scrub_group(society)
-    if res_user or res_group:
-        yield bespoke.update_nis()
+    yield bespoke.scrub_user(society)
+    yield bespoke.scrub_group(society)
+    yield bespoke.update_nis()
     for domain in bespoke.get_custom_domains(sess, society):
         yield bespoke.remove_custom_domain(sess, society, domain.domain)
     yield bespoke.delete_society(sess, society)
@@ -359,7 +354,7 @@ def update_society_description(sess: SQLASession, society: Society,
     society = res_record.value
     user = unix.get_user(society.uid)
     res_name = yield from unix.set_real_name(user, society.description)
+    yield bespoke.update_nis()
     if res_name:
-        yield bespoke.update_nis()
         yield send(society, "tasks/society_rename.j2")
     return society

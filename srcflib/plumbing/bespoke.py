@@ -23,8 +23,8 @@ from srcf.database import Domain, HTTPSCert, Job, MailHandler, Member, Society
 from srcf.database.queries import get_member, get_society
 from srcf.database.summarise import summarise_society
 
-from .common import (Collect, command, Owner, owner_home, owner_name, require_host, Result, State,
-                     Unset)
+from .common import (Collect, command, make, Owner, owner_home, owner_name, require_host, Result,
+                     State, Unset)
 from .mailman import MailList
 from . import hosts, unix
 from ..email import send
@@ -524,18 +524,20 @@ def export_members() -> Result[Unset]:
 
 
 @require_host(hosts.USER)
-def update_nis(wait: bool = False) -> Result[Unset]:
+@Result.collect
+def update_nis(wait: bool = False) -> Collect[None]:
     """
     Synchronise UNIX users and passwords over NIS.
 
     If a new user or group has just been created, and is about to be used, set ``wait`` to avoid
     the caching of non-existent UIDs or GIDs.
     """
-    command(["/usr/bin/make", "-C", "/var/yp"])
-    LOG.debug("Updated NIS")
-    if wait:
-        time.sleep(16)
-    return Result(State.success)
+    res = yield from make("/var/yp")
+    if res:
+        LOG.debug("Updated NIS")
+        if wait:
+            time.sleep(16)
+    return res
 
 
 @require_host(hosts.LIST)

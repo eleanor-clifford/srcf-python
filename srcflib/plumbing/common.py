@@ -361,3 +361,21 @@ def command(args: List[str], input_: Optional[Union[str, Password]] = None,
         LOG.debug("Exec: %r", args)
     return subprocess.run(args, input=str(input_).encode("utf-8") if input_ else None,
                           stdout=subprocess.PIPE if output else None, check=True)
+
+
+def make(path: str, *targets: str) -> Result[Unset]:
+    """
+    Run `make` in a directory.
+
+    The targets are checked to see if they're up-to-date; if they are then `State.unchanged` is
+    set in the returned `Result`.
+    """
+    cmd = ["/usr/bin/make", "-C", path, *targets]
+    try:
+        command(cmd + ["-q"])
+    except subprocess.CalledProcessError:
+        pass
+    else:
+        return Result(State.unchanged)
+    command(cmd)
+    return Result(State.success)
