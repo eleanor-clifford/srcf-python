@@ -19,8 +19,8 @@ def formataddr(pair):
     return original_formataddr((name, email))
 
 
-def send_mail(recipient, subject, body,
-              copy_sysadmins=True, reply_to_support=False, session=None):
+def send_mail(recipient, subject, body, copy_sysadmins=True,
+              reply_to=SYSADMINS, reply_to_support=False, session=None):
     """
     Send `body` to `recipient`, which should be a (name, email) tuple,
     or a list of multiple tuples. Name may be None.
@@ -43,9 +43,11 @@ def send_mail(recipient, subject, body,
     message["To"] = ", ".join([formataddr(x) for x in recipient])
     message["Subject"] = subject
     if reply_to_support:
+        warnings.warn("reply_to_support=True is deprecated, use "
+                      "reply_to=srcf.mail.SUPPORT instead", DeprecationWarning)
         message["Reply-To"] = formataddr(SUPPORT)
-    else:
-        message["Reply-To"] = formataddr(SYSADMINS)
+    elif reply_to:
+        message["Reply-To"] = formataddr(reply_to)
 
     all_emails = [x[1] for x in recipient]
     if copy_sysadmins:
@@ -57,6 +59,7 @@ def send_mail(recipient, subject, body,
     s.quit()
 
 
-def mail_sysadmins(subject, body, session=None):
+def mail_sysadmins(subject, body, reply_to=None, session=None):
     """Mail `body` to the sysadmins"""
-    send_mail(SYSADMINS, subject, body, copy_sysadmins=False, session=session)
+    send_mail(SYSADMINS, subject, body, copy_sysadmins=False,
+              reply_to=reply_to, session=session)
