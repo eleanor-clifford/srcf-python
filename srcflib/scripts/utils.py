@@ -4,6 +4,7 @@ Helpers for converting methods into scripts, and filling in arguments with datab
 
 from functools import wraps
 from inspect import cleandoc, signature
+import logging
 import sys
 from typing import Any, Callable, cast, Dict, List, Mapping, Optional, Union
 
@@ -14,7 +15,7 @@ from srcf.database import Member, Session, Society
 from srcf.database.queries import get_member, get_member_or_society, get_society
 from srcf.mail import SYSADMINS
 
-from ..email import EmailWrapper, Layout, Recipient
+from ..email import EmailWrapper, Layout, Recipient, SuppressEmails
 from ..plumbing.common import Owner
 
 
@@ -61,9 +62,16 @@ def entrypoint(fn: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(fn)
     def wrap(opts: Optional[DocOptArgs] = None):
         extra: Dict[str, Any] = {}
+        script = "{} [--debug] [--suppress-email]".format(label)
         if opts is None:
-            doc = cleandoc(fn.__doc__.format(script=label))
+            doc = cleandoc(fn.__doc__.format(script=script))
             opts = docopt(doc)
+        if opts.pop("--debug", False):
+            logging.basicConfig(level=logging.DEBUG)
+        if opts.pop("--suppress-email", False):
+            wrap = SuppressEmails("[{}]".format(label))
+        else:
+            wrap = ScriptEmailWrapper(label)
         # Detect resolvable-typed arguments and fill in their values.
         sig = signature(fn)
         ok = True
@@ -109,7 +117,7 @@ def entrypoint(fn: Callable[..., Any]) -> Callable[..., Any]:
         if not ok:
             sys.exit(1)
         try:
-            with ScriptEmailWrapper(label):
+            with wrap:
                 fn(**extra)
         finally:
             sess.flush()
