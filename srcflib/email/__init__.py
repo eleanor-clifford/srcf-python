@@ -15,14 +15,14 @@ The following Jinja2 filters are available to templates:
 from enum import Enum
 import logging
 import os.path
-from typing import Any, Mapping, Optional, Tuple, Union
+from typing import Any, Mapping, Optional, Sequence, Tuple, Union
 
 from jinja2 import Environment, FileSystemLoader
 
 from sqlalchemy.orm import Session as SQLASession
 
 from srcf.database import Member, Society
-from srcf.mail import send_mail
+from srcf.mail import send_mail, SYSADMINS
 
 from ..plumbing.common import Owner, owner_desc, owner_name, owner_website, Result, State, Unset
 
@@ -123,14 +123,23 @@ DEFAULT_WRAPPER = EmailWrapper()
 
 class SuppressEmails(EmailWrapper):
     """
-    When being used as a context, no emails will be sent by tasks.
+    When being used as a context, no emails will be sent by tasks unless the recipient is in the
+    allow list.  By default, only mail to the sysadmins will be processed.
     """
+
+    def __init__(self, prefix: Optional[str] = "[SRCF]", footer: Optional[str] = None,
+                 allow: Sequence[Recipient] = (SYSADMINS,)):
+        super().__init__(prefix, footer)
+        self._allow = {_make_recipient(recipient)[1] for recipient in allow}
 
     def send(self, target: Recipient, template: str, context: Optional[Mapping[str, Any]] = None,
              session: Optional[SQLASession] = None) -> Result[Unset]:
         recipient = _make_recipient(target)
-        LOG.debug("Suppressing email %r to %r", template, recipient)
-        return Result(State.unchanged)
+        if recipient[1] in self._allow:
+            super().send(target, template, context, session)
+        else:
+            LOG.debug("Suppressing email %r to %r", template, recipient)
+            return Result(State.unchanged)
 
 
 def send(target: Recipient, template: str, context: Optional[Mapping[str, Any]] = None,
