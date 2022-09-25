@@ -1,5 +1,6 @@
 import email.mime.text
 import smtplib
+import warnings
 
 from email.header import Header
 from email.utils import formatdate, make_msgid
