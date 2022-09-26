@@ -126,7 +126,7 @@ def reset_password(member: Member) -> Collect[Password]:
     user = unix.get_user(member.uid)
     res_passwd = yield from unix.reset_password(user)
     passwd = res_passwd.value
-    yield from bespoke.update_nis()
+    yield bespoke.update_nis()
     yield send(member, "/tasks/member_password.j2", {"password": passwd})
     return passwd
 
@@ -274,6 +274,7 @@ def cancel_member(sess: SQLASession, member: Member, keep_groups: bool = False) 
         societies = set(member.societies)
         for society in societies:
             yield remove_society_admin(sess, member, society, RemoveProcess.USER_CANCEL)
+    yield bespoke.update_nis()
     if res_user or res_member:
         yield bespoke.log_to_file(MEMBER_LOG, "{} user account cancelled".format(member.crsid))
         yield send(SYSADMINS, "tasks/member_cancel.j2", {"member": member})
