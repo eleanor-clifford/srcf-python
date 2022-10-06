@@ -624,7 +624,7 @@ def delete_files(owner: Owner) -> Collect[None]:
     public = owner_home(owner, True)
     for path in (home, public):
         try:
-            shutil.rmtree(home)
+            shutil.rmtree(path)
         except FileNotFoundError:
             yield Result(State.unchanged)
         else:
