@@ -319,6 +319,8 @@ def scrub_user(owner: Owner) -> Collect[None]:
         cls = "soc" if isinstance(owner, Society) else "user"
         yield unix.set_real_name(user, "")
         yield unix.rename_user(user, "ex{}{}".format(cls, owner.uid))
+        if isinstance(owner, Society):
+            yield unix.set_home_dir(user, "/nonexistent")
 
 
 def scrub_group(owner: Owner) -> Result[Unset]:
