@@ -458,7 +458,7 @@ def remove_custom_domain(sess: SQLASession, owner: Owner, name: str) -> Result[U
     except NoResultFound:
         state = State.unchanged
     else:
-        domain.delete()
+        sess.delete(domain)
         state = State.success
         LOG.debug("Deleted domain record: %r", domain)
     return Result(state)
