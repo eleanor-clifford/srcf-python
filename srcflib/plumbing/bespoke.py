@@ -583,7 +583,7 @@ def _archive_files(society: Society, root: str) -> Result[Optional[str]]:
         pass
     name = "soc-{}-{}.tar.bz2".format(society.society, date.today().strftime("%Y%m%d"))
     target = os.path.join(root, name)
-    paths = filter(os.path.exists, (home, public))
+    paths = tuple(filter(os.path.exists, (home, public)))
     if not paths:
         return Result(State.unchanged, None)
     if os.path.exists(target):
