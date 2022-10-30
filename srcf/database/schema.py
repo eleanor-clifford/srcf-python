@@ -28,7 +28,7 @@ __all__ = ["Member", "Society", "PendingAdmin",
 
 # These postgres roles have special permissions / are mentioned
 # in the schema. Everyone else should connect as 'nobody'
-schema_users = ("root", "srcf-admin", "hades")
+schema_users = ("root", "control", "srcf-admin", "hades")
 
 # When connecting over a unix socket, postgres uses `getpeereid`
 # for authentication; this is the number that matters:
@@ -38,7 +38,7 @@ if euid_name in schema_users or euid_name.endswith("-adm"):
 else:
     POSTGRES_USER = "nobody"
 is_root = POSTGRES_USER == "root" or POSTGRES_USER.endswith("-adm")
-is_webapp = POSTGRES_USER == "srcf-admin"
+is_webapp = POSTGRES_USER in ("control", "srcf-admin")
 is_hades = POSTGRES_USER == "hades"
 
 RESTRICTED = not is_root
