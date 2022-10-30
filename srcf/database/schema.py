@@ -101,6 +101,7 @@ class Member(Base, MemberCompat):
         # FetchedValue: these columns are set by triggers (see below)
         joined = Column(DateTime(timezone=True), FetchedValue())
         modified = Column(DateTime(timezone=True), FetchedValue())
+        ucam_redirect = Column(Boolean, nullable=False, server_default='f')
         danger = Column(Boolean, nullable=False, server_default='f')
         notes = Column(Text, nullable=False, server_default='')
         domains = relationship("Domain", primaryjoin="foreign(Domain.owner) == Member.crsid")
@@ -175,6 +176,7 @@ class Society(Base, SocietyCompat):
         joined = Column(DateTime(timezone=True), FetchedValue())
         modified = Column(DateTime(timezone=True), FetchedValue())
         role_email = Column(String(100), CheckConstraint("email ~ E'@'"))
+        ucam_redirect = Column(Boolean, nullable=False, server_default='f')
         danger = Column(Boolean, nullable=False, server_default='f')
         notes = Column(Text, nullable=False, server_default='')
 
