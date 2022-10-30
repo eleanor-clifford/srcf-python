@@ -71,7 +71,6 @@ def create_member(sess: SQLASession, crsid: str, preferred_name: str, surname: s
     if mail_handler == MailHandler.pip:
         yield bespoke.create_forwarding_file(member)
     yield bespoke.create_legacy_mailbox(member)
-    yield bespoke.enable_website(member)
     if new_user:
         yield bespoke.queue_list_subscription(member, "maintenance")
         if social:
@@ -195,7 +194,6 @@ def create_society(sess: SQLASession, name: str, description: str, admins: Set[s
     res_admins = yield _sync_society_admins(sess, society, admins)
     if res_record:
         yield bespoke.update_quotas()
-    yield bespoke.enable_website(society)
     if res_admins:
         yield bespoke.generate_sudoers()
     if res_record:

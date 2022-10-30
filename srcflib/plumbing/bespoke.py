@@ -372,36 +372,6 @@ def update_quotas() -> Result[Unset]:
     return Result(State.success)
 
 
-def enable_website(owner: Owner, status: str = "subdomain", replace: bool = False) -> Result[str]:
-    """
-    Initialise the owner's website, so that it will be included in Apache configuration.
-
-    An existing website's type won't be changed unless `replace` is set.
-    """
-    username = owner_name(owner)
-    key = "member" if isinstance(owner, Member) else "soc"
-    path = "/societies/srcf-admin/{}webstatus".format(key)
-    with open(path, "r") as f:
-        data = f.read().splitlines()
-    for i, line in enumerate(data):
-        name, current = line.split(":", 1)
-        if name != username:
-            continue
-        if current == status or not replace:
-            return Result(State.unchanged, current)
-        else:
-            data[i] = "{}:{}".format(username, status)
-            LOG.debug("Updated web status: %r %r", owner, status)
-            break
-    else:
-        data.append("{}:{}".format(username, status))
-        LOG.debug("Added web status: %r %r", owner, status)
-    with open(path, "w") as f:
-        for line in data:
-            f.write("{}\n".format(line))
-    return Result(State.success, status)
-
-
 def get_custom_domains(sess: SQLASession, owner: Owner) -> List[Domain]:
     """
     Retrieve all custom domains assigned to a member or society.
