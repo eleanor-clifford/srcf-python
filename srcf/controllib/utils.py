@@ -1,3 +1,4 @@
+import getpass
 import os
 import re
 from ldap3 import Server, Connection, ALL, ALL_ATTRIBUTES
@@ -38,16 +39,18 @@ def is_admin(member):
     return False
 
 
+mysql_user = None
 mysql_passwd = None
 
 
 def mysql_conn():
-    global mysql_passwd
-    if not mysql_passwd:
+    global mysql_user, mysql_passwd
+    if not mysql_user or not mysql_passwd:
         my_cnf = configparser.ConfigParser()
-        my_cnf.read("/societies/srcf-admin/.my.cnf")
+        my_cnf.read(os.path.expanduser("~/.my.cnf"))
+        mysql_user = getpass.getuser().replace("-", "_")
         mysql_passwd = my_cnf.get('client', 'password')
-    conn = pymysql.connect(user="srcf_admin", db="srcf_admin", passwd=mysql_passwd)
+    conn = pymysql.connect(user=mysql_user, db=mysql_user, passwd=mysql_passwd)
     conn.autocommit = True
     return conn
 
