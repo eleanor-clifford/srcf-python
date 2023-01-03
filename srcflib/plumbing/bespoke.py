@@ -328,7 +328,7 @@ def scrub_group(owner: Owner) -> Result[Unset]:
     Anonymise the Unix group of a member or society.
     """
     try:
-        group = unix.get_group(owner.uid)
+        group = unix.get_group(owner.gid)
     except KeyError:
         return Result(State.unchanged)
     else:
