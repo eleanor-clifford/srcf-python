@@ -748,7 +748,7 @@ class UpdateSocietyRoleEmail(SocietyJob):
         require_approval = (
             requesting_member.danger or
             society.danger or
-            (email and email.endswith(("@cam.ac.uk", "@hermes.cam.ac.uk")))
+            email
         )
         return cls.create(requesting_member, args, require_approval)
 
