@@ -18,8 +18,8 @@ def passwd(member: Member):
     Usage: {script} MEMBER
     """
     confirm("Reset {}'s password?".format(member.crsid))
-    membership.reset_password(member)
-    print("Password changed")
+    if membership.reset_password(member):
+        send(SYSADMINS, "scripts/member_passwd.j2", {"member": member})
 
 
 @entrypoint
