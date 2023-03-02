@@ -105,6 +105,7 @@ class Member(Base, MemberCompat):
         danger = Column(Boolean, nullable=False, server_default='f')
         notes = Column(Text, nullable=False, server_default='')
         domains = relationship("Domain", primaryjoin="foreign(Domain.owner) == Member.crsid")
+        contactable = Column(Boolean, nullable=False, server_default='f')
     if is_root or is_webapp or is_hades:
         mail_handler = Column(SQLAEnum(*(handler.name for handler in MailHandler)),
                               nullable=False, server_default='pip')
