@@ -6,7 +6,7 @@ from functools import wraps
 from inspect import cleandoc, signature
 import logging
 import sys
-from typing import Any, Callable, cast, Dict, List, Mapping, Optional, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Union
 
 from docopt import docopt
 from sqlalchemy.orm import Session as SQLASession
@@ -85,13 +85,15 @@ def entrypoint(fn: Callable[..., Any]) -> Callable[..., Any]:
             elif cls is SQLASession:
                 extra[name] = sess
                 continue
+            keys = (
+                name.upper(),
+                "<{}>".format(name.replace("_", "-")),
+                "--{}".format(name.replace("_", "-")),
+            )
             try:
-                try:
-                    value = cast(str, opts[name.upper()])
-                except KeyError:
-                    value = cast(str, opts["<{}>".format(name)])
-            except KeyError:
-                raise RuntimeError("Missing argument {!r}".format(name))
+                value = next(opts[key] for key in keys if key in opts)
+            except StopIteration:
+                raise RuntimeError("Missing argument {!r}".format(name)) from None
             optional = False
             # Unpick Optional[X] by reading the type object arguments and removing type(None).
             if getattr(cls, "__origin__", None) is Union:
@@ -110,9 +112,11 @@ def entrypoint(fn: Callable[..., Any]) -> Callable[..., Any]:
                     extra[name] = get_society(value, sess)
                 elif cls is Owner:
                     extra[name] = get_member_or_society(value, sess)
+                elif cls in (str, bool, int, float):
+                    extra[name] = cls(value)
                 else:
                     raise RuntimeError("Bad parameter {!r} type {!r}".format(name, cls))
-            except KeyError:
+            except (KeyError, TypeError):
                 ok = False
                 error("{!r} is not valid for parameter {!r}".format(value, name), colour="1")
         if not ok:
