@@ -249,7 +249,8 @@ def remove_society_admin(sess: SQLASession, member: Member, society: Society,
 
 
 @Result.collect
-def cancel_member(sess: SQLASession, member: Member, keep_groups: bool = False) -> Collect[None]:
+def cancel_member(sess: SQLASession, member: Member, unset_member: bool = False,
+                  keep_groups: bool = False) -> Collect[None]:
     """
     Suspend the user account of a member.
     """
@@ -263,7 +264,7 @@ def cancel_member(sess: SQLASession, member: Member, keep_groups: bool = False) 
     res_member = yield from bespoke.ensure_member(sess, member.crsid,
                                                   member.preferred_name, member.surname,
                                                   member.email, MailHandler[member.mail_handler],
-                                                  member.member, False)
+                                                  False if unset_member else member.member, False)
     with mysql.context() as cursor:
         yield mysql.drop_account(cursor, member)
     with pgsql.context() as cursor:
