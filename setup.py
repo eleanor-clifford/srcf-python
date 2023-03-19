@@ -23,21 +23,35 @@ def version():
     return re.split("[()]", first)[1].replace("~", "")
 
 
-setup(name="srcf",
-      version=version(),
-      description="Database schemas and core functionality for the Student-Run Computing Facility.",
-      long_description=open(README).read(),
-      long_description_content_type="text/x-rst",
-      author="SRCF Sysadmins",
-      author_email="sysadmins@srcf.net",
-      url="https://www.srcf.net",
-      platforms=["Any"],
-      python_requires=">=3.6",
-      install_requires=["argcomplete", "docopt", "jinja2", "ldap3", "psycopg2",
-                        "pylibacl", "PyMySQL", "requests", "six", "SQLAlchemy"],
-      packages=find_packages(),
-      py_modules=["srcfmail"],
-      package_data={"srcf.controllib": ["emails/**/*.txt"],
-                    "srcflib.email": ["templates/**/*.j2"]},
-      scripts=glob("bin/*"),
-      entry_points={"console_scripts": ENTRYPOINTS})
+setup(
+    name = "srcf",
+    version = version(),
+    description = "Database schemas and core functionality for the Student-Run Computing Facility.",
+    long_description = open(README).read(),
+    long_description_content_type = "text/x-rst",
+    author = "SRCF Sysadmins",
+    author_email = "sysadmins@srcf.net",
+    url = "https://www.srcf.net",
+    platforms = ["Any"],
+    python_requires = ">=3.6",
+    install_requires = [
+        "argcomplete",
+        "docopt",
+        "jinja2",
+        "ldap3",
+        "psycopg2",
+        "pylibacl",
+        "PyMySQL",
+        "requests",
+        "six",
+        "SQLAlchemy <2.0"
+    ],
+    packages = find_packages(),
+    py_modules = ["srcfmail"],
+    package_data = {
+        "srcf.controllib": ["emails/**/*.txt"],
+        "srcflib.email": ["templates/**/*.j2"]
+    },
+    scripts = glob("bin/*"),
+    entry_points = {"console_scripts": ENTRYPOINTS}
+)
