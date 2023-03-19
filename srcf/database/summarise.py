@@ -27,7 +27,9 @@ def summarise_member(member):
                     'Joined: %s' % member.joined.strftime("%Y/%m"),
                     'UID: %s' % member.uid,
                     'GID: %s' % member.gid,
-                    'Disk quota: %s/%s GB (updated: %s)' % (member.disk_usage_gb, member.disk_quota_gb, member.disk_usage_updated),
+                    'Disk quota: %s/%s GB (updated: %s)' % (
+                        member.disk_usage_gb, member.disk_quota_gb, member.disk_usage_updated
+                    ),
                     'Danger: %s' % member.danger] +
                    _format_notes(member.notes) +
                    _format_domains(member.domains))
@@ -54,13 +56,19 @@ def summarise_society(society):
             private.append('Role email: %s' % society.role_email)
         else:
             private.append('No role email.')
-        private += (['Joined: %s' % society.joined.strftime("%Y/%m"),
-                     'UID: %s' % society.uid,
-                     'GID: %s' % society.gid,
-                     'Disk quota: %s/%s GB (updated: %s)' % (society.disk_usage_gb, society.disk_quota_gb, society.disk_usage_updated),
-                     'Danger: %s' % society.danger] +
-                    _format_notes(society.notes) +
-                    _format_domains(society.domains))
+        private += (
+            [
+                'Joined: %s' % society.joined.strftime("%Y/%m"),
+                'UID: %s' % society.uid,
+                'GID: %s' % society.gid,
+                'Disk quota: %s/%s GB (updated: %s)' % (
+                    society.disk_usage_gb, society.disk_quota_gb, society.disk_usage_updated
+                ),
+                'Danger: %s' % society.danger
+            ] +
+            _format_notes(society.notes) +
+            _format_domains(society.domains)
+        )
 
     lines = (
         ['%s: %s' % (society.society, society.description)] +
