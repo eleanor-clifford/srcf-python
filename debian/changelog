@@ -1,3 +1,17 @@
+python3-srcf (0.0.15) UNRELEASED; urgency=medium
+
+  * srcf.database: Treat 'control' account as webapp
+  * srcf.controllib: Connect to MySQL as current user
+  * srcf.database: Add ucam_redirect field
+  * srcf.database: Add HTTPSCert.provisioned property
+  * Fix UNIX group scrub target
+  * Add email notification for srcflib-member-passwd
+  * Require approval of all group role email addresses
+  * Check more than just one flake8 rule
+  * Require SQLAlchemy <2.0
+
+ -- SRCF Sysadmins <sysadmins@srcf.net>  Thu, 29 Jun 2023 22:22:00 +0000
+
 python3-srcf (0.0.14) UNRELEASED; urgency=medium
 
   * Email sysadmins on manual group grant/revoke
