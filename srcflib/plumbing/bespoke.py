@@ -79,14 +79,15 @@ def get_mailman_lists(owner: Owner, sess: RequestsSession = RequestsSession()) -
 def _create_member(sess: SQLASession, crsid: str, preferred_name: Optional[str],
                    surname: Optional[str], email: Optional[str],
                    mail_handler: MailHandler = MailHandler.forward, is_member: bool = True,
-                   is_user: bool = True) -> Result[Member]:
+                   is_user: bool = True, is_contactable: bool = True) -> Result[Member]:
     member = Member(crsid=crsid,
                     preferred_name=preferred_name,
                     surname=surname,
                     email=email,
                     mail_handler=mail_handler.name,
                     member=is_member,
-                    user=is_user)
+                    user=is_user,
+                    contactable=is_contactable)
     sess.add(member)
     # Populate UID and GID from the database.
     sess.flush()
@@ -97,13 +98,15 @@ def _create_member(sess: SQLASession, crsid: str, preferred_name: Optional[str],
 def _update_member(sess: SQLASession, member: Member, preferred_name: Optional[str],
                    surname: Optional[str], email: Optional[str],
                    mail_handler: MailHandler = MailHandler.forward,
-                   is_member: bool = True, is_user: bool = True) -> Result[Unset]:
+                   is_member: bool = True, is_user: bool = True,
+                   is_contactable: bool = True) -> Result[Unset]:
     member.preferred_name = preferred_name
     member.surname = surname
     member.email = email
     member.mail_handler = mail_handler.name
     member.member = is_member
     member.user = is_user
+    member.contactable = is_contactable
     if not sess.is_modified(member):
         return Result(State.unchanged)
     LOG.debug("Updated member record: %r", member)
@@ -114,7 +117,7 @@ def _update_member(sess: SQLASession, member: Member, preferred_name: Optional[s
 def ensure_member(sess: SQLASession, crsid: str, preferred_name: Optional[str],
                   surname: Optional[str], email: Optional[str],
                   mail_handler: MailHandler = MailHandler.forward, is_member: bool = True,
-                  is_user: bool = True) -> Collect[Member]:
+                  is_user: bool = True, is_contactable: bool = True) -> Collect[Member]:
     """
     Register or update a member in the database.
     """
@@ -122,11 +125,11 @@ def ensure_member(sess: SQLASession, crsid: str, preferred_name: Optional[str],
         member = get_member(crsid, sess, include_non_members=True)
     except KeyError:
         res_record = yield from _create_member(sess, crsid, preferred_name, surname, email,
-                                               mail_handler, is_member, is_user)
+                                               mail_handler, is_member, is_user, is_contactable)
         member = res_record.value
     else:
         yield _update_member(sess, member, preferred_name, surname, email, mail_handler,
-                             is_member, is_user)
+                             is_member, is_user, is_contactable)
     return member
 
 

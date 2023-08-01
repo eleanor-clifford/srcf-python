@@ -42,13 +42,13 @@ class RemoveProcess(Enum):
 @Result.collect_value
 def create_member(sess: SQLASession, crsid: str, preferred_name: str, surname: str,
                   email: str, mail_handler: MailHandler, is_member: bool = True,
-                  is_user: bool = True, social: bool = False,
+                  is_user: bool = True, is_contactable: bool = True, social: bool = False,
                   new_passwd: bool = False) -> Collect[Tuple[Member, Optional[Password]]]:
     """
     Register and provision a new member of the SRCF.
     """
     res_record = yield from bespoke.ensure_member(sess, crsid, preferred_name, surname, email,
-                                                  mail_handler, is_member, is_user)
+                                                  mail_handler, is_member, is_user, is_contactable)
     member = res_record.value
     yield unix.ensure_group(crsid, gid=member.gid, system=True)
     res_user = yield from unix.ensure_user(crsid, uid=member.uid, system=True, gid=member.gid,
@@ -142,7 +142,8 @@ def update_member_name(sess: SQLASession, member: Member,
                                                   email=member.email,
                                                   mail_handler=MailHandler[member.mail_handler],
                                                   is_member=member.member,
-                                                  is_user=member.user)
+                                                  is_user=member.user,
+                                                  is_contactable=member.contactable)
     member = res_record.value
     user = unix.get_user(member.uid)
     res_name = yield from unix.set_real_name(user, member.name)
@@ -250,7 +251,7 @@ def remove_society_admin(sess: SQLASession, member: Member, society: Society,
 
 @Result.collect
 def cancel_member(sess: SQLASession, member: Member, unset_member: bool = False,
-                  keep_groups: bool = False) -> Collect[None]:
+                  unset_contactable: bool = False, keep_groups: bool = False) -> Collect[None]:
     """
     Suspend the user account of a member.
     """
@@ -264,7 +265,8 @@ def cancel_member(sess: SQLASession, member: Member, unset_member: bool = False,
     res_member = yield from bespoke.ensure_member(sess, member.crsid,
                                                   member.preferred_name, member.surname,
                                                   member.email, MailHandler[member.mail_handler],
-                                                  False if unset_member else member.member, False)
+                                                  False if unset_member else member.member, False,
+                                                  False if unset_contactable else member.contactable)
     with mysql.context() as cursor:
         yield mysql.drop_account(cursor, member)
     with pgsql.context() as cursor:
@@ -286,7 +288,8 @@ def delete_member(sess: SQLASession, member: Member) -> Collect[None]:
     """
     yield cancel_member(sess, member)
     res_member = yield from bespoke.ensure_member(sess, member.crsid, None, None, None,
-                                                  MailHandler[member.mail_handler], False, False)
+                                                  MailHandler[member.mail_handler], False, False,
+                                                  member.contactable)
     member = res_member.value
     note = "User account erased: {}".format(datetime.now().strftime("%Y-%m-%d %H:%M"))
     if member.notes:
