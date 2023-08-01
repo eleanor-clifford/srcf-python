@@ -386,6 +386,9 @@ class Reactivate(Job):
         old_email = self.owner.email
         self.log("Update email address")
         self.owner.email = self.email
+        if not self.owner.contactable:
+            self.log("Reset contactable flag")
+            self.owner.contactable = True
         self.log("Update member/user status")
         self.owner.member = True
         self.owner.user = True
@@ -488,6 +491,9 @@ class UpdateEmailAddress(Job):
         old_email = self.owner.email
         self.log("Update email address")
         self.owner.email = self.email
+        if not self.owner.contactable:
+            self.log("Reset contactable flag")
+            self.owner.contactable = True
 
         self.log("Check existing .forward file")
         path = "/home/" + self.owner.crsid + "/.forward"
