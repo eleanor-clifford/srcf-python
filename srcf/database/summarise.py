@@ -30,6 +30,7 @@ def summarise_member(member):
                     'Disk quota: %s/%s GB (updated: %s)' % (
                         member.disk_usage_gb, member.disk_quota_gb, member.disk_usage_updated
                     ),
+                    'Contactable: %s' % member.contactable,
                     'Danger: %s' % member.danger] +
                    _format_notes(member.notes) +
                    _format_domains(member.domains))
