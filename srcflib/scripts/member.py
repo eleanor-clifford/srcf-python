@@ -24,11 +24,13 @@ def passwd(member: Member):
 
 
 @entrypoint
-def cancel(sess: Session, member: Member, unset_member: bool, unset_contactable: bool):
+def cancel(sess: Session, member: Member, unset_member: bool, keep_contactable: bool):
     """
     Cancel a user account.
 
-    Usage: {script} MEMBER [--unset-member] [--unset-contactable]
+    Usage: {script} MEMBER [--unset-member] [--keep-contactable]
     """
     confirm("Cancel {}?".format(member.name))
-    membership.cancel_member(sess, member, unset_member, unset_contactable)
+    is_member = False if unset_member else None
+    is_contactable = None if keep_contactable else False
+    membership.cancel_member(sess, member, is_member, is_contactable)

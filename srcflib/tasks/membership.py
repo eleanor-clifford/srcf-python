@@ -250,8 +250,8 @@ def remove_society_admin(sess: SQLASession, member: Member, society: Society,
 
 
 @Result.collect
-def cancel_member(sess: SQLASession, member: Member, unset_member: bool = False,
-                  unset_contactable: bool = False, keep_groups: bool = False) -> Collect[None]:
+def cancel_member(sess: SQLASession, member: Member, is_member: Optional[bool] = None,
+                  is_contactable: Optional[bool] = None, keep_groups: bool = False) -> Collect[None]:
     """
     Suspend the user account of a member.
     """
@@ -262,11 +262,14 @@ def cancel_member(sess: SQLASession, member: Member, unset_member: bool = False,
     # TODO: for server in {"cavein", "doom", "sinkhole"}:
     #   bespoke.clear_crontab(member); bespoke.slay_user(member)
     yield bespoke.archive_website(member)
+    if is_member is None:
+        is_member = member.member
+    if is_contactable is None:
+        is_contactable = member.contactable
     res_member = yield from bespoke.ensure_member(sess, member.crsid,
                                                   member.preferred_name, member.surname,
                                                   member.email, MailHandler[member.mail_handler],
-                                                  False if unset_member else member.member, False,
-                                                  False if unset_contactable else member.contactable)
+                                                  is_member, False, is_contactable)
     with mysql.context() as cursor:
         yield mysql.drop_account(cursor, member)
     with pgsql.context() as cursor:
