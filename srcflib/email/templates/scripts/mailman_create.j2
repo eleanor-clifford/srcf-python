@@ -1,0 +1,9 @@
+{% extends layout %}
+
+{% block subject %}
+{% if created %}
+Created Mailman list {{ name }}
+{% else %}
+Reset owner of list {{ name }}
+{% endif %}
+{% endblock %}
