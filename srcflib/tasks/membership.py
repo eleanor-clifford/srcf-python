@@ -285,6 +285,28 @@ def cancel_member(sess: SQLASession, member: Member, is_member: Optional[bool] =
 
 
 @Result.collect
+def reactivate_member(sess: SQLASession, member: Member, email: str,
+                      new_passwd: bool = True) -> Collect[None]:
+    """
+    Reinstate the user account of a member, and update their contact address.
+    """
+    res_member = yield from bespoke.ensure_member(sess, member.crsid,
+                                                  member.preferred_name, member.surname,
+                                                  email, MailHandler[member.mail_handler],
+                                                  True, True, True)
+    user = unix.get_user(member.uid)
+    res_user = yield from unix.enable_user(user, True)
+    passwd = None
+    if res_user or new_passwd:
+        res_passwd = yield from unix.reset_password(user)
+        passwd = res_passwd.value
+    if res_member or res_user or passwd:
+        yield bespoke.log_to_file(MEMBER_LOG, "{} user account reactivated".format(member.crsid))
+        yield send(member, "tasks/member_reactivate.j2", {"password": passwd})
+        yield send(SYSADMINS, "tasks/member_reactivate_log.j2", {"member": member})
+
+
+@Result.collect
 def delete_member(sess: SQLASession, member: Member) -> Collect[None]:
     """
     Delete all traces of a member account.

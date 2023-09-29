@@ -1,0 +1,55 @@
+{% extends layout %}
+
+{% block subject %}
+SRCF account reactivated
+{% endblock %}
+
+{% block body %}
+Welcome back to the SRCF!  Your account has now been reactivated, and you can start using our services again.
+
+{% if password %}
+We've reset your SRCF password, so your updated credentials are:
+
+    Username: {{ target.crsid }}
+    Password: {{ password }}
+
+{% include "/common/password_sharing.j2" %}
+
+
+{% endif %}
+You can manage your account, for example to request additional services, via the SRCF Control Panel:
+
+    https://control.srcf.net
+
+Unsure where to go next?  Take a look at our tutorials:
+
+    https://docs.srcf.net/tutorials/
+
+Or if you're an experienced Linux user and just want the server details:
+
+    * Shell access via SSH: shell.srcf.net
+      (https://docs.srcf.net/shell-and-files/ssh.html)
+
+    * File space access via SFTP or SCP: files.srcf.net
+      (https://docs.srcf.net/shell-and-files/files.html)
+
+Inside your home directory, you will find a 'public_html' directory -- you can upload web content here, which will appear at the following address:
+
+    {{ target | owner_website }}
+
+(However, it may take up to 20 minutes between uploading a new site and it being published.)
+
+Use of the SRCF facilities constitutes acceptance of our Terms of Service:
+
+    https://www.srcf.net/tos
+
+To find out more about the various services provided by the SRCF, please take a look at our documentation:
+
+    https://docs.srcf.net
+
+If you have any further queries, feel free to contact the sysadmins:
+
+    https://www.srcf.net/contact
+
+Please also remember that the SRCF is a volunteer-run organisation which must ultimately rely on the generosity and support of its members.
+{% endblock %}

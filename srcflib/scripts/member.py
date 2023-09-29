@@ -3,6 +3,7 @@ Scripts to manage users.
 """
 
 from sqlalchemy.orm import Session
+from typing import Optional
 
 from srcf.database.schema import Member
 
@@ -34,3 +35,17 @@ def cancel(sess: Session, member: Member, unset_member: bool, keep_contactable: 
     is_member = False if unset_member else None
     is_contactable = None if keep_contactable else False
     membership.cancel_member(sess, member, is_member, is_contactable)
+
+
+@entrypoint
+def reactivate(sess: Session, member: Member, email: Optional[str]):
+    """
+    Reinstate a user account.
+
+    Usage: {script} MEMBER [EMAIL]
+    """
+    if not email:
+        email = member.email
+        print("Keeping existing email address: {}".format(email))
+    confirm("Reactivate {}?".format(member.name))
+    membership.reactivate_member(sess, member, email)
