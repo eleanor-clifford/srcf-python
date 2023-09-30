@@ -1,3 +1,18 @@
+python3-srcf (0.0.16) UNRELEASED; urgency=medium
+
+  * Add contactable field to members
+  * Add support for primitive script args
+  * Add unset-member flag to member cancellation
+  * Reset contactable flag on control email change
+  * Add contactable flag to SRCFLib member management
+  * Add unset-contactable flag to member cancellation
+  * Add contactable flag to summarise (srcf-member)
+  * Tweak member/contactable flags for cancel member
+  * Add sysadmin emails to Mailman tasks
+  * Add member reactivation task and script
+
+ -- SRCF Sysadmins <sysadmins@srcf.net>  Sat, 30 Sep 2023 19:05:00 +0100
+
 python3-srcf (0.0.15) UNRELEASED; urgency=medium
 
   * srcf.database: Treat 'control' account as webapp
