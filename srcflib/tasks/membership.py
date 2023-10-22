@@ -329,6 +329,8 @@ def delete_member(sess: SQLASession, member: Member) -> Collect[None]:
         yield pgsql.drop_account(cursor, member)
     for mlist in mailman.get_list_suffixes(member):
         yield mailman.remove_list(member, mlist, True)
+    for domain in bespoke.get_custom_domains(sess, member):
+        yield bespoke.remove_custom_domain(sess, member, domain.domain)
     yield bespoke.empty_legacy_mailbox(member)
     # TODO: hades mail
     yield bespoke.scrub_user(member)
@@ -359,11 +361,11 @@ def delete_society(sess: SQLASession, society: Society) -> Collect[None]:
         yield pgsql.drop_account(cursor, society)
     for mlist in mailman.get_list_suffixes(society):
         yield mailman.remove_list(society, mlist)
+    for domain in bespoke.get_custom_domains(sess, society):
+        yield bespoke.remove_custom_domain(sess, society, domain.domain)
     yield bespoke.scrub_user(society)
     yield bespoke.scrub_group(society)
     yield bespoke.update_nis()
-    for domain in bespoke.get_custom_domains(sess, society):
-        yield bespoke.remove_custom_domain(sess, society, domain.domain)
     yield bespoke.delete_society(sess, society)
     yield bespoke.export_members()
     yield bespoke.log_to_file(SOCIETY_LOG, "{} group account deleted".format(society.society))
