@@ -59,6 +59,15 @@ def is_valid_socname(s):
     return re.match(r'^[a-z0-9_-]+$', s)
 
 
+def validate_list_name(suffix):
+    if not re.match(r"^[A-Za-z0-9-]+$", suffix):
+        raise ValueError("List names can only contain letters, numbers and hyphens.")
+    last = suffix.split("-")[-1].lower()
+    if last in ("admins", "admin", "bounces", "confirm", "join", "leave",
+                "owner", "request", "subscribe", "unsubscribe"):
+        raise ValueError("'{}' can't be used at the end of the list name.".format(last))
+
+
 def nfs_aware_chown(path, *args, **kwargs):
     # NFSv4 is fickle.  The protocol might either use numeric UIDs/GIDs, or
     # (canonically, but not by default) user/group names.  The latter requires
