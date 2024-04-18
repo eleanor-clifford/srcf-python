@@ -419,3 +419,28 @@ def grant_netgroup(user: User, group: str) -> Result[Unset]:
         for line in data:
             f.write("{}\n".format(line))
     return Result(State.success)
+
+
+def revoke_netgroup(user: User, group: str) -> Result[Unset]:
+    """
+    Revoke netgroup privileges for a user account.
+    """
+    entry = "(,{},)".format(user.pw_name)
+    path = "/etc/netgroup"
+    with open(path, "r") as f:
+        data = f.read().splitlines()
+    for i, line in enumerate(data):
+        if not line.startswith("{} ".format(group)):
+            continue
+        elif entry not in line:
+            return Result(State.unchanged)
+        else:
+            data[i] = line.replace(" {}".format(entry), "")
+            LOG.debug("Removed from netgroup: %r %r", user, group)
+            break
+    else:
+        raise KeyError("No such group: {!r}".format(group))
+    with open(path, "w") as f:
+        for line in data:
+            f.write("{}\n".format(line))
+    return Result(State.success)

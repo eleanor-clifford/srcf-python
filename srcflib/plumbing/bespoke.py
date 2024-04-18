@@ -11,7 +11,7 @@ import pwd
 import shutil
 from subprocess import CalledProcessError
 import time
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from requests import Session as RequestsSession
 
@@ -43,12 +43,21 @@ def log_to_file(path: str, message: str) -> Result[Unset]:
     return Result(State.success)
 
 
-def get_crontab(owner: Owner) -> Optional[str]:
+def _user_name(user: Union[Owner, unix.User]) -> str:
+    if isinstance(user, pwd.struct_passwd):
+        return user.pw_name
+    elif isinstance(user, (Member, Society)):
+        return owner_name(user)
+    else:
+        raise TypeError(user)
+
+
+def get_crontab(user: Union[Owner, unix.User]) -> Optional[str]:
     """
     Fetch the owning user's crontab, if one exists on the current server.
     """
     try:
-        proc = command(["/usr/bin/crontab", "-u", owner_name(owner), "-l"], output=True)
+        proc = command(["/usr/bin/crontab", "-u", _user_name(user), "-l"], output=True)
     except CalledProcessError:
         return None
     if proc.stdout:
@@ -57,13 +66,13 @@ def get_crontab(owner: Owner) -> Optional[str]:
         return None
 
 
-def clear_crontab(owner: Owner) -> Result[Unset]:
+def clear_crontab(user: Union[Owner, unix.User]) -> Result[Unset]:
     """
     Clear the owning user's crontab, if one exists on the current server.
     """
-    if not get_crontab(owner):
+    if not get_crontab(user):
         return Result(State.unchanged)
-    command(["/usr/bin/crontab", "-u", owner_name(owner), "-r"])
+    command(["/usr/bin/crontab", "-u", _user_name(user), "-r"])
     return Result(State.success)
 
 
@@ -607,12 +616,12 @@ def delete_files(owner: Owner) -> Collect[None]:
             yield Result(State.success)
 
 
-def slay_user(owner: Owner) -> Result[Unset]:
+def slay_user(user: Union[Owner, unix.User]) -> Result[Unset]:
     """
     Kill all processes belonging to the given account.
     """
     try:
-        proc = command(["/usr/local/sbin/srcf-slay", owner_name(owner)], output=True)
+        proc = command(["/usr/local/sbin/srcf-slay", _user_name(user)], output=True)
     except CalledProcessError as ex:
         if ex.returncode == 2:  # User not found.
             return Result(State.unchanged)

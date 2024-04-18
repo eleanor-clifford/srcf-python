@@ -6,7 +6,7 @@ from setuptools import find_packages, setup
 
 try:
     # Import all script providers so that ENTRYPOINTS gets populated.
-    from srcflib.scripts import group, mailman, member, mysql, pgsql  # noqa: F401
+    from srcflib.scripts import group, mailman, member, mysql, pgsql, sysadmin  # noqa: F401
     from srcflib.scripts.utils import ENTRYPOINTS
 except ImportError:
     # Avoid chicken-and-egg dependency requirements during initial installation.

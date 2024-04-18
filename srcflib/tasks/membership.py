@@ -281,7 +281,7 @@ def cancel_member(sess: SQLASession, member: Member, is_member: Optional[bool] =
     yield bespoke.update_nis()
     if res_user or res_member:
         yield bespoke.log_to_file(MEMBER_LOG, "{} user account cancelled".format(member.crsid))
-        yield send(SYSADMINS, "tasks/member_cancel.j2", {"member": member})
+        yield send(SYSADMINS, "tasks/member_cancel.j2", {"username": member.crsid})
 
 
 @Result.collect
@@ -304,6 +304,34 @@ def reactivate_member(sess: SQLASession, member: Member, email: str,
         yield bespoke.log_to_file(MEMBER_LOG, "{} user account reactivated".format(member.crsid))
         yield send(member, "tasks/member_reactivate.j2", {"password": passwd})
         yield send(SYSADMINS, "tasks/member_reactivate_log.j2", {"member": member})
+
+
+@Result.collect
+def cancel_sysadmin(sess: SQLASession, member: Member) -> Collect[None]:
+    """
+    Suspend the administrative account of a member.
+    """
+    username = "{}-adm".format(member.crsid)
+    user = unix.get_user(username)
+    res_sysadmins = yield from unix.remove_from_group(user, unix.get_group("sysadmins"))
+    res_adm = yield from unix.remove_from_group(user, unix.get_group("adm"))
+    yield unix.revoke_netgroup(user, "sysadmins")
+    res_soc = yield from remove_society_admin(sess, member, get_society("srcf-admin", sess))
+    committee = get_society("srcf", sess)
+    if member.crsid not in committee.admin_crsids:
+        for soc in ("executive", "srcf-web"):
+            yield remove_society_admin(sess, member, get_society(soc, sess))
+    res_user = yield from unix.enable_user(user, False)
+    yield bespoke.clear_crontab(user)
+    yield bespoke.slay_user(user)
+    # TODO: for server in {"cavein", "doom", "sinkhole"}:
+    #   bespoke.clear_crontab(user); bespoke.slay_user(user)
+    with pgsql.context() as cursor:
+        yield pgsql_p.drop_user(cursor, username)
+    yield bespoke.update_nis()
+    if any((res_sysadmins, res_adm, res_soc, res_user)):
+        yield bespoke.log_to_file(MEMBER_LOG, "{} user account cancelled".format(username))
+        yield send(SYSADMINS, "tasks/member_cancel.j2", {"username": username})
 
 
 @Result.collect
