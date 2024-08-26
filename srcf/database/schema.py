@@ -254,6 +254,7 @@ if is_root or is_webapp:
         wild = Column(Boolean, nullable=False, server_default='f')
         danger = Column(Boolean, nullable=False, server_default='f')
         last_good = Column(DateTime(timezone=True))
+        last_read = Column(DateTime(timezone=True))
 
         def __str__(self):
             return self.domain
