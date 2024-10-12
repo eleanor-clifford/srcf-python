@@ -4,6 +4,7 @@ Helpers for converting methods into scripts, and filling in arguments with datab
 
 from functools import wraps
 from inspect import cleandoc, signature
+from collections.abc import Sequence as Sequence
 import logging
 import sys
 from typing import Any, Callable, Dict, List, Mapping, Optional, Union
@@ -85,16 +86,7 @@ def entrypoint(fn: Callable[..., Any]) -> Callable[..., Any]:
             elif cls is SQLASession:
                 extra[name] = sess
                 continue
-            keys = (
-                name.upper(),
-                "<{}>".format(name.replace("_", "-")),
-                "--{}".format(name.replace("_", "-")),
-            )
-            try:
-                value = next(opts[key] for key in keys if key in opts)
-            except StopIteration:
-                raise RuntimeError("Missing argument {!r}".format(name)) from None
-            optional = False
+            optional = sequence = False
             # Unpick Optional[X] by reading the type object arguments and removing type(None).
             if getattr(cls, "__origin__", None) is Union:
                 cls_args = cls.__args__
@@ -102,23 +94,43 @@ def entrypoint(fn: Callable[..., Any]) -> Callable[..., Any]:
                     optional = True
                     # NB. Union[X] for a single type X automatically resolves to X.
                     cls = Union[tuple(arg for arg in cls_args if arg is not NoneType)]
-            if value is None and optional:
+            # Unpack Sequence[X] by reading the first type object argument.
+            if getattr(cls, "__origin__", None) is Sequence:
+                cls = next(iter(cls.__args__))
+                sequence = True
+            keys = (
+                name.upper(),
+                "<{}>".format(name.replace("_", "-")),
+                "--{}".format(name.replace("_", "-")),
+            )
+            try:
+                values = next(opts[key] for key in keys if key in opts)
+            except StopIteration:
+                raise RuntimeError("Missing argument {!r}".format(name)) from None
+            if values is None and optional:
                 extra[name] = None
                 continue
-            try:
-                if cls is Member:
-                    extra[name] = get_member(value, sess)
-                elif cls is Society:
-                    extra[name] = get_society(value, sess)
-                elif cls is Owner:
-                    extra[name] = get_member_or_society(value, sess)
-                elif cls in (str, bool, int, float):
-                    extra[name] = cls(value)
-                else:
-                    raise RuntimeError("Bad parameter {!r} type {!r}".format(name, cls))
-            except (KeyError, TypeError):
-                ok = False
-                error("{!r} is not valid for parameter {!r}".format(value, name), colour="1")
+            if not sequence:
+                values = [values]
+            parsed = []
+            for value in values:
+                try:
+                    if cls is Member:
+                        parsed.append(get_member(value, sess))
+                    elif cls is Society:
+                        parsed.append(get_society(value, sess))
+                    elif cls is Owner:
+                        parsed.append(get_member_or_society(value, sess))
+                    elif cls in (str, bool, int, float):
+                        parsed.append(cls(value))
+                    else:
+                        raise RuntimeError("Bad parameter {!r} type {!r}".format(name, cls))
+                except (KeyError, TypeError):
+                    ok = False
+                    error("{!r} is not valid for parameter {!r}".format(value, name), colour="1")
+            if not sequence:
+                parsed = parsed[0]
+            extra[name] = parsed
         if not ok:
             sys.exit(1)
         try:
