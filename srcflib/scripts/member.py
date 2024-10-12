@@ -2,8 +2,9 @@
 Scripts to manage users.
 """
 
+from typing import Optional, Sequence
+
 from sqlalchemy.orm import Session
-from typing import Optional
 
 from srcf.database.schema import Member
 
@@ -25,16 +26,23 @@ def passwd(member: Member):
 
 
 @entrypoint
-def cancel(sess: Session, member: Member, unset_member: bool, keep_contactable: bool):
+def cancel(sess: Session, members: Sequence[Member], unset_member: bool, keep_contactable: bool):
     """
     Cancel a user account.
 
-    Usage: {script} MEMBER [--unset-member] [--keep-contactable]
+    Usage: {script} MEMBERS... [--unset-member] [--keep-contactable]
     """
-    confirm("Cancel {}?".format(member.name))
+    if len(members) > 1:
+        print("Cancelling:")
+        for member in members:
+            print("- {}".format(member.name))
+        confirm("Cancel {} members?".format(len(members)))
+    else:
+        confirm("Cancel {}?".format(members[0].name))
     is_member = False if unset_member else None
     is_contactable = None if keep_contactable else False
-    membership.cancel_member(sess, member, is_member, is_contactable)
+    for member in members:
+        membership.cancel_member(sess, member, is_member, is_contactable)
 
 
 @entrypoint
