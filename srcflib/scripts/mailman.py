@@ -2,6 +2,8 @@
 Scripts to manage Mailman mailing lists.
 """
 
+from typing import Optional
+
 from .utils import confirm, DocOptArgs, entrypoint
 from ..email import send, SYSADMINS
 from ..plumbing.common import Owner
@@ -9,7 +11,7 @@ from ..tasks import mailman
 
 
 @entrypoint
-def create(opts: DocOptArgs, owner: Owner, suffix: str):
+def create(opts: DocOptArgs, owner: Owner, suffix: Optional[str]):
     """
     Create a Mailman mailing list.
 
@@ -29,7 +31,7 @@ def create(opts: DocOptArgs, owner: Owner, suffix: str):
 
 
 @entrypoint
-def delete(opts: DocOptArgs, owner: Owner, suffix: str):
+def delete(opts: DocOptArgs, owner: Owner, suffix: Optional[str]):
     """
     Delete a Mailman mailing list, and optionally its archives.
 
