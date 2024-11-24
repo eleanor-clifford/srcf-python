@@ -1,4 +1,5 @@
 from enum import Enum
+from functools import wraps
 import subprocess
 import re
 import logging
@@ -52,6 +53,27 @@ def find_admins(admin_crsids, sess):
     if missing:
         raise KeyError(list(missing)[0])
     return set(admins)
+
+
+class Missing:
+    """Placeholder for members/societies in jobs that no longer exist."""
+
+    def __init__(self, key):
+        self.crsid = self.name = self.society = self.description = key
+
+
+def _try_get(fn):
+    @wraps(fn)
+    def _inner(key, *args, **kwargs):
+        try:
+            return fn(key, *args, **kwargs)
+        except KeyError:
+            return Missing(key)
+    return _inner
+
+
+try_get_member = _try_get(queries.get_member)
+try_get_society = _try_get(queries.get_society)
 
 
 def subproc_call(job, desc, cmd, stdin=None):
@@ -278,11 +300,7 @@ class SocietyJob(Job):
 
     def resolve_references(self, sess):
         super(SocietyJob, self).resolve_references(sess)
-        try:
-            self.society = queries.get_society(self.society_society)
-        except KeyError:
-            # maybe the society doesn't exist yet / any more
-            self.society = None
+        self.society = try_get_society(self.society_society, session=sess)
 
     def visible_to(self, crsid):
         return super(SocietyJob, self).visible_to(crsid) or self.society and crsid in self.society
@@ -733,13 +751,14 @@ class CreateSociety(SocietyJob):
 
     def resolve_references(self, sess):
         super(CreateSociety, self).resolve_references(sess)
-        self.admins = (
+        admins = {
+            admin.crsid: admin
+            for admin in
             sess.query(database.Member)
             .filter(database.Member.crsid.in_(self.admin_crsids))
             .all()
-        )
-        if len(self.admins) != len(self.admin_crsids):
-            raise KeyError("CreateSociety references admins")
+        }
+        self.admins = [admins.get(crsid, Missing(crsid)) for crsid in admins]
 
     @classmethod
     def new(cls, member, society, description, admins):
@@ -839,7 +858,7 @@ class ChangeSocietyAdmin(SocietyJob):
 
     def resolve_references(self, sess):
         super(ChangeSocietyAdmin, self).resolve_references(sess)
-        self.target_member = queries.get_member(self.target_member_crsid)
+        self.target_member = try_get_member(self.target_member_crsid, session=sess)
 
     @classmethod
     def new(cls, requesting_member, society, target_member, action):
