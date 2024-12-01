@@ -751,6 +751,8 @@ class CreateSociety(SocietyJob):
 
     def resolve_references(self, sess):
         super(CreateSociety, self).resolve_references(sess)
+        if isinstance(self.society, Missing):
+            self.society = None
         admins = {
             admin.crsid: admin
             for admin in
