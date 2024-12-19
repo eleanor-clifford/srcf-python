@@ -60,6 +60,7 @@ class Missing:
 
     def __init__(self, key):
         self.crsid = self.name = self.society = self.description = key
+        self.danger = True
 
 
 def _try_get(fn):
